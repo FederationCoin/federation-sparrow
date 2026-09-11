@@ -551,7 +551,7 @@ public class AppController implements Initializable {
 
         if(optResponse.isPresent()) {
             if(optResponse.get() == bugType) {
-                AppServices.get().getApplication().getHostServices().showDocument("https://github.com/privkeyio/shrike/issues/new");
+                AppServices.get().getApplication().getHostServices().showDocument("https://github.com/FederationCoin/federation-sparrow/issues/new");
             } else {
                 openSupport(event);
             }

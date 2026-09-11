@@ -38,7 +38,7 @@ jobs:
         if: ${{ runner.os == 'macOS' && env.HAS_MACOS_CERT == 'true' }}
         uses: sparrowwallet/github-actions/codesign-macos@6eeb7bf9b882cf89ff96b77f99bcf487b9d33992 # v1
         with:
-          app-name: Shrike
+          app-name: federationcoin-sparrow
           certificate: ${{ secrets.MACOS_CERTIFICATE }}
           certificate-password: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
           apple-id: ${{ secrets.MACOS_NOTARIZATION_APPLE_ID }}
@@ -51,24 +51,24 @@ jobs:
           cd build/jpackage
           # hdiutil ships with macOS; create-dmg would need a brew install that is not available here.
           VERSION=$(grep -m1 "^version" ../../build.gradle | cut -d"'" -f2)
-          DMG="Shrike-${VERSION}-$(uname -m)-unsigned.dmg"
+          DMG="federationcoin-sparrow-${VERSION}-$(uname -m)-unsigned.dmg"
 
           # hdiutil create intermittently fails with "Resource busy", twice in the runs behind this change and
           # on both macOS arms. It succeeds on a retry. Left unhandled it fails the build, and the checksums
           # job then writes a manifest without this platform's dmg in it.
           #
           # Detaching first because a failure can leave the volume attached, and a second create would then
-          # mount alongside it at /Volumes/Shrike 1 rather than clearing what blocked the first.
+          # mount alongside it at /Volumes/Federation Sparrow 1 rather than clearing what blocked the first.
           ATTEMPTS=5
           for attempt in $(seq "$ATTEMPTS"); do
-            if hdiutil create -volname Shrike -srcfolder Shrike.app -ov -format UDZO "$DMG"; then
+            if hdiutil create -volname "Federation Sparrow" -srcfolder federationcoin-sparrow.app -ov -format UDZO "$DMG"; then
               break
             fi
             if [ "$attempt" -eq "$ATTEMPTS" ]; then
               echo "hdiutil create failed $attempt times" >&2
               exit 1
             fi
-            hdiutil detach /Volumes/Shrike -force 2>/dev/null || true
+            hdiutil detach "/Volumes/Federation Sparrow" -force 2>/dev/null || true
             echo "hdiutil create failed, retrying in $((attempt * 5))s"
             sleep $((attempt * 5))
           done
@@ -86,11 +86,11 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: Shrike Build - ${{ runner.os }} ${{ runner.arch }}
+          name: Federation Sparrow Build - ${{ runner.os }} ${{ runner.arch }}
           path: |
             build/jpackage/*
-            !build/jpackage/Shrike/
-            !build/jpackage/Shrike.app/
+            !build/jpackage/federationcoin-sparrow/
+            !build/jpackage/federationcoin-sparrow.app/
       - name: Headless build with Gradle
         if: ${{ runner.os == 'Linux' }}
         run: ./gradlew -Djava.awt.headless=true clean jpackage
@@ -104,10 +104,10 @@ jobs:
         if: ${{ runner.os == 'Linux' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: Shrike Build - ${{ runner.os }} ${{ runner.arch }} Headless
+          name: Federation Sparrow Build - ${{ runner.os }} ${{ runner.arch }} Headless
           path: |
             build/jpackage/*
-            !build/jpackage/Shrike/
+            !build/jpackage/federationcoin-sparrow/
 
   checksums:
     needs: build

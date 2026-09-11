@@ -13,11 +13,11 @@ import java.util.regex.Pattern;
  *
  * jpackage copies this plist verbatim from the resource directory, so it overrides what the image name would
  * have produced. Left as upstream's, CFBundleExecutable read Sparrow while the bundle shipped Contents/MacOS
- * /Shrike, and Finder reports an app whose executable is missing as damaged or incomplete. It launched only
- * by running the binary directly, which is not something a user should have to discover.
+ * /federationcoin-sparrow, and Finder reports an app whose executable is missing as damaged or incomplete.
  *
  * CFBundleIdentifier matters separately: two bundles claiming com.sparrowwallet.sparrow leaves LaunchServices
- * to choose between this and an installed Sparrow.
+ * to choose between this and an installed Sparrow. The display name is Federation Sparrow, which contains
+ * the word Sparrow, so identity checks target the upstream bundle id and exact name Sparrow, not a substring.
  */
 public class MacBundleIdentityTest {
     private static final Path PLIST = Path.of("src/main/deploy/package/macos/Info.plist");
@@ -32,30 +32,37 @@ public class MacBundleIdentityTest {
     @Test
     public void testTheBundleNamesAnExecutableItShips() throws Exception {
         String executable = value("CFBundleExecutable");
+        Assertions.assertEquals("federationcoin-sparrow", executable,
+                "Finder runs this; it must match the jpackage image name");
         Assertions.assertFalse(executable.equalsIgnoreCase("Sparrow"),
                 "Finder runs this; it must not still be named Sparrow");
-        Assertions.assertFalse(executable.isBlank());
     }
 
     @Test
     public void testTheBundleNamesAnIconItShips() throws Exception {
         String icon = value("CFBundleIconFile");
         Assertions.assertTrue(icon.endsWith(".icns"), "jpackage names the copied icon after the application");
-        Assertions.assertFalse(icon.toLowerCase().contains("sparrow"));
+        Assertions.assertFalse(icon.equalsIgnoreCase("Sparrow.icns"));
     }
 
     @Test
     public void testTheBundleHasAnIdentityOfItsOwn() throws Exception {
-        for(String key : new String[] {"CFBundleIdentifier", "CFBundleName"}) {
-            Assertions.assertFalse(value(key).toLowerCase().contains("sparrow"),
-                    key + " still claims upstream's identity, which collides with an installed Sparrow");
-        }
+        Assertions.assertEquals("org.federationcoin.federation-sparrow", value("CFBundleIdentifier"));
+        Assertions.assertEquals("Federation Sparrow", value("CFBundleName"));
+        Assertions.assertFalse(value("CFBundleIdentifier").equals("com.sparrowwallet.sparrow"),
+                "CFBundleIdentifier still claims upstream's identity, which collides with an installed Sparrow");
+        Assertions.assertFalse(value("CFBundleName").equals("Sparrow"),
+                "CFBundleName still claims upstream's identity");
     }
 
     @Test
     public void testNothingInTheBundleStillNamesUpstream() throws Exception {
         String contents = Files.readString(PLIST);
-        Assertions.assertFalse(contents.toLowerCase().contains("sparrow"),
-                "the bundle plist still refers to upstream somewhere");
+        Assertions.assertFalse(contents.contains("com.sparrowwallet.sparrow"),
+                "the bundle plist still refers to upstream's bundle id");
+        Assertions.assertFalse(contents.contains(">Sparrow<"),
+                "the bundle plist still uses Sparrow as an identity string");
+        Assertions.assertFalse(contents.toLowerCase().contains("shrike"),
+                "the bundle plist still names the previous product");
     }
 }

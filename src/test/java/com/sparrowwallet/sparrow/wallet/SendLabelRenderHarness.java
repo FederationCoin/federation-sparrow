@@ -100,7 +100,7 @@ public class SendLabelRenderHarness {
     }
 
     public static void main(String[] args) throws Exception {
-        System.setProperty(SparrowWallet.APP_HOME_PROPERTY, Files.createTempDirectory("shrike-send").toString());
+        System.setProperty(SparrowWallet.APP_HOME_PROPERTY, Files.createTempDirectory("federation-sparrow-send").toString());
         Network.set(Network.MAINNET);
 
         String[] one = {"absent essay fox snake vast pumpkin height crouch silent bulb excuse razor"};

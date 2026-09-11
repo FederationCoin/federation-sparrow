@@ -1,5 +1,5 @@
-Summary: Shrike Server
-Name: shrikeserver
+Summary: Federation Sparrow Server
+Name: federationcoin-sparrow-server
 Version: ${version}
 Release: ${release}
 License: ASL 2.0
@@ -13,7 +13,7 @@ URL: https://sparrowwallet.com
 Prefix: /opt
 %endif
 
-Provides: shrikeserver
+Provides: federationcoin-sparrow-server
 
 %if "xutils" != "x"
 Group: utils
@@ -37,7 +37,7 @@ Autoreq: 0
 %define default_filesystem / /opt /usr /usr/bin /usr/lib /usr/local /usr/local/bin /usr/local/lib
 
 %description
-Shrike Server
+Federation Sparrow Server
 
 %global __os_install_post %{nil}
 
@@ -47,8 +47,8 @@ Shrike Server
 
 %install
 rm -rf %{buildroot}
-install -d -m 755 %{buildroot}/opt/shrikeserver
-cp -r %{_sourcedir}/opt/shrikeserver/* %{buildroot}/opt/shrikeserver
+install -d -m 755 %{buildroot}/opt/federationcoin-sparrow-server
+cp -r %{_sourcedir}/opt/federationcoin-sparrow-server/* %{buildroot}/opt/federationcoin-sparrow-server
 if [ "$(echo %{_sourcedir}/lib/systemd/system/*.service)" != '%{_sourcedir}/lib/systemd/system/*.service' ]; then
   install -d -m 755 %{buildroot}/lib/systemd/system
   cp %{_sourcedir}/lib/systemd/system/*.service %{buildroot}/lib/systemd/system

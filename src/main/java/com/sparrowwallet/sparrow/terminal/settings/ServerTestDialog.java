@@ -207,7 +207,7 @@ public class ServerTestDialog extends DialogWindow {
         } else if(exception instanceof ProxyServerException) {
             reason += ". Check if the proxy server is running.";
         } else if(reason != null && reason.contains("Check if federationcoind is running")) {
-            reason += "\n\nSee https://shrikewallet.com/docs/connect-node.html";
+            reason += "\n\nSee https://federationcoin.org";
         }
 
         testStatus.setText("Failed");

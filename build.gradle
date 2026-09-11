@@ -196,7 +196,7 @@ application {
                                  "--add-reads=org.flywaydb.core=java.desktop"]
 
     if(os.macOsX) {
-        applicationDefaultJvmArgs += ["-Dprism.lcdtext=false", "-Xdock:name=Shrike"]
+        applicationDefaultJvmArgs += ["-Dprism.lcdtext=false", "-Xdock:name=Federation Sparrow"]
     }
     if(headless) {
         applicationDefaultJvmArgs += ["-Dglass.platform=Headless"]
@@ -249,7 +249,7 @@ jlink {
                    'glob:/io.github.doblon8.jzbar/native/**,' +
                    'glob:/io.github.doblon8.openpnp.capture/native/**']
     launcher {
-        name = 'shrike'
+        name = 'federationcoin-sparrow'
         jvmArgs = ["--enable-native-access=com.sparrowwallet.drongo",
                    "--enable-native-access=com.sun.jna",
                    "--enable-native-access=javafx.graphics",
@@ -301,27 +301,27 @@ jlink {
     }
     addExtraDependencies("javafx")
     jpackage {
-        imageName = "Shrike"
-        installerName = "Shrike"
+        imageName = "federationcoin-sparrow"
+        installerName = "federationcoin-sparrow"
         appVersion = "${version}"
         skipInstaller = os.macOsX || skipInstallers
         imageOptions = []
         installerOptions = ['--file-associations', 'src/main/deploy/psbt.properties', '--file-associations', 'src/main/deploy/txn.properties', '--file-associations', 'src/main/deploy/asc.properties', '--license-file', 'LICENSE']
         if(os.windows) {
-            installerOptions.addAll(['--win-per-user-install', '--win-menu', '--win-menu-group', 'Shrike', '--win-shortcut', '--resource-dir', 'src/main/deploy/package/windows/'])
-            imageOptions.addAll(['--icon', 'src/main/deploy/package/windows/shrike.ico'])
+            installerOptions.addAll(['--win-per-user-install', '--win-menu', '--win-menu-group', 'Federation Sparrow', '--win-shortcut', '--resource-dir', 'src/main/deploy/package/windows/'])
+            imageOptions.addAll(['--icon', 'src/main/deploy/package/windows/federationcoin-sparrow.ico'])
             installerType = "msi"
         }
         if(os.linux) {
             if(headless) {
-                installerName = "shrikeserver"
+                installerName = "federationcoin-sparrow-server"
                 installerOptions = ['--license-file', 'LICENSE']
             } else {
-                installerName = "shrike"
-                installerOptions.addAll(['--linux-shortcut', '--linux-menu-group', 'Shrike'])
+                installerName = "federationcoin-sparrow"
+                installerOptions.addAll(['--linux-shortcut', '--linux-menu-group', 'Federation Sparrow'])
             }
             installerOptions.addAll(['--resource-dir', layout.buildDirectory.dir('deploy/package').get().asFile.toString(), '--linux-app-category', 'utils', '--linux-app-release', blake2bRelease, '--linux-rpm-license-type', 'ASL 2.0', '--linux-deb-maintainer', 'Kyle Santiago <kyle@privkey.io>'])
-            imageOptions.addAll(['--icon', 'src/main/deploy/package/linux/Shrike.png', '--resource-dir', 'src/main/deploy/package/linux/'])
+            imageOptions.addAll(['--icon', 'src/main/deploy/package/linux/federationcoin-sparrow.png', '--resource-dir', 'src/main/deploy/package/linux/'])
             //Set explicitly, as the other two platforms do. Left unset, jpackage attempts every installer
             //type the platform advertises and stops on the one whose tooling is absent, so packaging fails
             //on a machine without rpmbuild, which is the default state of a Debian or Ubuntu box.
@@ -331,7 +331,7 @@ jlink {
             //No signing options: the macOS installer is skipped above, so these never took effect, and what
             //stood here named upstream's signing identity. Anyone enabling the installer needs to add their
             //own rather than inherit one that would try to sign as someone else.
-            imageOptions.addAll(['--icon', 'src/main/deploy/package/macos/shrike.icns', '--resource-dir', 'src/main/deploy/package/macos/'])
+            imageOptions.addAll(['--icon', 'src/main/deploy/package/macos/FederationCoin.icns', '--resource-dir', 'src/main/deploy/package/macos/'])
             installerType = "dmg"
         }
     }
@@ -375,7 +375,7 @@ tasks.register('prepareResourceDir', Copy) {
         if(file.name.equals('control') || file.name.endsWith('.spec')) {
             filter { line ->
                 if(line.contains('${size}')) {
-                    line = line.replace('${size}', getDirectorySize(layout.buildDirectory.dir('jpackage/Shrike').get().asFile))
+                    line = line.replace('${size}', getDirectorySize(layout.buildDirectory.dir('jpackage/federationcoin-sparrow').get().asFile))
                 }
                 return line.replace('${version}', "${version}").replace('${release}', blake2bRelease).replace('${arch}', osArch == 'aarch64' ? 'arm64' : 'amd64')
             }
@@ -386,8 +386,8 @@ tasks.register('prepareResourceDir', Copy) {
 tasks.register('copyMimeInfo', Copy) {
     mustRunAfter tasks.jpackageImage
     from('src/main/deploy/package/linux')
-    into(layout.buildDirectory.dir('jpackage/Shrike/lib'))
-    include('shrike-Shrike-MimeInfo.xml')
+    into(layout.buildDirectory.dir('jpackage/federationcoin-sparrow/lib'))
+    include('federationcoin-sparrow-MimeInfo.xml')
 }
 
 static def getDirectorySize(File directory) {
@@ -405,26 +405,26 @@ static def getDirectorySize(File directory) {
 }
 
 tasks.register('removeGroupWritePermission', Exec) {
-    commandLine 'chmod', '-R', 'g-w', "$buildDir/jpackage/Shrike"
+    commandLine 'chmod', '-R', 'g-w', "$buildDir/jpackage/federationcoin-sparrow"
 }
 
 tasks.register('packageZipDistribution', Zip) {
-    archiveFileName = "Shrike-${version}.zip"
+    archiveFileName = "federationcoin-sparrow-${version}.zip"
     destinationDirectory = file("$buildDir/jpackage")
     preserveFileTimestamps = os.macOsX
     from("$buildDir/jpackage/") {
-        include "Shrike/**"
-        include "Shrike.app/**"
+        include "federationcoin-sparrow/**"
+        include "federationcoin-sparrow.app/**"
     }
 }
 
 tasks.register('packageTarDistribution', Tar) {
     dependsOn removeGroupWritePermission
-    archiveFileName = "shrike${headless ? 'server': ''}-${version}-${releaseArch}.tar.gz"
+    archiveFileName = "federationcoin-sparrow${headless ? '-server': ''}-${version}-${releaseArch}.tar.gz"
     destinationDirectory = file("$buildDir/jpackage")
     compression = Compression.GZIP
     from("$buildDir/jpackage/") {
-        include "Shrike/**"
+        include "federationcoin-sparrow/**"
     }
 }
 

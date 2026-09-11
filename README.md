@@ -1,4 +1,4 @@
-# FederationCoin wallet
+# Federation Sparrow
 
 This is the FederationCoin desktop wallet, forked from [privkeyio/shrike](https://github.com/privkeyio/shrike) (itself a Sparrow fork). It is not affiliated with Sparrow.
 
@@ -11,7 +11,7 @@ This is the FederationCoin desktop wallet, forked from [privkeyio/shrike](https:
 - **Testnet is the public net.** `federationcoind -testnet`, P2P 35333, RPC 35332, HRP `tfcn`. Explorer: `https://mempool.federationcoin.org`.
 - **Main is not live.** Dummy MAIN identity only (placeholder genesis, magic `00000000`, P2P 4095, RPC 4094, HRP `fcn`). Do not treat it as launched.
 - **Blake2b from height 1.** Unified sighash follows that. Identity lives in the `drongo` submodule, not in this Java tree.
-- **Home directory** is `~/.federationcoin-sparrow` so it does not collide with `federationcoind` (`~/.federationcoin`) or Shrike (`~/.shrike`).
+- **Home directory** is `~/.federationcoin-sparrow` so it does not collide with `federationcoind` (`~/.federationcoin`).
 
 Hot single-sig against a local `federationcoind -testnet` is the success bar for this pass. Hardware, PayNym, and a downloadable installer are later.
 
@@ -136,7 +136,7 @@ Specifying a home folder with the `-d` argument disables XDG resolution entirely
 
 ## Reporting Issues
 
-Please use the [Issues](https://github.com/privkeyio/shrike/issues) tab above to report an issue with this fork. Issues that are not specific to the BLAKE2b fork should be reported [upstream](https://github.com/sparrowwallet/sparrow/issues) instead. If possible, look in the sparrow.log file in the configuration directory for information helpful in debugging. 
+Please use the [Issues](https://github.com/FederationCoin/federation-sparrow/issues) tab above to report an issue with this fork. Issues that are not specific to this chain should be reported [upstream](https://github.com/sparrowwallet/sparrow/issues) instead. If possible, look in the federationcoin-sparrow.log file in the configuration directory for information helpful in debugging. 
 
 ## License
 
