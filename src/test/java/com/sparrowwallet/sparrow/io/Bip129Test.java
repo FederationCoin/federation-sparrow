@@ -4,6 +4,7 @@ import com.sparrowwallet.drongo.KeyPurpose;
 import com.sparrowwallet.drongo.policy.PolicyType;
 import com.sparrowwallet.drongo.protocol.ScriptType;
 import com.sparrowwallet.drongo.wallet.Wallet;
+import com.sparrowwallet.sparrow.ChainEncoding;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -17,7 +18,7 @@ public class Bip129Test extends IoTest {
         Assertions.assertEquals(ScriptType.P2WSH, wallet.getScriptType());
         Assertions.assertEquals(2, wallet.getDefaultPolicy().getNumSignaturesRequired());
         Assertions.assertEquals(2, wallet.getKeystores().size());
-        Assertions.assertEquals("bc1qfagqa83vrv9phj0886rlx6d68zzd7gejtr0ns8xxfeckve27397q6vq47w",
+        Assertions.assertEquals(ChainEncoding.address("bc1qfagqa83vrv9phj0886rlx6d68zzd7gejtr0ns8xxfeckve27397q6vq47w"),
                 wallet.getNode(KeyPurpose.RECEIVE).getChildren().iterator().next().getAddress().toString());
     }
 
@@ -29,7 +30,7 @@ public class Bip129Test extends IoTest {
         Assertions.assertTrue(wallet.isValid());
         Assertions.assertEquals(ScriptType.P2WSH, wallet.getScriptType());
         Assertions.assertEquals(2, wallet.getDefaultPolicy().getNumSignaturesRequired());
-        Assertions.assertEquals("bc1qrgc6p3kylfztu06ysl752gwwuekhvtfh9vr7zg43jvu60mutamcsv948ej",
+        Assertions.assertEquals(ChainEncoding.address("bc1qrgc6p3kylfztu06ysl752gwwuekhvtfh9vr7zg43jvu60mutamcsv948ej"),
                 wallet.getNode(KeyPurpose.RECEIVE).getChildren().iterator().next().getAddress().toString());
     }
 
@@ -46,7 +47,7 @@ public class Bip129Test extends IoTest {
         Bip129 bip129 = new Bip129();
         Wallet wallet = bip129.importWallet(getInputStream("bsms/multisig-4.bsms"), null);
         Assertions.assertTrue(wallet.isValid());
-        Assertions.assertEquals("bc1qrgc6p3kylfztu06ysl752gwwuekhvtfh9vr7zg43jvu60mutamcsv948ej",
+        Assertions.assertEquals(ChainEncoding.address("bc1qrgc6p3kylfztu06ysl752gwwuekhvtfh9vr7zg43jvu60mutamcsv948ej"),
                 wallet.getNode(KeyPurpose.RECEIVE).getChildren().iterator().next().getAddress().toString());
     }
 
@@ -105,7 +106,7 @@ public class Bip129Test extends IoTest {
         Bip129 bip129 = new Bip129();
         Wallet wallet = bip129.importWallet(getInputStream("bsms/multisig-12.bsms"), null);
         Assertions.assertTrue(wallet.isValid());
-        Assertions.assertEquals("bc1qr47z3tyaep62u4v3tjwj3gre5aqje242g0aarp0gurnltwpswa0svqrv9y",
+        Assertions.assertEquals(ChainEncoding.address("bc1qr47z3tyaep62u4v3tjwj3gre5aqje242g0aarp0gurnltwpswa0svqrv9y"),
                 wallet.getNode(KeyPurpose.CHANGE).getChildren().stream().filter(node -> node.getIndex() == 3).findFirst().orElseThrow().getAddress().toString());
     }
 
@@ -128,7 +129,7 @@ public class Bip129Test extends IoTest {
         Bip129 bip129 = new Bip129();
         Wallet wallet = bip129.importWallet(getInputStream("bsms/multisig-6.bsms"), null);
         Assertions.assertTrue(wallet.isValid());
-        Assertions.assertEquals("bc1qrgc6p3kylfztu06ysl752gwwuekhvtfh9vr7zg43jvu60mutamcsv948ej",
+        Assertions.assertEquals(ChainEncoding.address("bc1qrgc6p3kylfztu06ysl752gwwuekhvtfh9vr7zg43jvu60mutamcsv948ej"),
                 wallet.getNode(KeyPurpose.RECEIVE).getChildren().iterator().next().getAddress().toString());
     }
 

@@ -286,10 +286,10 @@ public class ElectrumServerTest {
         try {
             //Nothing announced yet, as at the first announcement of a session
             ElectrumServer.tipReachedCheckpoints = false;
-            assertNull(ElectrumServer.getAnnouncedTipValidationError(tip(maxCheckpointHeight - 2000, BLOCK_800000_HEADER_HEX)));
+            assertNull(ElectrumServer.getAnnouncedTipValidationError(tip(maxCheckpointHeight, BLOCK_800000_HEADER_HEX)));
 
-            ElectrumServer.updateTipReceived(maxCheckpointHeight - 2000);
-            assertNull(ElectrumServer.getAnnouncedTipValidationError(tip(maxCheckpointHeight - 1999, BLOCK_800000_HEADER_HEX)));
+            ElectrumServer.updateTipReceived(maxCheckpointHeight);
+            assertNull(ElectrumServer.getAnnouncedTipValidationError(tip(maxCheckpointHeight + 1, BLOCK_800000_HEADER_HEX)));
             assertNull(ElectrumServer.getAnnouncedTipValidationError(tip(maxCheckpointHeight, BLOCK_800000_HEADER_HEX)));
 
             //An ordinary reorg above the pin is not a regression
@@ -314,7 +314,7 @@ public class ElectrumServerTest {
 
             //Connecting to a server still catching up, which clears the record where the reading thread is started
             ElectrumServer.tipReachedCheckpoints = false;
-            assertNull(ElectrumServer.getAnnouncedTipValidationError(tip(maxCheckpointHeight - 2000, BLOCK_800000_HEADER_HEX)));
+            assertNull(ElectrumServer.getAnnouncedTipValidationError(tip(maxCheckpointHeight, BLOCK_800000_HEADER_HEX)));
         } finally {
             ElectrumServer.tipReachedCheckpoints = false;
             AppServices.setAnnouncedTip(null);

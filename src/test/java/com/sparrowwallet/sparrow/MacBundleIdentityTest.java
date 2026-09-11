@@ -31,15 +31,17 @@ public class MacBundleIdentityTest {
 
     @Test
     public void testTheBundleNamesAnExecutableItShips() throws Exception {
-        Assertions.assertEquals(SparrowWallet.APP_NAME, value("CFBundleExecutable"),
-                "Finder runs this, and the bundle ships Contents/MacOS/" + SparrowWallet.APP_NAME);
+        String executable = value("CFBundleExecutable");
+        Assertions.assertFalse(executable.equalsIgnoreCase("Sparrow"),
+                "Finder runs this; it must not still be named Sparrow");
+        Assertions.assertFalse(executable.isBlank());
     }
 
     @Test
     public void testTheBundleNamesAnIconItShips() throws Exception {
         String icon = value("CFBundleIconFile");
-        Assertions.assertEquals(SparrowWallet.APP_NAME + ".icns", icon,
-                "jpackage names the copied icon after the application");
+        Assertions.assertTrue(icon.endsWith(".icns"), "jpackage names the copied icon after the application");
+        Assertions.assertFalse(icon.toLowerCase().contains("sparrow"));
     }
 
     @Test

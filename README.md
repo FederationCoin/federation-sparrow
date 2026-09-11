@@ -1,89 +1,32 @@
-# Shrike
+# FederationCoin wallet
 
-Shrike is an unofficial fork of [Sparrow Bitcoin Wallet](https://github.com/sparrowwallet/sparrow) that follows Bitcoin's change of proof-of-work algorithm to BLAKE2b and signs with the unified opt-in signature hash. It is not affiliated with the Sparrow project. Upstream Sparrow has not added support for it, so use it instead if that is what you want.
+This is the FederationCoin desktop wallet, forked from [privkeyio/shrike](https://github.com/privkeyio/shrike) (itself a Sparrow fork). It is not affiliated with Sparrow.
 
-> **Not audited. Use at your own risk, and no warranty of any kind, see the [Apache 2.0 license](LICENSE).** Everything below the divider is upstream's documentation and describes Sparrow rather than Shrike.
+**Origin is `git@github.com:FederationCoin/federation-sparrow.git`.** Work on `federationcoin`. `master` tracks upstream. **Never push `upstream`** (`privkeyio/shrike`). Same for the `drongo` and `lark` submodules (`FederationCoin/drongo`, `FederationCoin/lark`).
 
-## What differs from Sparrow
+> **Not audited. Use at your own risk, and no warranty of any kind, see the [Apache 2.0 license](LICENSE).** Everything below the divider is upstream Sparrow documentation.
 
-- **BLAKE2b proof of work.** Validates the 164 byte v2 block header and takes the BLAKE2b hash as the block id past activation. Implemented in the [drongo](https://github.com/privkeyio/drongo) submodule.
-- **Unified opt-in signature hash.** Signs with hash type `0x21` past activation, which is invalid under the pre-fork rules and is what makes it unreplayable. Where it cannot opt in, the wallet signs the legacy way and says so on the send screen.
-- **Per-keystore opt-in.** Nothing a device or a watch only keystore reports says what will sign for it, so each is marked by hand under Replay protection. A keystore holding its own key needs no mark. One marked signer is enough, and unmarked signers still sign: each is handed the hash type it can produce.
-- **Only services that kept up are offered.** Fee rates, explorer links and broadcast use mempool.guide; the preconfigured public Electrum servers are gone, because they stopped at the activation height. Connect a Knots node, or your own Electrum server indexing one.
-- **Separate application identity.** Installs alongside an existing Sparrow without sharing state: `~/.shrike`, its own packages, desktop entries, MIME types and macOS bundle identifier.
+## This chain
 
-## Activation
+- **Testnet is the public net.** `federationcoind -testnet`, P2P 35333, RPC 35332, HRP `tfcn`. Explorer: `https://mempool.federationcoin.org`.
+- **Main is not live.** Dummy MAIN identity only (placeholder genesis, magic `00000000`, P2P 4095, RPC 4094, HRP `fcn`). Do not treat it as launched.
+- **Blake2b from height 1.** Unified sighash follows that. Identity lives in the `drongo` submodule, not in this Java tree.
+- **Home directory** is `~/.federationcoin-sparrow` so it does not collide with `federationcoind` (`~/.federationcoin`) or Shrike (`~/.shrike`).
 
-| Network | Height |
-| --- | --- |
-| mainnet | 961,640 |
-| testnet4 | 150,308 |
-
-The compiled-in height is cross checked against the connected node where it reports one, and a disagreement declines to opt in rather than following either. Only Knots reports it, through `getdeploymentinfo`; through anything else the wallet still opts in and says the height went unchecked.
-
-## Replay protection
-
-A signature that does not opt in is valid under both rule sets. Where the coins it spends also exist on the SHA256d chain, that makes the transaction replayable there. **Check the send screen before building anything.** The opt-in is selected by default:
-
-![The send screen reporting a transaction as replay protected](docs/images/send-replay-protected.png)
-
-Where it reads this instead, hovering the status names what is refusing and what to do about it:
-
-![The send screen reporting a transaction as not replay protected](docs/images/send-not-replay-protected.png)
-
-Where a signer is the reason, tick it in the keystore tab of the wallet settings. Nothing a device reports says which firmware it runs, so this is what its owner tells the wallet, and it is off until they say so:
-
-![The Replay protection field in the keystore tab, marked as supported by this device](docs/images/keystore-replay-protection.png)
-
-Opening the transaction afterwards answers in two steps, because it looks at the signatures that are actually on it. Before anyone has signed there is nothing to look at yet, so it tells you what the transaction will be:
-
-![The transaction tab reporting that a transaction will be replay protected once signed](docs/images/will-be-replay-protected.png)
-
-After signing, the wallet checks each signature against its own keys and tells you what the transaction is. A question mark means not checked yet, not unprotected. Until the wallet can check for itself it will not say either way, because a transaction file can claim anything about itself: open one without its wallet, or with signatures this wallet cannot read, and it stays unchecked rather than guessed at.
-
-**In a multisig** one marked signer is enough. Mark two of a 2-of-3 and every transaction opts in; mark one and the opt-in depends on that signer taking part, which the wallet says rather than promising in advance.
-
-**The exception is Anyone Can Pay**, which commits only to its own input and the outputs, so that input can be lifted out and spent on the SHA256d chain, even though the transaction cannot. The send screen names such signatures. Shrike never selects it by itself.
-
-Coins held across activation are only separated once spent with an opted-in signature, and a spend covers only the inputs it consumes, so sweep every pre-fork UTXO to yourself before transacting with anyone on the SHA256d chain.
+Hot single-sig against a local `federationcoind -testnet` is the success bar for this pass. Hardware, PayNym, and a downloadable installer are later.
 
 ## Building
 
-Clone this repository rather than upstream's, and `--recursive` matters: the BLAKE2b work lives in the drongo submodule.
-
 ```bash
-git clone --recursive https://github.com/privkeyio/shrike.git
+git clone --recursive git@github.com:FederationCoin/federation-sparrow.git
+git checkout federationcoin
 ```
 
 Java requirements and the build itself are unchanged, see [Building](#building-1) below.
 
-## Releases
-
-Published under [Releases](https://github.com/privkeyio/shrike/releases) with a signed `SHA256SUMS` covering every file:
-
-```bash
-gpg --import privkeyio-signing-key.asc
-gpg --verify SHA256SUMS.asc SHA256SUMS
-sha256sum --ignore-missing -c SHA256SUMS
-```
-
-Signed by Kyle Santiago <kyle@privkey.io>, key `A47D99B6DB0D715D40C59A2023AE8A8EA7E24E38`.
-
-The macOS builds are not notarized and the Windows installer is not Authenticode signed, so both are reported as untrusted on first launch. Verify `SHA256SUMS` first, because clearing quarantine removes the check that would otherwise stop a tampered download:
-
-```bash
-xattr -dr com.apple.quarantine /Applications/Shrike.app
-```
-
-Reproducible: see [reproducible.md](docs/reproducible.md). The proof of work and the signature hash are verified end to end against a live forked regtest node, see [blake2b-regtest.md](docs/blake2b-regtest.md) and [unified-sighash-regtest.md](docs/unified-sighash-regtest.md).
-
 ## Reporting issues
 
-Use the [Issues](https://github.com/privkeyio/shrike/issues) tab for problems specific to this fork. Anything else belongs [upstream](https://github.com/sparrowwallet/sparrow/issues).
-
-## Credit
-
-The v2 block header, the BLAKE2b proof of work, the separate application identity and the packaging were written by [AcesHigh70](https://github.com/AcesHigh70), and are no longer maintained there. This fork continues that work and adds the unified opt-in signature hash.
+Use [FederationCoin/federation-sparrow issues](https://github.com/FederationCoin/federation-sparrow/issues). Do not open them on privkeyio.
 
 ---
 # Sparrow Bitcoin Wallet

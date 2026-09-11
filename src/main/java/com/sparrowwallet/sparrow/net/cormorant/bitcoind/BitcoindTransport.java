@@ -68,7 +68,7 @@ public class BitcoindTransport implements Transport {
             }
             this.bitcoindUrl = new URI(serverUrl + "/wallet/" + bitcoindWallet).toURL();
         } catch(MalformedURLException | URISyntaxException e) {
-            log.error("Malformed Bitcoin Knots RPC URL", e);
+            log.error("Malformed federationcoind RPC URL", e);
         }
     }
 
@@ -128,7 +128,7 @@ public class BitcoindTransport implements Transport {
         if(statusCode == 401) {
             throw new IOException((cookieFile == null ? "User/pass" : "Cookie file") + " authentication failed");
         } else if(statusCode == 403) {
-            throw new IOException("Bitcoin Knots at " + bitcoindUrl.getAuthority() + " refused RPC access from this computer, check its rpcallowip and rpcwhitelist settings");
+            throw new IOException("federationcoind at " + bitcoindUrl.getAuthority() + " refused RPC access from this computer, check its rpcallowip and rpcwhitelist settings");
         }
         InputStream inputStream = connection.getErrorStream() == null ? connection.getInputStream() : connection.getErrorStream();
 
@@ -152,7 +152,7 @@ public class BitcoindTransport implements Transport {
         //A response carrying neither a result nor an error leaves the client constructing a JsonRpcException from a null error message, which throws a NullPointerException naming nothing.
         //Bitcoin Core always answers with a JSON-RPC object, so an empty or HTML body here comes from something else on the network path - typically a TLS terminating proxy sent a plain HTTP request.
         if(!response.startsWith("{")) {
-            throw new IOException("Bitcoin Knots at " + bitcoindUrl.getAuthority() + " did not return a JSON-RPC response to the " + bitcoindUrl.getProtocol() + " request (HTTP " + statusCode + ")");
+            throw new IOException("federationcoind at " + bitcoindUrl.getAuthority() + " did not return a JSON-RPC response to the " + bitcoindUrl.getProtocol() + " request (HTTP " + statusCode + ")");
         }
 
         return response;
@@ -182,7 +182,7 @@ public class BitcoindTransport implements Transport {
     private String getBitcoindAuthEncoded() throws IOException {
         if(cookieFile != null) {
             if(!cookieFile.exists()) {
-                throw new IOException("Cannot find Bitcoin Knots cookie file at " + cookieFile.getAbsolutePath());
+                throw new IOException("Cannot find federationcoind cookie file at " + cookieFile.getAbsolutePath());
             }
 
             if(cookieFileTimestamp == null || cookieFile.lastModified() != cookieFileTimestamp) {
@@ -191,7 +191,7 @@ public class BitcoindTransport implements Transport {
                     bitcoindAuthEncoded = Base64.getEncoder().encodeToString(userPass.getBytes(StandardCharsets.UTF_8));
                     cookieFileTimestamp = cookieFile.lastModified();
                 } catch(Exception e) {
-                    log.warn("Cannot read Bitcoin Knots .cookie file", e);
+                    log.warn("Cannot read federationcoind .cookie file", e);
                 }
             }
         }

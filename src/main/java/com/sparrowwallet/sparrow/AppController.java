@@ -504,19 +504,18 @@ public class AppController implements Initializable {
     }
 
     private void setNetworkLabel() {
-        if(Network.get() != Network.MAINNET) {
-            Platform.runLater(() -> {
-                StackPane tabBackground = (StackPane)tabs.lookup(".tab-header-background");
-                if(tabBackground != null) {
-                    HBox hBox = new HBox();
-                    Label label = new Label(Network.get().toDisplayString());
-                    label.setPadding(new Insets(0, 10, 0, 0));
-                    hBox.getChildren().add(label);
-                    hBox.setAlignment(Pos.CENTER_RIGHT);
-                    tabBackground.getChildren().add(hBox);
-                }
-            });
-        }
+        Platform.runLater(() -> {
+            StackPane tabBackground = (StackPane)tabs.lookup(".tab-header-background");
+            if(tabBackground != null) {
+                HBox hBox = new HBox();
+                String text = Network.get() == Network.MAINNET ? "Main is not live" : Network.get().toDisplayString();
+                Label label = new Label(text);
+                label.setPadding(new Insets(0, 10, 0, 0));
+                hBox.getChildren().add(label);
+                hBox.setAlignment(Pos.CENTER_RIGHT);
+                tabBackground.getChildren().add(hBox);
+            }
+        });
     }
 
     public void showIntroduction(ActionEvent event) {
@@ -529,7 +528,7 @@ public class AppController implements Initializable {
     }
 
     public void showDocumentation(ActionEvent event) {
-        AppServices.get().getApplication().getHostServices().showDocument("https://shrikewallet.com/docs/");
+        AppServices.get().getApplication().getHostServices().showDocument("https://github.com/FederationCoin/federation-sparrow");
     }
 
     public void showLogFile(ActionEvent event) throws IOException {
@@ -542,7 +541,7 @@ public class AppController implements Initializable {
     }
 
     public void openSupport(ActionEvent event) {
-        AppServices.get().getApplication().getHostServices().showDocument("https://github.com/privkeyio/shrike/issues");
+        AppServices.get().getApplication().getHostServices().showDocument("https://github.com/FederationCoin/federation-sparrow/issues");
     }
 
     public void submitBugReport(ActionEvent event) {
@@ -1128,7 +1127,7 @@ public class AppController implements Initializable {
     private String getServerToggleTooltipText(Integer currentBlockHeight) {
         if(AppServices.isConnected()) {
             return "Connected to " + Config.get().getServerDisplayName() + (currentBlockHeight != null ? " at height " + currentBlockHeight : "") +
-                    (Config.get().getServerType() == ServerType.PUBLIC_ELECTRUM_SERVER ? "\nWarning! You are connected to a public server and sharing your transaction data with it.\nFor better privacy, consider using your own Bitcoin Knots node or private Electrum server." : "");
+                    (Config.get().getServerType() == ServerType.PUBLIC_ELECTRUM_SERVER ? "\nWarning! You are connected to a public server and sharing your transaction data with it.\nFor better privacy, consider using your own federationcoind node or private Electrum server." : "");
         } else if(AppServices.isConnecting()) {
             return "Connecting...";
         }
@@ -3174,16 +3173,16 @@ public class AppController implements Initializable {
     @Subscribe
     public void cormorantPruneStatus(CormorantPruneStatusEvent event) {
         if(event.legacyWalletExists()) {
-            Optional<ButtonType> optButtonType = AppServices.showErrorDialog("Error importing Bitcoin Knots descriptor wallet",
+            Optional<ButtonType> optButtonType = AppServices.showErrorDialog("Error importing federationcoind descriptor wallet",
                     "The connected node is pruned at " + event.getPruneDateAsString() + ", but the wallet birthday for " + event.getWallet().getFullDisplayName() + " is set to " + event.getScanDateAsString() + ".\n\n" +
-                            "Do you want to try using the existing legacy Bitcoin Knots wallet?", ButtonType.YES, ButtonType.NO);
+                            "Do you want to try using the existing legacy federationcoind wallet?", ButtonType.YES, ButtonType.NO);
             if(optButtonType.isPresent() && optButtonType.get() == ButtonType.YES) {
                 Config.get().setUseLegacyCoreWallet(true);
                 onlineProperty().set(false);
                 Platform.runLater(() -> onlineProperty().set(true));
             }
         } else {
-            AppServices.showErrorDialog("Error importing Bitcoin Knots descriptor wallet",
+            AppServices.showErrorDialog("Error importing federationcoind descriptor wallet",
                     "The connected node is pruned at " + event.getPruneDateAsString() + ", but the wallet birthday for " + event.getWallet().getFullDisplayName() + " is set to " + event.getScanDateAsString() + ".");
         }
     }
@@ -3191,8 +3190,8 @@ public class AppController implements Initializable {
     @Subscribe
     public void cormorantImportStatus(CormorantImportStatusEvent event) {
         String walletNames = event.getWallets().stream().map(Wallet::getFullDisplayName).collect(Collectors.joining(", "));
-        AppServices.showErrorDialog("Error importing Bitcoin Knots descriptors",
-                "Bitcoin Knots did not import " + (walletNames.isEmpty() ? "one or more descriptors" : "the descriptors for " + walletNames) + ":\n\n" + event.getErrorMessage() + "\n\n" +
+        AppServices.showErrorDialog("Error importing federationcoind descriptors",
+                "federationcoind did not import " + (walletNames.isEmpty() ? "one or more descriptors" : "the descriptors for " + walletNames) + ":\n\n" + event.getErrorMessage() + "\n\n" +
                         "Transactions and balances may be incomplete until the import succeeds.");
     }
 

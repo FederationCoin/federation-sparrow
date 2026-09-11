@@ -15,6 +15,7 @@ import com.sparrowwallet.drongo.protocol.ScriptType;
 import com.sparrowwallet.drongo.protocol.Sha256Hash;
 import com.sparrowwallet.drongo.protocol.Transaction;
 import com.sparrowwallet.drongo.wallet.*;
+import com.sparrowwallet.sparrow.ChainEncoding;
 import com.sparrowwallet.sparrow.SparrowWallet;
 import com.sparrowwallet.sparrow.wallet.WalletForm;
 import org.junit.jupiter.api.AfterAll;
@@ -59,7 +60,7 @@ public class WalletLabelsTest {
     public void testExport() throws Exception {
         TestWallet testWallet = createTestWallet();
         applyLabels(testWallet);
-        Assertions.assertEquals("bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu", testWallet.receiveNode0.getAddress().toString());
+        Assertions.assertEquals(ChainEncoding.address("bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu"), testWallet.receiveNode0.getAddress().toString());
 
         WalletLabels walletLabels = new WalletLabels(List.of(testWallet.walletForm));
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -216,7 +217,7 @@ public class WalletLabelsTest {
         Date spendingDate = new Date(1700086400000L);
         Transaction spendingTx = new Transaction();
         spendingTx.addInput(fundingTx.getTxId(), 0, new Script(new byte[0]));
-        spendingTx.addOutput(90000L, Address.fromString("bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4"));
+        spendingTx.addOutput(90000L, Address.fromString(ChainEncoding.address("bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4")));
         BlockTransaction spendingBlkTx = new BlockTransaction(spendingTx.getTxId(), 850001, spendingDate, null, spendingTx);
 
         wallet.updateTransactions(Map.of(fundingTx.getTxId(), fundingBlkTx, spendingTx.getTxId(), spendingBlkTx));
