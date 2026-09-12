@@ -51,7 +51,7 @@ public class SpecterDIYTest extends IoTest {
 
     @Test
     public void testExport() throws ExportException, IOException {
-        OutputDescriptor walletDescriptor = OutputDescriptor.getOutputDescriptor("wsh(sortedmulti(2,[7fd1bbf4/48h/0h/0h/2h]xpub6DnVFCXjZKhSAJw1oGzksdc1CtMxHxqG6DgNSjZHsymMSgcNEb2c3bz5N2bBMEEUFos98CeAWbh1pTMBcJrsKW63icdAQNGT6Aqv1WWrkxg,[8ff26349/48h/0h/0h/2h]xpub6ErPooPdSeBoXVZocBe8EWF9GXjFuV52kme35p4MtrP2SAFdUmgTJM1urrJzSuA44izrEuiQNNdmWEVRaBJcBDcPpnLBR8tP2Pcu2EiyeHu,[ff3305c2/48h/0h/0h/2h]xpub6Dpndp2xurqbfSGhxKVXzk3nJZgah3PdD3qD11KyPicYYBatRxfxqoN7s9tnWKXaz7zhyVqcvnJyak7BVKonW2wTXHd1zNDxJAu8jcxF59j))");
+        OutputDescriptor walletDescriptor = OutputDescriptor.getOutputDescriptor(ChainEncoding.descriptor("wsh(sortedmulti(2,[7fd1bbf4/48h/0h/0h/2h]xpub6DnVFCXjZKhSAJw1oGzksdc1CtMxHxqG6DgNSjZHsymMSgcNEb2c3bz5N2bBMEEUFos98CeAWbh1pTMBcJrsKW63icdAQNGT6Aqv1WWrkxg,[8ff26349/48h/0h/0h/2h]xpub6ErPooPdSeBoXVZocBe8EWF9GXjFuV52kme35p4MtrP2SAFdUmgTJM1urrJzSuA44izrEuiQNNdmWEVRaBJcBDcPpnLBR8tP2Pcu2EiyeHu,[ff3305c2/48h/0h/0h/2h]xpub6Dpndp2xurqbfSGhxKVXzk3nJZgah3PdD3qD11KyPicYYBatRxfxqoN7s9tnWKXaz7zhyVqcvnJyak7BVKonW2wTXHd1zNDxJAu8jcxF59j))"));
         Wallet wallet = walletDescriptor.toWallet();
         wallet.setName("Sparrow Multisig");
 
@@ -62,7 +62,7 @@ public class SpecterDIYTest extends IoTest {
         String original = new String(walletBytes);
         String exported = new String(baos.toByteArray());
 
-        Assertions.assertEquals(original, exported);
+        Assertions.assertEquals(ChainEncoding.descriptor(original), exported);
     }
 
     @AfterEach

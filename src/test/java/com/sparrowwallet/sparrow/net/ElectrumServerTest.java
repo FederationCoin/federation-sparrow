@@ -1,6 +1,7 @@
 package com.sparrowwallet.sparrow.net;
 
 import com.sparrowwallet.drongo.ExtendedKey;
+import com.sparrowwallet.sparrow.ChainEncoding;
 import com.sparrowwallet.drongo.KeyDerivation;
 import com.sparrowwallet.drongo.KeyPurpose;
 import com.sparrowwallet.drongo.Network;
@@ -38,6 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import com.sparrowwallet.sparrow.ChainEncoding;
 
 public class ElectrumServerTest {
     private static final String BLOCK_800000_HEADER_HEX = "00601d3455bb9fbd966b3ea2dc42d0c22722e4c0c1729fad17210100000000000000000055087fab0c8f3f89f8bcfd4df26c504d81b0a88e04907161838c0c53001af09135edbd64943805175e955e06";
@@ -380,7 +382,7 @@ public class ElectrumServerTest {
         wallet.setScriptType(ScriptType.P2WPKH);
         Keystore keystore = new Keystore();
         keystore.setKeyDerivation(new KeyDerivation("00000000", "m/84'/0'/0'"));
-        keystore.setExtendedPublicKey(ExtendedKey.fromDescriptor(TEST_XPUB));
+        keystore.setExtendedPublicKey(ChainEncoding.fromPublishedDescriptor(TEST_XPUB));
         wallet.getKeystores().add(keystore);
         wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.SINGLE_HD, ScriptType.P2WPKH, wallet.getKeystores(), 1));
         wallet.getNode(KeyPurpose.RECEIVE).fillToIndex(wallet, 1);

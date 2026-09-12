@@ -197,7 +197,7 @@ public class WalletLabelsTest {
         keystore.setWalletModel(WalletModel.SPARROW);
         //Use hardened notation to ensure origin matching normalizes the wallet-side derivation
         keystore.setKeyDerivation(new KeyDerivation(MASTER_FINGERPRINT, "m/84h/0h/0h"));
-        keystore.setExtendedPublicKey(ExtendedKey.fromDescriptor(XPUB));
+        keystore.setExtendedPublicKey(ExtendedKey.fromDescriptor(ChainEncoding.extendedKey(XPUB)));
         wallet.getKeystores().add(keystore);
         wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.SINGLE_HD, ScriptType.P2WPKH, wallet.getKeystores(), null));
         wallet.setStoredBlockHeight(850010);

@@ -21,7 +21,7 @@ public class ColdcardSinglesigTest extends IoTest {
         Assertions.assertEquals("Coldcard", keystore.getLabel());
         Assertions.assertEquals("m/49'/1'/123'", keystore.getKeyDerivation().getDerivationPath());
         Assertions.assertEquals("0f056943", keystore.getKeyDerivation().getMasterFingerprint());
-        Assertions.assertEquals(ExtendedKey.fromDescriptor("tpubDCDqt7XXvhAdy1MpSze5nMJA9x8DrdRaKALRRPasfxyHpiqWWEAr9cbDBQ9BcX7cB3up98Pk97U2QQ3xrvQsi5dNPmRYYhdcsKY9wwEY87T"), keystore.getExtendedPublicKey());
+        Assertions.assertEquals(ChainEncoding.fromPublishedDescriptor("tpubDCDqt7XXvhAdy1MpSze5nMJA9x8DrdRaKALRRPasfxyHpiqWWEAr9cbDBQ9BcX7cB3up98Pk97U2QQ3xrvQsi5dNPmRYYhdcsKY9wwEY87T"), keystore.getExtendedPublicKey());
         Assertions.assertTrue(keystore.isValid());
     }
 
@@ -34,7 +34,7 @@ public class ColdcardSinglesigTest extends IoTest {
         Assertions.assertEquals("Coldcard", keystore.getLabel());
         Assertions.assertEquals("m/84'/1'/123'", keystore.getKeyDerivation().getDerivationPath());
         Assertions.assertEquals("0f056943", keystore.getKeyDerivation().getMasterFingerprint());
-        Assertions.assertEquals(ExtendedKey.fromDescriptor("tpubDC7jGaaSE66VDB6VhEDFYQSCAyugXmfnMnrMVyHNzW9wryyTxvha7TmfAHd7GRXrr2TaAn2HXn9T8ep4gyNX1bzGiieqcTUNcu2poyntrET"), keystore.getExtendedPublicKey());
+        Assertions.assertEquals(ChainEncoding.fromPublishedDescriptor("tpubDC7jGaaSE66VDB6VhEDFYQSCAyugXmfnMnrMVyHNzW9wryyTxvha7TmfAHd7GRXrr2TaAn2HXn9T8ep4gyNX1bzGiieqcTUNcu2poyntrET"), keystore.getExtendedPublicKey());
         Assertions.assertTrue(keystore.isValid());
     }
 

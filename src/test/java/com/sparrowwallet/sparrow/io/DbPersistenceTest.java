@@ -1,6 +1,7 @@
 package com.sparrowwallet.sparrow.io;
 
 import com.sparrowwallet.drongo.ExtendedKey;
+import com.sparrowwallet.sparrow.ChainEncoding;
 import com.sparrowwallet.drongo.KeyDerivation;
 import com.sparrowwallet.drongo.crypto.Argon2KeyDeriver;
 import com.sparrowwallet.drongo.crypto.ECKey;
@@ -24,6 +25,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
 import java.util.Comparator;
+import com.sparrowwallet.sparrow.ChainEncoding;
 
 public class DbPersistenceTest {
     private Path tempDir;
@@ -119,7 +121,7 @@ public class DbPersistenceTest {
         keystore.setSource(KeystoreSource.SW_WATCH);
         keystore.setWalletModel(WalletModel.SPARROW);
         keystore.setKeyDerivation(new KeyDerivation("60bcd3a7", "m/84'/0'/3'"));
-        keystore.setExtendedPublicKey(ExtendedKey.fromDescriptor(TEST_XPUB));
+        keystore.setExtendedPublicKey(ChainEncoding.fromPublishedDescriptor(TEST_XPUB));
         wallet.getKeystores().add(keystore);
         wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.SINGLE_HD, ScriptType.P2WPKH, wallet.getKeystores(), null));
 

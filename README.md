@@ -13,6 +13,8 @@ This is the FederationCoin desktop wallet, forked from [privkeyio/shrike](https:
 - **Blake2b from height 1.** Unified sighash follows that. Identity lives in the `drongo` submodule, not in this Java tree.
 - **Home directory** is `~/.federationcoin-sparrow` so it does not collide with `federationcoind` (`~/.federationcoin`).
 
+BIP32 print form uses FederationCoin version bytes (not Bitcoin `tpub`/`xpub`). A Bitcoin `tpub` will not import; recreate the testnet wallet after upgrade.
+
 Hot single-sig against a local `federationcoind -testnet` is the success bar for this pass. Hardware, PayNym, and a downloadable installer are later.
 
 ## Building
