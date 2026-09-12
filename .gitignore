@@ -7,3 +7,7 @@ out
 *.log
 build-*.sh
 .DS_Store
+
+# Local jar scratch only. Java deps are git submodules or in-tree
+# source (see settings.gradle). Never commit binaries from here.
+/libs/

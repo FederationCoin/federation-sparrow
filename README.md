@@ -2,7 +2,7 @@
 
 This is the FederationCoin desktop wallet, forked from [privkeyio/shrike](https://github.com/privkeyio/shrike) (itself a Sparrow fork). It is not affiliated with Sparrow.
 
-**Origin is `git@github.com:FederationCoin/federation-sparrow.git`.** Work on `federationcoin`. `master` tracks upstream. **Never push `upstream`** (`privkeyio/shrike`). Same for the `drongo` and `lark` submodules (`FederationCoin/drongo`, `FederationCoin/lark`).
+**Origin is `git@github.com:FederationCoin/federation-sparrow.git`.** Work on `federationcoin`. `master` tracks upstream. **Never push `upstream`** (`privkeyio/shrike`). Same for the `drongo`, `lark`, `tern`, `hummingbird`, `toucan`, and `bokmakierie` submodules (`FederationCoin/*`, branch `federationcoin`). `fxsvgimage` is a fetch-only pin of [hervegirod/fxsvgimage](https://github.com/hervegirod/fxsvgimage) tag `1.1`. Never push that remote.
 
 > **Not audited. Use at your own risk, and no warranty of any kind, see the [Apache 2.0 license](LICENSE).** Everything below the divider is upstream Sparrow documentation.
 
@@ -20,9 +20,12 @@ Hot single-sig against a local `federationcoind -testnet` is the success bar for
 ```bash
 git clone --recursive git@github.com:FederationCoin/federation-sparrow.git
 git checkout federationcoin
+git submodule update --init --recursive
 ```
 
-Java requirements and the build itself are unchanged, see [Building](#building-1) below.
+Java libraries that are not on Maven Central are **git submodules built from source**, not jars in `libs/`. `libs/` is gitignored local scratch. After `git pull`, run `git submodule update --init --recursive` so gitlink SHAs match origin. Do not fetch `https://code.sparrowwallet.com/api/packages/sparrowwallet/maven`.
+
+Java requirements and the rest of the build are unchanged, see [Building](#building-1) below.
 
 ## Reporting issues
 
