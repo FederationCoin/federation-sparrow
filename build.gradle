@@ -41,7 +41,8 @@ ext.blake2bRelease = {
 
 repositories {
     mavenCentral()
-    maven { url = uri('https://code.sparrowwallet.com/api/packages/sparrowwallet/maven') }
+    // maven { url = uri('https://maven.federationcoin.org') } // not yet provisioned
+    // maven { url = uri('https://code.sparrowwallet.com/api/packages/sparrowwallet/maven') }
 }
 
 tasks.withType(AbstractArchiveTask).configureEach {
@@ -308,6 +309,7 @@ jlink {
         imageOptions = []
         installerOptions = ['--file-associations', 'src/main/deploy/psbt.properties', '--file-associations', 'src/main/deploy/txn.properties', '--file-associations', 'src/main/deploy/asc.properties', '--license-file', 'LICENSE']
         if(os.windows) {
+            // Authenticode publisher: not yet provisioned. Unsigned MSI.
             installerOptions.addAll(['--win-per-user-install', '--win-menu', '--win-menu-group', 'Federation Sparrow', '--win-shortcut', '--resource-dir', 'src/main/deploy/package/windows/'])
             imageOptions.addAll(['--icon', 'src/main/deploy/package/windows/federationcoin-sparrow.ico'])
             installerType = "msi"
@@ -320,7 +322,7 @@ jlink {
                 installerName = "federationcoin-sparrow"
                 installerOptions.addAll(['--linux-shortcut', '--linux-menu-group', 'Federation Sparrow'])
             }
-            installerOptions.addAll(['--resource-dir', layout.buildDirectory.dir('deploy/package').get().asFile.toString(), '--linux-app-category', 'utils', '--linux-app-release', blake2bRelease, '--linux-rpm-license-type', 'ASL 2.0', '--linux-deb-maintainer', 'Kyle Santiago <kyle@privkey.io>'])
+            installerOptions.addAll(['--resource-dir', layout.buildDirectory.dir('deploy/package').get().asFile.toString(), '--linux-app-category', 'utils', '--linux-app-release', blake2bRelease, '--linux-rpm-license-type', 'ASL 2.0', '--linux-deb-maintainer', 'FederationCoin <https://github.com/FederationCoin/federation-sparrow/issues>'])
             imageOptions.addAll(['--icon', 'src/main/deploy/package/linux/federationcoin-sparrow.png', '--resource-dir', 'src/main/deploy/package/linux/'])
             //Set explicitly, as the other two platforms do. Left unset, jpackage attempts every installer
             //type the platform advertises and stops on the one whose tooling is absent, so packaging fails
@@ -328,9 +330,10 @@ jlink {
             installerType = "deb"
         }
         if(os.macOsX) {
-            //No signing options: the macOS installer is skipped above, so these never took effect, and what
-            //stood here named upstream's signing identity. Anyone enabling the installer needs to add their
-            //own rather than inherit one that would try to sign as someone else.
+            // Unsigned only. Apple Developer ID not yet provisioned.
+            // --mac-signing-key-user-name: ""
+            // Do not inherit upstream's signing identity.
+            // codesign.federationcoin.org secrets not yet hosted.
             imageOptions.addAll(['--icon', 'src/main/deploy/package/macos/FederationCoin.icns', '--resource-dir', 'src/main/deploy/package/macos/'])
             installerType = "dmg"
         }
@@ -593,12 +596,12 @@ extraJavaModuleInfo {
     module('org.jcommander:jcommander', 'org.jcommander') {
         exports('com.beust.jcommander')
     }
-    module('com.sparrowwallet:hid4java', 'org.hid4java') {
+    module('org.hid4java:hid4java', 'org.hid4java') {
         requires('com.sun.jna')
         exports('org.hid4java')
         exports('org.hid4java.jna')
     }
-    module('com.sparrowwallet:usb4java', 'org.usb4java') {
+    module('org.usb4java:usb4java', 'org.usb4java') {
         exports('org.usb4java')
     }
     module('com.jcraft:jzlib', 'com.jcraft.jzlib') {

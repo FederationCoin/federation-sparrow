@@ -7,13 +7,14 @@ permissions:
 
 env:
   JDK_JAVAC_OPTIONS: '-Xlint:-module'
+  # Apple Developer ID / notarization: not yet provisioned. Unsigned only.
+  # apple-id: ""
+  # team-id: ""
+  # MACOS_CERTIFICATE: secrets not yet hosted at https://codesign.federationcoin.org
 
 jobs:
   build:
     runs-on: ${{ matrix.os }}
-    env:
-      # The secrets context cannot be read from a step-level if, so its presence is surfaced here.
-      HAS_MACOS_CERT: ${{ secrets.MACOS_CERTIFICATE != '' }}
     strategy:
       fail-fast: false
       matrix:
@@ -34,18 +35,23 @@ jobs:
         run: ./gradlew -v
       - name: Build with Gradle
         run: ./gradlew jpackage
-      - name: Codesign, package and notarize macOS distribution
-        if: ${{ runner.os == 'macOS' && env.HAS_MACOS_CERT == 'true' }}
-        uses: sparrowwallet/github-actions/codesign-macos@6eeb7bf9b882cf89ff96b77f99bcf487b9d33992 # v1
-        with:
-          app-name: federationcoin-sparrow
-          certificate: ${{ secrets.MACOS_CERTIFICATE }}
-          certificate-password: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
-          apple-id: ${{ secrets.MACOS_NOTARIZATION_APPLE_ID }}
-          team-id: ${{ secrets.MACOS_NOTARIZATION_TEAM_ID }}
-          notarization-password: ${{ secrets.MACOS_NOTARIZATION_PASSWORD }}
+      # Unsigned only. Do not inherit Sparrow Wallet Apple or Microsoft identities.
+      # Future action: https://codesign.federationcoin.org
+      # apple-id: ""   # not yet provisioned
+      # team-id: ""     # not yet provisioned
+      # secrets not yet hosted
+      # - name: Codesign, package and notarize macOS distribution
+      #   if: false
+      #   uses: sparrowwallet/github-actions/codesign-macos@6eeb7bf9b882cf89ff96b77f99bcf487b9d33992 # v1
+      #   with:
+      #     app-name: federationcoin-sparrow
+      #     certificate: ${{ secrets.MACOS_CERTIFICATE }}
+      #     certificate-password: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+      #     apple-id: ${{ secrets.MACOS_NOTARIZATION_APPLE_ID }}
+      #     team-id: ${{ secrets.MACOS_NOTARIZATION_TEAM_ID }}
+      #     notarization-password: ${{ secrets.MACOS_NOTARIZATION_PASSWORD }}
       - name: Package unsigned macOS distribution
-        if: ${{ runner.os == 'macOS' && env.HAS_MACOS_CERT != 'true' }}
+        if: ${{ runner.os == 'macOS' }}
         run: |
           set -euo pipefail
           cd build/jpackage
@@ -111,10 +117,7 @@ jobs:
 
   checksums:
     needs: build
-    # Runs even where a build job failed, so that a matrix arm failing for want of codesigning secrets
-    # does not skip this. That also means it can see an incomplete set of artifacts, so the manifest it
-    # writes is checked for completeness below rather than published short. It stands down for a
-    # cancelled run.
+    # Unsigned builds only. Does not wait on Apple/Microsoft signing secrets.
     if: ${{ !cancelled() }}
     runs-on: ubuntu-22.04
     steps:
