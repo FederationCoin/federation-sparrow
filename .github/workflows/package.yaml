@@ -1,19 +1,57 @@
 name: Package
 
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Git tag (vMAJOR.MINOR.PATCH-federationcoin.<fork>, optional .alpha/.beta/.rcN)
+        required: true
+        type: string
+
+concurrency:
+  group: package-${{ inputs.tag }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
 
 env:
   JDK_JAVAC_OPTIONS: '-Xlint:-module'
+  TAG: ${{ inputs.tag }}
   # Apple Developer ID / notarization: not yet provisioned. Unsigned only.
   # apple-id: ""
   # team-id: ""
   # MACOS_CERTIFICATE: secrets not yet hosted at https://codesign.federationcoin.org
 
 jobs:
+  gate:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Require FederationCoin Sparrow tag with no existing Release
+        run: |
+          set -euo pipefail
+          # Same MAJOR.MINOR.PATCH as build.gradle, then -federationcoin.<fork>
+          # optional .<ext>: .alpha .alpha1 .beta .beta2 .rc1 .rc2
+          # example: v2.5.5-federationcoin.0 or v2.5.5-federationcoin.0.rc1
+          if ! printf '%s\n' "$TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+-federationcoin\.[A-Za-z0-9]+(\.(alpha[0-9]*|beta[0-9]*|rc[0-9]+))?$'; then
+            echo "tag must match vMAJOR.MINOR.PATCH-federationcoin.<fork> with optional .alpha/.beta/.rcN (got: ${TAG})" >&2
+            echo "example: v2.5.5-federationcoin.0 or v2.5.5-federationcoin.0.rc1" >&2
+            exit 1
+          fi
+          git fetch --no-tags origin "refs/tags/${TAG}:refs/tags/${TAG}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "GitHub Release already exists for ${TAG}; will not overwrite" >&2
+            exit 1
+          fi
+          echo "tag ${TAG} is present and has no GitHub Release"
+
   build:
+    needs: gate
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -22,6 +60,7 @@ jobs:
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
+          ref: ${{ inputs.tag }}
           submodules: recursive
       - name: Clear Java tool-cache for reproducibility
         shell: bash
@@ -169,3 +208,32 @@ jobs:
         with:
           name: SHA256SUMS
           path: SHA256SUMS
+
+  draft:
+    needs: checksums
+    if: ${{ success() }}
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          path: artifacts
+      - name: Create draft GitHub Release
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(find artifacts -type f \
+            \( -name '*.msi' -o -name '*.zip' -o -name '*.tar.gz' -o -name '*.deb' \
+               -o -name '*.dmg' -o -name 'SHA256SUMS' \) | LC_ALL=C sort)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No assets to attach" >&2
+            exit 1
+          fi
+          gh release create "$TAG" --draft --title "$TAG" \
+            --notes "unsigned; not a Guix/Sparrow-signed release" \
+            "${files[@]}"
