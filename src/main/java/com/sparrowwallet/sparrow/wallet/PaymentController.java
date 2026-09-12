@@ -270,13 +270,6 @@ public class PaymentController extends WalletFormController implements Initializ
             }
 
             try {
-                SilentPaymentAddress silentPaymentAddress = SilentPaymentAddress.from(newValue);
-                setSilentPaymentAddress(silentPaymentAddress);
-            } catch(Exception e) {
-                //ignore, not a silent payment address
-            }
-
-            try {
                 Address toAddress = Address.fromString(newValue);
                 WalletNode walletNode = sendController.getWalletNode(toAddress);
                 if(walletNode != null) {
@@ -468,10 +461,15 @@ public class PaymentController extends WalletFormController implements Initializ
 
     public void setDnsPayment(DnsPayment dnsPayment) {
         if(dnsPayment.hasAddress()) {
-            DnsPaymentCache.putDnsPayment(dnsPayment.bitcoinURI().getAddress(), dnsPayment);
+            Address resolved = dnsPayment.bitcoinURI().getAddress();
+            if(resolved.getScriptType().isParkedOnThisChain()) {
+                AppServices.showWarningDialog("Taproot is not enabled", ScriptType.TAPROOT_NOT_ENABLED_MESSAGE);
+                return;
+            }
+            DnsPaymentCache.putDnsPayment(resolved, dnsPayment);
         } else if(dnsPayment.hasSilentPaymentAddress()) {
-            DnsPaymentCache.putDnsPayment(dnsPayment.bitcoinURI().getSilentPaymentAddress(), dnsPayment);
-            setSilentPaymentAddress(dnsPayment.bitcoinURI().getSilentPaymentAddress());
+            AppServices.showWarningDialog("Taproot is not enabled", ScriptType.TAPROOT_NOT_ENABLED_MESSAGE);
+            return;
         } else {
             AppServices.showWarningDialog("No Address Provided", "The DNS payment instruction for " + dnsPayment.hrn() + " resolved correctly but did not contain a bitcoin address.");
             return;
@@ -487,16 +485,6 @@ public class PaymentController extends WalletFormController implements Initializ
         label.requestFocus();
     }
 
-    private void setSilentPaymentAddress(SilentPaymentAddress silentPaymentAddress) {
-        if(!sendController.getWalletForm().getWallet().canSendSilentPayments()) {
-            Platform.runLater(() -> AppServices.showErrorDialog("Silent Payments Unsupported", "This wallet does not support sending silent payments. Use a single signature wallet."));
-            return;
-        }
-
-        silentPaymentAddressProperty.set(silentPaymentAddress);
-        label.requestFocus();
-    }
-
     private void updateOpenWallets() {
         updateOpenWallets(AppServices.get().getOpenWallets().keySet());
     }
@@ -504,7 +492,9 @@ public class PaymentController extends WalletFormController implements Initializ
     private void updateOpenWallets(Collection<Wallet> wallets) {
         List<Wallet> openWalletList = wallets.stream().filter(wallet -> wallet.isValid()
                 && (wallet == sendController.getWalletForm().getWallet() || !wallet.isWhirlpoolChildWallet())
-                && !wallet.isBip47()).collect(Collectors.toList());
+                && !wallet.isBip47()
+                && wallet.getPolicyType() != PolicyType.SINGLE_SP
+                && (wallet.getScriptType() == null || !wallet.getScriptType().isParkedOnThisChain())).collect(Collectors.toList());
 
         if(sendController.getWalletForm().getWallet().hasPaymentCode()) {
             openWalletList.add(payNymWallet);
@@ -539,7 +529,18 @@ public class PaymentController extends WalletFormController implements Initializ
         this.validationSupport = validationSupport;
 
         validationSupport.registerValidator(address, Validator.combine(
-                (Control c, String newValue) -> ValidationResult.fromErrorIf( c, "Invalid Address", !newValue.isEmpty() && !isValidRecipientAddress())
+                (Control c, String newValue) -> {
+                    if(newValue == null || newValue.isEmpty()) {
+                        return ValidationResult.fromErrorIf(c, "Invalid Address", false);
+                    }
+                    try {
+                        getRecipientAddress();
+                        return ValidationResult.fromErrorIf(c, "Invalid Address", false);
+                    } catch(InvalidAddressException e) {
+                        String msg = (e.getMessage() != null && !e.getMessage().isEmpty()) ? e.getMessage() : "Invalid Address";
+                        return ValidationResult.fromErrorIf(c, msg, true);
+                    }
+                }
         ));
         validationSupport.registerValidator(label, Validator.combine(
                 Validator.createEmptyValidator("Label is required")
@@ -568,19 +569,35 @@ public class PaymentController extends WalletFormController implements Initializ
     }
 
     private Address getRecipientAddress() throws InvalidAddressException {
+        String recipientText = address.getText();
+        if(recipientText != null && !recipientText.isEmpty()) {
+            try {
+                SilentPaymentAddress.from(recipientText);
+                throw new InvalidAddressException(ScriptType.TAPROOT_NOT_ENABLED_MESSAGE);
+            } catch(InvalidAddressException e) {
+                throw e;
+            } catch(Exception e) {
+                // not a silent payment address
+            }
+        }
+
         SilentPaymentAddress silentPaymentAddress = silentPaymentAddressProperty.get();
         if(silentPaymentAddress != null) {
-            return SilentPayment.getDummyAddress();
+            throw new InvalidAddressException(ScriptType.TAPROOT_NOT_ENABLED_MESSAGE);
         }
 
         DnsPayment dnsPayment = dnsPaymentProperty.get();
         if(dnsPayment != null && dnsPayment.hasAddress()) {
-            return dnsPayment.bitcoinURI().getAddress();
+            Address resolved = dnsPayment.bitcoinURI().getAddress();
+            resolved.requireSendable();
+            return resolved;
         }
 
         PayNym payNym = payNymProperty.get();
         if(payNym == null) {
-            return Address.fromString(address.getText());
+            Address parsed = Address.fromString(address.getText());
+            parsed.requireSendable();
+            return parsed;
         }
 
         try {

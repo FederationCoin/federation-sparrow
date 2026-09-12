@@ -316,10 +316,16 @@ public class SettingsController extends WalletFormController implements Initiali
         }
 
         if(wallet.getPolicyType() != null) {
+            if(!policyType.getItems().contains(wallet.getPolicyType())) {
+                policyType.getItems().add(wallet.getPolicyType());
+            }
             policyType.getSelectionModel().select(walletForm.getWallet().getPolicyType());
         }
 
         if(wallet.getScriptType() != null) {
+            if(!scriptType.getItems().contains(wallet.getScriptType())) {
+                scriptType.getItems().add(wallet.getScriptType());
+            }
             scriptType.getSelectionModel().select(walletForm.getWallet().getScriptType());
         }
 
@@ -874,7 +880,7 @@ public class SettingsController extends WalletFormController implements Initiali
                 wallet.setDefaultPolicy(Policy.getPolicy(wallet.getPolicyType(), wallet.getScriptType(), wallet.getKeystores(), (int)multisigControl.getLowValue()));
             }
 
-            if(ScriptType.getAddressableScriptTypes(wallet.getPolicyType()).contains(wallet.getScriptType())) {
+            if(wallet.getScriptType() != null && wallet.getScriptType().isAllowed(wallet.getPolicyType())) {
                 descriptor.setWallet(wallet);
             }
 

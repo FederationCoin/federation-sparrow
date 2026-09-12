@@ -37,27 +37,21 @@
                                 <FXCollections fx:factory="observableArrayList">
                                     <PolicyType fx:constant="SINGLE_HD" />
                                     <PolicyType fx:constant="MULTI_HD" />
-                                    <PolicyType fx:constant="SINGLE_SP" />
                                 </FXCollections>
                             </items>
                         </ComboBox>
-                        <HelpLabel helpText="Single signature wallets use a single keystore (hardware wallet or seed).\nMultisignature wallets require multiple keystores, of which a certain number need to sign.\nSilent Payments wallets also use a single keystore and can receive privately to a reusable address." />
+                        <HelpLabel helpText="Single signature wallets use a single keystore (hardware wallet or seed).\nMultisignature wallets require multiple keystores, of which a certain number need to sign." />
                     </Field>
                     <Field text="Script Type:">
                         <ComboBox fx:id="scriptType">
                             <items>
                                 <FXCollections fx:factory="observableArrayList">
-                                    <!-- <ScriptType fx:constant="P2PK" /> -->
-                                    <ScriptType fx:constant="P2PKH" />
-                                    <ScriptType fx:constant="P2SH" />
-                                    <ScriptType fx:constant="P2SH_P2WPKH" />
-                                    <ScriptType fx:constant="P2SH_P2WSH" />
                                     <ScriptType fx:constant="P2WPKH" />
                                     <ScriptType fx:constant="P2WSH" />
                                 </FXCollections>
                             </items>
                         </ComboBox>
-                        <HelpLabel helpText="Native Segwit the type chosen for most new wallets.\nTaproot is a newer type useful for specific needs.\nNested Segwit and Legacy are useful for recovering older wallets.\nFor existing wallets, be sure to choose the type that matches the wallet you are restoring." />
+                        <HelpLabel helpText="FederationCoin wallets use Native Segwit: P2WPKH for single signature and P2WSH for multisignature.\nLegacy, Nested Segwit, Taproot, and Silent Payments are not offered on this chain." />
                     </Field>
                 </Fieldset>
             </Form>

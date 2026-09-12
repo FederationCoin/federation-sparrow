@@ -329,9 +329,9 @@ public class PrivateKeySweepDialog extends Dialog<Transaction> {
         boolean compressed = !isValidKey || getPrivateKey().getKey().isCompressed();
         if(compressed && !keyScriptType.getItems().equals(ScriptType.getAddressableScriptTypes(PolicyType.SINGLE_HD))) {
             keyScriptType.getItems().addAll(ScriptType.getAddressableScriptTypes(PolicyType.SINGLE_HD).stream().filter(s -> !keyScriptType.getItems().contains(s)).collect(Collectors.toList()));
-        } else if(!compressed && !keyScriptType.getItems().equals(List.of(ScriptType.P2PKH))) {
-            keyScriptType.getSelectionModel().select(0);
-            keyScriptType.getItems().removeIf(scriptType -> scriptType != ScriptType.P2PKH);
+        } else if(!compressed) {
+            keyScriptType.getItems().setAll(ScriptType.P2PKH);
+            keyScriptType.getSelectionModel().select(ScriptType.P2PKH);
         }
     }
 
