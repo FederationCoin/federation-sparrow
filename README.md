@@ -1,23 +1,30 @@
 # Federation Sparrow
 
-This is the FederationCoin desktop wallet, forked from [privkeyio/shrike](https://github.com/privkeyio/shrike) (itself a Sparrow fork). It is not affiliated with Sparrow.
+Desktop wallet for FederationCoin. Not audited. Use at your own risk; no warranty of any kind. See the [Apache 2.0 license](LICENSE). Not affiliated with Sparrow Wallet.
 
-**Origin is `git@github.com:FederationCoin/federation-sparrow.git`.** Work on `federationcoin`. `master` tracks upstream. **Never push `upstream`** (`privkeyio/shrike`). Same for the `drongo`, `lark`, `tern`, `hummingbird`, `toucan`, and `bokmakierie` submodules (`FederationCoin/*`, branch `federationcoin`). `fxsvgimage` is a fetch-only pin of [hervegirod/fxsvgimage](https://github.com/hervegirod/fxsvgimage) tag `1.1`. Never push that remote.
+## For users
 
-> **Not audited. Use at your own risk, and no warranty of any kind, see the [Apache 2.0 license](LICENSE).** Everything below the divider is upstream Sparrow documentation.
+**Testnet is the public net.** Point the wallet at a local `federationcoind -testnet` (P2P 35333, RPC 35332, addresses `tfcn1…`). Explorer: [mempool.federationcoin.org](https://mempool.federationcoin.org). Site: [federationcoin.org](https://federationcoin.org).
 
-## This chain
+**Main is not live.** Dummy MAIN (placeholder genesis, magic `00000000`, P2P 4095, RPC 4094, HRP `fcn`) is not launched. Do not treat it as the product chain.
 
-- **Testnet is the public net.** `federationcoind -testnet`, P2P 35333, RPC 35332, HRP `tfcn`. Explorer: `https://mempool.federationcoin.org`.
-- **Main is not live.** Dummy MAIN identity only (placeholder genesis, magic `00000000`, P2P 4095, RPC 4094, HRP `fcn`). Do not treat it as launched.
-- **Blake2b from height 1.** Unified sighash follows that. Identity lives in the `drongo` submodule, not in this Java tree.
-- **Home directory** is `~/.federationcoin-sparrow` so it does not collide with `federationcoind` (`~/.federationcoin`).
+Home directory is `~/.federationcoin-sparrow` on Linux and macOS, or `%APPDATA%\Federationcoin-sparrow` on Windows, so it does not collide with the node (`~/.federationcoin`). The log file is `federationcoin-sparrow.log`. Packaged Linux installs land in `/opt/federationcoin-sparrow` and the binary is `federationcoin-sparrow`.
 
-BIP32 print form uses FederationCoin version bytes (not Bitcoin `tpub`/`xpub`). A Bitcoin `tpub` will not import; recreate the testnet wallet after upgrade.
+Blake2b applies from height 1. BIP32 print form uses FederationCoin version bytes. A Bitcoin `tpub` / `xpub` will not import; recreate the testnet wallet after upgrade.
 
-Hot single-sig against a local `federationcoind -testnet` is the success bar for this pass. Hardware, PayNym, and a downloadable installer are later.
+Hot single-sig against a local testnet node is the current success bar. Hardware, PayNym, and a downloadable installer are later. Builds are unsigned; Gatekeeper and SmartScreen may warn.
 
-## Building
+Issues: [FederationCoin/federation-sparrow](https://github.com/FederationCoin/federation-sparrow/issues). Do not open them on privkeyio or sparrowwallet.
+
+## For developers
+
+Forked from [privkeyio/shrike](https://github.com/privkeyio/shrike) (itself a Sparrow fork). Origin is `git@github.com:FederationCoin/federation-sparrow.git`. Mainline is `federationcoin`. GitHub is detached from that fork; **never push** `upstream` (`privkeyio/shrike`) or sparrowwallet.
+
+Chain identity lives in the `drongo` submodule, not in this UI tree. Java packages remain `com.sparrowwallet.*` (upstream layout). `fxsvgimage` is a fetch-only pin of [hervegirod/fxsvgimage](https://github.com/hervegirod/fxsvgimage) tag `1.1`. Never push that remote.
+
+Java libraries that are not on Maven Central are **git submodules built from source**, not jars in `libs/`. `libs/` is gitignored local scratch. Do not fetch `https://code.sparrowwallet.com/api/packages/sparrowwallet/maven`. `maven.federationcoin.org` is not provisioned.
+
+### Clone and build
 
 ```bash
 git clone --recursive git@github.com:FederationCoin/federation-sparrow.git
@@ -25,137 +32,49 @@ git checkout federationcoin
 git submodule update --init --recursive
 ```
 
-Java libraries that are not on Maven Central are **git submodules built from source**, not jars in `libs/`. `libs/` is gitignored local scratch. After `git pull`, run `git submodule update --init --recursive` so gitlink SHAs match origin. Do not fetch `https://code.sparrowwallet.com/api/packages/sparrowwallet/maven`.
+Java 25 or higher. Release binaries use [Eclipse Temurin 25.0.2+10](https://github.com/adoptium/temurin25-binaries/releases/tag/jdk-25.0.2%2B10). With [SDKMAN](https://sdkman.io/), `sdk env install` matches `.sdkmanrc`.
 
-Java requirements and the rest of the build are unchanged, see [Building](#building-1) below.
+Debian/Ubuntu extras for installers:
 
-## Reporting issues
-
-Use [FederationCoin/federation-sparrow issues](https://github.com/FederationCoin/federation-sparrow/issues). Do not open them on privkeyio.
-
----
-# Sparrow Bitcoin Wallet
-
-Sparrow is a modern desktop Bitcoin wallet application supporting most hardware wallets and built on common standards such as PSBT, with an emphasis on transparency and usability.
-
-More information (and release binaries) can be found at https://sparrowwallet.com. Release binaries are also available directly from [GitHub](https://github.com/sparrowwallet/sparrow/releases).
-
-![Sparrow Wallet](https://sparrowwallet.com/assets/images/control-your-sends.png)
-
-## Building
-
-To clone this project, use
-
-`git clone --recursive git@github.com:sparrowwallet/sparrow.git`
-
-or for those without SSH credentials:
-
-`git clone --recursive https://github.com/sparrowwallet/sparrow.git`
-
-In order to build, Sparrow requires Java 25 or higher to be installed. 
-The release binaries are built with [Eclipse Temurin 25.0.2+10](https://github.com/adoptium/temurin25-binaries/releases/tag/jdk-25.0.2%2B10).
-If you are using [SDKMAN](https://sdkman.io/), you can use `sdk env install` to ensure you have the correct version.
-
-Other packages may also be necessary to build depending on the platform. On Debian/Ubuntu systems:
-
-`sudo apt install -y rpm fakeroot binutils`
-
-The Sparrow binaries can be built from source using
-
-`./gradlew jpackage`
-
-On Linux distributions without `deb` or `rpm` packaging tools installed (such as Arch), building the installers can be skipped with
-
-`./gradlew jpackage -PskipInstallers=true`
-
-Note that to build the Windows installer, you will need to install [WiX](https://github.com/wixtoolset/wix3/releases).
-
-When updating to the latest HEAD
-
-`git pull --recurse-submodules`
-
-The release binaries are reproducible from v1.5.0 onwards (pre codesigning and installer packaging). More detailed [instructions on reproducing the binaries](docs/reproducible.md) are provided.
-
-> Video documentation of your build process uploaded to [bitcoinbinary.org](https://bitcoinbinary.org/) is appreciated. Alternatively check the site if you wish to see if someone else already verified the provided binaries. 
-
-## Running
-
-If you prefer to run Sparrow directly from source, it can be launched from within the project directory with
-
-`./sparrow`
-
-Java 25 or higher must be installed. 
-
-## Configuration
-
-Sparrow has a number of command line options, for example to change its home folder or use testnet:
-
+```bash
+sudo apt install -y rpm fakeroot binutils
 ```
+
+```bash
+./gradlew jpackage
+# Arch and similar, skip deb/rpm:
+./gradlew jpackage -PskipInstallers=true
+```
+
+Windows installers need [WiX v3](https://github.com/wixtoolset/wix3/releases). After `git pull`, run `git submodule update --init --recursive` so gitlink SHAs match origin.
+
+Run from source (the launcher script is still named `sparrow`):
+
+```bash
+./sparrow
+./sparrow -n testnet
 ./sparrow -h
-
-Usage: sparrow [options]
-  Options:
-    --dir, -d
-      Path to Sparrow home folder
-    --help, -h
-      Show usage
-    --level, -l
-      Set log level
-      Possible Values: [ERROR, WARN, INFO, DEBUG, TRACE]      
-    --network, -n
-      Network to use
-      Possible Values: [mainnet, testnet, regtest, signet, testnet4]
 ```
 
-Note that testnet currently refers to testnet3.
+`--dir` / `-d` sets the home folder. `--network` / `-n` is `mainnet`, `testnet`, `regtest`, `signet`, or `testnet4` (testnet here is testnet3). Fallback: `export SPARROW_NETWORK=testnet` (that environment variable name is unchanged in code). A `network-testnet` marker file in the home folder also selects testnet.
 
-As a fallback, the network (mainnet, testnet, testnet4, regtest or signet) can also be set using an environment variable `SPARROW_NETWORK`. For example:
+On Linux and macOS, XDG directories are opt-in if they already exist (`$XDG_CONFIG_HOME/federationcoin-sparrow`, and the matching data/state/cache dirs). `-d` disables XDG.
 
-`export SPARROW_NETWORK=testnet`
+### Branching
 
-A final fallback which can be useful when running the Sparrow binary is to create a file called ``network-testnet`` in the Sparrow home folder (see below) to configure the testnet network.
+Work on a branch off `federationcoin`. Open a same-repo pull request; a human merges. Do not push straight to mainline. Current work branch for this tree: `get-to-mainnet`. Java libs (`drongo`, `lark`, `tern`, `hummingbird`, `toucan`, `bokmakierie`) stay on `federationcoin` until they get their own work branches.
 
-Note that if you are connecting to an Electrum server when using testnet, that server will need to be running on testnet configuration as well.
+### Release
 
-When not explicitly configured using the command line argument above, Sparrow stores its mainnet config file, log file and wallets in a home folder location appropriate to the operating system:
+Version is `version` in `build.gradle`. Tags (human, on origin mainline, before Package):
 
-| Platform | Location |
-|----------| -------- |
-| macOS    | ~/.sparrow |
-| Linux    | ~/.sparrow |
-| Windows  | %APPDATA%/Sparrow |
+```text
+vMAJOR.MINOR.PATCH-federationcoin.<fork>
+vMAJOR.MINOR.PATCH-federationcoin.<fork>.<ext>
+```
 
-Testnet3, testnet4, regtest and signet configurations (along with their wallets) are stored in subfolders to allow easy switching between networks.
+Example: `v2.5.5-federationcoin.0` or `.rc1`. Package may open a **draft** GitHub Release only. No `npm publish`, no Maven, no public Docker. Unsigned macOS and Windows. Submodule gitlink SHAs must already be on those GitHub repos. Process: [golive notes](https://github.com/ldelarua/workspace-FederationCoin/blob/master/docs/golive-notes.md).
 
-On macOS and Linux, Sparrow also supports the [XDG Base Directory Specification](https://specifications.freedesktop.org/basedir-spec/latest/). 
-This is opt in: for each category below, if the corresponding directory already exists, Sparrow uses it, otherwise it continues to use the home folder above. Categories are resolved independently, so files can be moved across one at a time.
+### Quality
 
-| Category | Location | Contents                              |
-|----------| -------- |---------------------------------------|
-| Config   | `$XDG_CONFIG_HOME/sparrow` (default `~/.config/sparrow`) | `config`, `network-*` markers         |
-| Data     | `$XDG_DATA_HOME/sparrow` (default `~/.local/share/sparrow`) | `wallets`, `certs`, `lark`            |
-| State    | `$XDG_STATE_HOME/sparrow` (default `~/.local/state/sparrow`) | `sparrow.log`, `tor/work`, lock files |
-| Cache    | `$XDG_CACHE_HOME/sparrow` (default `~/.cache/sparrow`) | `tor/cache`                           |
-
-Specifying a home folder with the `-d` argument disables XDG resolution entirely, and stores all files in the given folder.
-
-## Reporting Issues
-
-Please use the [Issues](https://github.com/FederationCoin/federation-sparrow/issues) tab above to report an issue with this fork. Issues that are not specific to this chain should be reported [upstream](https://github.com/sparrowwallet/sparrow/issues) instead. If possible, look in the federationcoin-sparrow.log file in the configuration directory for information helpful in debugging. 
-
-## License
-
-Sparrow is licensed under the Apache 2 software licence.
-
-## GPG Key
-
-Sparrow's own release binaries, on [sparrowwallet.com](https://sparrowwallet.com/download/), are signed using [craigraw's GPG key](https://keybase.io/craigraw). The releases in this repository are not: they are signed with the key under [Releases](#releases) above.  
-Fingerprint: D4D0D3202FC06849A257B38DE94618334C674B40  
-64-bit: E946 1833 4C67 4B40
-
-## Credit
-
-![Yourkit](https://www.yourkit.com/images/yklogo.png)
-
-Sparrow Wallet uses the [Yourkit Java Profiler](https://www.yourkit.com/java/profiler/) to profile and improve performance. 
-YourKit supports open source projects with useful tools for monitoring and profiling Java and .NET applications.
+Code quality checks and metrics will be added over time.
