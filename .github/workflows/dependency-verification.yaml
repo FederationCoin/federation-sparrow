@@ -151,7 +151,9 @@ jobs:
           if [ "$ALLOW_ADDITIONAL_ARTIFACT_CHECKSUMS" != "true" ] && verification_metadata_diff | grep -q '^[+] *<also-trust '; then
             echo "Generated verification metadata adds also-trust checksums."
             echo "This indicates an existing artifact coordinate resolved to a checksum not currently trusted by the repository."
-            echo "Set ALLOW_ADDITIONAL_ARTIFACT_CHECKSUMS to 'true' to allow opening an automated metadata update PR for this case."
+            echo "Do not set ALLOW_ADDITIONAL_ARTIFACT_CHECKSUMS to skip this. Review each also-trust against Maven Central and promote one hash."
+            echo "---- also-trust hunks (do not merge blindly) ----"
+            verification_metadata_diff | grep -n -B25 '^[+] *<also-trust ' || true
             exit 1
           fi
 
