@@ -167,7 +167,7 @@ public class WalletDialog extends DialogWindow {
             format = UnitFormat.DOT;
         }
 
-        return unit == BitcoinUnit.SATOSHIS ? format.formatSatsValue(value) + (appendUnit ? " sats" : "") : format.formatBtcValue(value) + (appendUnit ? " BTC" : "");
+        return unit == BitcoinUnit.SATOSHIS ? format.formatSatsValue(value) + (appendUnit ? " tokens" : "") : format.formatBtcValue(value) + (appendUnit ? " FCN" : "");
     }
 
     protected String formatFiatValue(Double value) {

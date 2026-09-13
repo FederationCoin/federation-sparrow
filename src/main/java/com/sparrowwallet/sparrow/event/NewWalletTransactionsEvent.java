@@ -64,10 +64,10 @@ public class NewWalletTransactionsEvent {
         }
 
         if(unit == BitcoinUnit.BTC) {
-            return format.formatBtcValue(value) + " BTC";
+            return format.formatBtcValue(value) + " FCN";
         }
 
-        return format.formatSatsValue(value) + " sats";
+        return format.formatSatsValue(value) + " tokens";
     }
 
     public List<BlockTransaction> getUnspentConfirmingWhirlpoolMixTransactions() {
