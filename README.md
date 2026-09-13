@@ -4,9 +4,9 @@ Desktop wallet for FederationCoin. Not audited. Use at your own risk; no warrant
 
 ## For users
 
-**Testnet is the public net.** Point the wallet at a local `federationcoind -testnet` (P2P 35333, RPC 35332, addresses `tfcn1…`). Explorer: [mempool.federationcoin.org](https://mempool.federationcoin.org). Site: [federationcoin.org](https://federationcoin.org).
+**Testnet is the public net.** Point the wallet at a local `federationcoind -testnet` (P2P 35333, RPC 35332, addresses `tgfcn1…`). Explorer: [mempool.federationcoin.org](https://mempool.federationcoin.org). Site: [federationcoin.org](https://federationcoin.org).
 
-**Main is not live.** Dummy MAIN (placeholder genesis, magic `00000000`, P2P 4095, RPC 4094, HRP `fcn`) is not launched. Do not treat it as the product chain.
+**Main is not live.** Dummy MAIN (placeholder genesis, magic `00000000`, P2P 4095, RPC 4094, HRP `gfcn`) is not launched. Do not treat it as the product chain.
 
 Home directory is `~/.federationcoin-sparrow` on Linux and macOS, or `%APPDATA%\Federationcoin-sparrow` on Windows, so it does not collide with the node (`~/.federationcoin`). The log file is `federationcoin-sparrow.log`. Packaged Linux installs land in `/opt/federationcoin-sparrow` and the binary is `federationcoin-sparrow`.
 

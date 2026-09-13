@@ -64,7 +64,7 @@ public class NewWalletTransactionsEvent {
         }
 
         if(unit == BitcoinUnit.BTC) {
-            return format.formatBtcValue(value) + " FCN";
+            return format.formatBtcValue(value) + " GFCN";
         }
 
         return format.formatSatsValue(value) + " tokens";

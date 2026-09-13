@@ -76,7 +76,7 @@ public class CoinLabel extends Label {
                 Clipboard.getSystemClipboard().setContent(content);
             });
 
-            MenuItem copyBtcValue = new MenuItem("Copy Value in FCN");
+            MenuItem copyBtcValue = new MenuItem("Copy Value in GFCN");
             copyBtcValue.setOnAction(AE -> {
                 hide();
                 ClipboardContent content = new ClipboardContent();

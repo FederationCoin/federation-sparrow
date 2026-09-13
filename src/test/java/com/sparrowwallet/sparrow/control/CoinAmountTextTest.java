@@ -13,7 +13,7 @@ public class CoinAmountTextTest {
         Assertions.assertEquals(CoinAmountText.tokensLabel(UnitFormat.DOT, value),
                 CoinAmountText.display(value, BitcoinUnit.AUTO, UnitFormat.DOT));
         Assertions.assertTrue(CoinAmountText.display(value, BitcoinUnit.AUTO, UnitFormat.DOT).endsWith(" tokens"));
-        Assertions.assertTrue(CoinAmountText.tooltip(value, BitcoinUnit.AUTO, UnitFormat.DOT).endsWith(" FCN"));
+        Assertions.assertTrue(CoinAmountText.tooltip(value, BitcoinUnit.AUTO, UnitFormat.DOT).endsWith(" GFCN"));
     }
 
     @Test
@@ -22,13 +22,13 @@ public class CoinAmountTextTest {
         Assertions.assertEquals(BitcoinUnit.BTC, CoinAmountText.resolve(value, BitcoinUnit.AUTO));
         Assertions.assertEquals(CoinAmountText.btcLabel(UnitFormat.DOT, value),
                 CoinAmountText.display(value, BitcoinUnit.AUTO, UnitFormat.DOT));
-        Assertions.assertTrue(CoinAmountText.display(value, BitcoinUnit.AUTO, UnitFormat.DOT).endsWith(" FCN"));
+        Assertions.assertTrue(CoinAmountText.display(value, BitcoinUnit.AUTO, UnitFormat.DOT).endsWith(" GFCN"));
         Assertions.assertTrue(CoinAmountText.tooltip(value, BitcoinUnit.AUTO, UnitFormat.DOT).endsWith(" tokens"));
     }
 
     @Test
     public void explicitBtcAndTokensIgnoreThreshold() {
-        Assertions.assertTrue(CoinAmountText.display(1L, BitcoinUnit.BTC, UnitFormat.DOT).endsWith(" FCN"));
+        Assertions.assertTrue(CoinAmountText.display(1L, BitcoinUnit.BTC, UnitFormat.DOT).endsWith(" GFCN"));
         Assertions.assertTrue(CoinAmountText.display(BitcoinUnit.getAutoThreshold(), BitcoinUnit.SATOSHIS, UnitFormat.DOT)
                 .endsWith(" tokens"));
         Assertions.assertEquals(BitcoinUnit.BTC, CoinAmountText.resolve(1L, BitcoinUnit.BTC));

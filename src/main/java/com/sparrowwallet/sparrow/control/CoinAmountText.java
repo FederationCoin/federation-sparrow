@@ -4,7 +4,7 @@ import com.sparrowwallet.drongo.BitcoinUnit;
 import com.sparrowwallet.sparrow.UnitFormat;
 
 /**
- * Amount labels shown next to a value. FCN is the coin; tokens are the base unit.
+ * Amount labels shown next to a value. GFCN is the coin; tokens are the base unit.
  */
 public final class CoinAmountText {
     private CoinAmountText() {
@@ -20,7 +20,7 @@ public final class CoinAmountText {
 
     public static String btcLabel(UnitFormat format, long value) {
         UnitFormat f = format == null ? UnitFormat.DOT : format;
-        return f.formatBtcValue(value) + " FCN";
+        return f.formatBtcValue(value) + " GFCN";
     }
 
     public static String tokensLabel(UnitFormat format, long value) {

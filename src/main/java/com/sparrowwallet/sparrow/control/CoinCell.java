@@ -199,7 +199,7 @@ class CoinCell extends TreeTableCell<Entry, Number> implements ConfirmationsList
                 Clipboard.getSystemClipboard().setContent(content);
             });
 
-            MenuItem copyBtcValue = new MenuItem("Copy Value in FCN");
+            MenuItem copyBtcValue = new MenuItem("Copy Value in GFCN");
             copyBtcValue.setOnAction(AE -> {
                 hide();
                 ClipboardContent content = new ClipboardContent();
