@@ -73,7 +73,7 @@ vMAJOR.MINOR.PATCH-federationcoin.<fork>
 vMAJOR.MINOR.PATCH-federationcoin.<fork>.<ext>
 ```
 
-Example: `v2.5.5-federationcoin.0` or `.rc1`. Package may open a **draft** GitHub Release only. No `npm publish`, no Maven, no public Docker. Unsigned macOS and Windows. Submodule gitlink SHAs must already be on those GitHub repos. Process: [golive notes](https://github.com/ldelarua/workspace-FederationCoin/blob/master/docs/golive-notes.md).
+Example: `v2.6.0-federationcoin.0` or `.rc1`. Package may open a **draft** GitHub Release only. No `npm publish`, no Maven, no public Docker. Unsigned macOS and Windows. Submodule gitlink SHAs must already be on those GitHub repos. Process: [golive notes](https://github.com/ldelarua/workspace-FederationCoin/blob/master/docs/golive-notes.md).
 
 ### Quality
 
