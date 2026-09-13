@@ -508,7 +508,7 @@ public class AppController implements Initializable {
             StackPane tabBackground = (StackPane)tabs.lookup(".tab-header-background");
             if(tabBackground != null) {
                 HBox hBox = new HBox();
-                String text = Network.get() == Network.MAINNET ? "Main is not live" : Network.get().toDisplayString();
+                String text = NetworkBanner.text(Network.get());
                 Label label = new Label(text);
                 label.setPadding(new Insets(0, 10, 0, 0));
                 hBox.getChildren().add(label);

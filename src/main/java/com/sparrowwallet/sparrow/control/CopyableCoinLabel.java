@@ -84,23 +84,9 @@ public class CopyableCoinLabel extends CopyableLabel {
             unitFormat = UnitFormat.DOT;
         }
 
-        String satsValue = unitFormat.formatSatsValue(value) + " tokens";
-        String btcValue = unitFormat.formatBtcValue(value) + " FCN";
-
-        BitcoinUnit unit = bitcoinUnit;
-        if(unit == null || unit.equals(BitcoinUnit.AUTO)) {
-            unit = (value >= BitcoinUnit.getAutoThreshold() ? BitcoinUnit.BTC : BitcoinUnit.SATOSHIS);
-        }
-
-        this.bitcoinUnit = unit;
-
-        if(unit.equals(BitcoinUnit.BTC)) {
-            tooltip.setText(satsValue);
-            setText(btcValue);
-        } else {
-            tooltip.setText(btcValue);
-            setText(satsValue);
-        }
+        this.bitcoinUnit = CoinAmountText.resolve(value, bitcoinUnit);
+        tooltip.setText(CoinAmountText.tooltip(value, bitcoinUnit, unitFormat));
+        setText(CoinAmountText.display(value, bitcoinUnit, unitFormat));
     }
 
     private class CoinContextMenu extends ContextMenu {

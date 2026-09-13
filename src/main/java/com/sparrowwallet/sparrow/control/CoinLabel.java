@@ -62,21 +62,8 @@ public class CoinLabel extends Label {
         setContextMenu(contextMenu);
 
         UnitFormat format = Config.get().getUnitFormat() == null ? UnitFormat.DOT : Config.get().getUnitFormat();
-        String satsValue = format.formatSatsValue(value) + " tokens";
-        String btcValue = format.formatBtcValue(value) + " FCN";
-
-        BitcoinUnit unit = bitcoinUnit;
-        if(unit == null || unit.equals(BitcoinUnit.AUTO)) {
-            unit = (value >= BitcoinUnit.getAutoThreshold() ? BitcoinUnit.BTC : BitcoinUnit.SATOSHIS);
-        }
-
-        if(unit.equals(BitcoinUnit.BTC)) {
-            tooltip.setText(satsValue);
-            setText(btcValue);
-        } else {
-            tooltip.setText(btcValue);
-            setText(satsValue);
-        }
+        tooltip.setText(CoinAmountText.tooltip(value, bitcoinUnit, format));
+        setText(CoinAmountText.display(value, bitcoinUnit, format));
     }
 
     private class CoinContextMenu extends ContextMenu {

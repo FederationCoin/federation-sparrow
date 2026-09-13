@@ -36,17 +36,7 @@ public enum BroadcastSource {
         }
 
         protected URL getURL(HostAndPort proxy) throws MalformedURLException, URISyntaxException {
-            if(Network.get() == Network.TESTNET) {
-                return new URI(getBaseUrl(proxy) + "/api/tx").toURL();
-            } else if(Network.get() == Network.MAINNET) {
-                return new URI(getBaseUrl(proxy) + "/api/tx").toURL();
-            } else if(Network.get() == Network.SIGNET) {
-                return new URI(getBaseUrl(proxy) + "/signet/api/tx").toURL();
-            } else if(Network.get() == Network.TESTNET4) {
-                return new URI(getBaseUrl(proxy) + "/testnet4/api/tx").toURL();
-            } else {
-                throw new IllegalStateException("Cannot broadcast transaction to " + getName() + " on network " + Network.get());
-            }
+            return new URI(getBaseUrl(proxy) + mempoolBroadcastTxPath(Network.get())).toURL();
         }
     };
 
@@ -76,6 +66,20 @@ public enum BroadcastSource {
 
     public String getBaseUrl(HostAndPort proxy) {
         return (proxy == null ? getTlsUrl() : getOnionUrl());
+    }
+
+    static String mempoolBroadcastTxPath(Network network) {
+        if(network == Network.TESTNET) {
+            return "/api/tx";
+        } else if(network == Network.MAINNET) {
+            return "/api/tx";
+        } else if(network == Network.SIGNET) {
+            return "/signet/api/tx";
+        } else if(network == Network.TESTNET4) {
+            return "/testnet4/api/tx";
+        } else {
+            throw new IllegalStateException("Cannot broadcast transaction to mempool.federationcoin.org on network " + network);
+        }
     }
 
     public abstract Sha256Hash broadcastTransaction(Transaction transaction) throws BroadcastException;

@@ -63,15 +63,7 @@ public enum FeeRatesSource {
         }
 
         private String getApiUrl() {
-            // The hosted explorer is testnet-first: /api is testnet3. Other networks keep the usual suffix.
-            String url = "https://mempool.federationcoin.org/api/";
-            if(Network.get() == Network.TESTNET) {
-                return url;
-            }
-            if(Network.get() != Network.MAINNET && supportsNetwork(Network.get())) {
-                url = url.replace("/api/", "/" + Network.get().getName() + "/api/");
-            }
-            return url;
+            return mempoolFederationApiUrl(Network.get());
         }
 
         @Override
@@ -148,6 +140,20 @@ public enum FeeRatesSource {
      */
     public static FeeRatesSource getDefault() {
         return MEMPOOL_GUIDE;
+    }
+
+    /**
+     * Hosted explorer is testnet-first: /api is testnet3.
+     */
+    static String mempoolFederationApiUrl(Network network) {
+        String url = "https://mempool.federationcoin.org/api/";
+        if(network == Network.TESTNET) {
+            return url;
+        }
+        if(network != Network.MAINNET && MEMPOOL_GUIDE.supportsNetwork(network)) {
+            url = url.replace("/api/", "/" + network.getName() + "/api/");
+        }
+        return url;
     }
 
     public boolean isExternal() {
