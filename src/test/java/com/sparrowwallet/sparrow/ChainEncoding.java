@@ -140,7 +140,8 @@ public final class ChainEncoding {
 
     public static String address(String published) {
         String lower = published.toLowerCase(Locale.ROOT);
-        if(lower.startsWith("bc1") || lower.startsWith("tb1") || lower.startsWith("bcrt1")) {
+        if(lower.startsWith("bc1") || lower.startsWith("tb1") || lower.startsWith("bcrt1")
+                || lower.startsWith("gfcn1") || lower.startsWith("tgfcn1") || lower.startsWith("gfcnrt1")) {
             Bech32.Bech32Data data = Bech32.decode(published);
             String encoded = Bech32.encode(Network.get().getBech32AddressHRP(), data.encoding, data.data);
             return published.equals(published.toUpperCase(Locale.ROOT)) ? encoded.toUpperCase(Locale.ROOT) : encoded;
