@@ -580,7 +580,7 @@ public class TransactionDiagram extends GridPane {
         }
 
         if(unit.equals(BitcoinUnit.BTC)) {
-            return format.formatBtcValue(amount) + " FCN";
+            return format.formatBtcValue(amount) + " GFCN";
         }
 
         return format.formatSatsValue(amount) + " tokens";
@@ -1272,7 +1272,7 @@ public class TransactionDiagram extends GridPane {
                 content.putString(Long.toString(value));
                 Clipboard.getSystemClipboard().setContent(content);
             });
-            MenuItem copyBtcValue = new MenuItem("Copy Value in FCN");
+            MenuItem copyBtcValue = new MenuItem("Copy Value in GFCN");
             copyBtcValue.setOnAction(event -> {
                 hide();
                 ClipboardContent content = new ClipboardContent();
