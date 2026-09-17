@@ -81,11 +81,10 @@ public class ChainQualificationsTest {
                     AppServices.chainQualifications(),
                     "with no tip announced the chain has not been seen, and that is what the label has to say");
 
-            //A pre-fork header below the shipped height. Height 1 is activation on this chain, so a v1 tip there
-            //would contradict the schedule rather than report as not yet activated.
+            //Blake2b is from height 0, so a v1 header at genesis contradicts the schedule.
             BlockHeader preFork = new BlockHeader(1, Sha256Hash.ZERO_HASH, Sha256Hash.ZERO_HASH, null, 0, 0x207fffffL, 0);
             AppServices.setAnnouncedTip(new ChainTip(0, preFork));
-            Assertions.assertEquals(AppServices.chainQualifications(UnifiedSigHashDecision.CHAIN_NOT_ACTIVATED),
+            Assertions.assertEquals(AppServices.chainQualifications(UnifiedSigHashDecision.TIP_CONTRADICTS_SCHEDULE),
                     AppServices.chainQualifications());
         } finally {
             AppServices.setAnnouncedTip(previous);
