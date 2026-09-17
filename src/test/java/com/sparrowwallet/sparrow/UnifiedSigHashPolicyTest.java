@@ -81,31 +81,28 @@ public class UnifiedSigHashPolicyTest {
     }
 
     /**
-     * The property that matters for mainnet, now that a height ships for it.
-     *
-     * This used to hold because mainnet was unscheduled, so no header could make a wallet opt in at all. That floor
-     * is gone: the shipped height is what a server cannot move, and below it a forged v2 header buys nothing. Above
-     * it the wallet does opt in on a v2 tip, which is the point of shipping a height, and the node cross-check is
-     * what covers a server lying about the tip.
+     * Blake2b is from height 0, so a v2 tip at genesis opts in. A SHA256d (v1) header cannot buy the same
+     * at any claimed height: the version check is what refuses that cheap forgery.
      */
     @Test
-    public void testAForgedV2TipCannotOptInBelowTheMainnetHeight() {
+    public void testAV2TipOptsInFromGenesisOnMainnet() {
         BlockHeader forged = header(V2_HEADER_HEX);
         Assertions.assertTrue(forged.isHeaderV2());
 
         int activationHeight = AppServices.getUnifiedSigHashActivationHeight(Network.MAINNET);
-        Assertions.assertFalse(AppServices.isUnifiedSigHashActive(Network.MAINNET, activationHeight - 1, forged));
+        Assertions.assertEquals(0, activationHeight);
         Assertions.assertTrue(AppServices.isUnifiedSigHashActive(Network.MAINNET, activationHeight, forged),
-                "at the height the chain has activated, so a v2 tip opts in");
+                "at genesis the chain has activated, so a v2 tip opts in");
     }
 
     /**
      * A v1 tip never opts in, whatever height is claimed. The proof of work change and this one activate together,
-     * so a chain still serving v1 headers has not activated whatever its height says.
+     * so a chain still serving v1 headers has not activated whatever its height says. Genesis is v2, so this uses
+     * a SHA256d header the way a lying server would.
      */
     @Test
     public void testAV1TipNeverOptsInOnMainnet() {
-        BlockHeader v1 = Network.MAINNET.getGenesisHeader();
+        BlockHeader v1 = header(V1_HEADER_HEX);
         Assertions.assertFalse(v1.isHeaderV2());
         Assertions.assertFalse(AppServices.isUnifiedSigHashActive(Network.MAINNET, Integer.MAX_VALUE, v1));
     }
@@ -118,7 +115,7 @@ public class UnifiedSigHashPolicyTest {
     public void testAKnownHeightGatesTheDecision() {
         BlockHeader blockHeader = header(V2_HEADER_HEX);
         int activation = AppServices.getUnifiedSigHashActivationHeight(Network.TESTNET4);
-        Assertions.assertFalse(AppServices.isUnifiedSigHashActive(Network.TESTNET4, activation - 1, blockHeader));
+        Assertions.assertEquals(0, activation);
         Assertions.assertTrue(AppServices.isUnifiedSigHashActive(Network.TESTNET4, activation, blockHeader));
         Assertions.assertFalse(AppServices.isUnifiedSigHashActive(Network.TESTNET4, null, blockHeader));
     }
@@ -477,22 +474,22 @@ public class UnifiedSigHashPolicyTest {
 
     /**
      * The shipped testnet4 height must match the node the wallet is built against, or the cross-check
-     * above would fire on every correctly configured connection. This chain activates Blake2b from height 1.
+     * above would fire on every correctly configured connection. This chain activates Blake2b from height 0.
      */
     @Test
     public void testTheShippedTestnet4HeightIsTheOneKnotsUses() {
-        Assertions.assertEquals(1, AppServices.getUnifiedSigHashActivationHeight(Network.TESTNET4),
+        Assertions.assertEquals(0, AppServices.getUnifiedSigHashActivationHeight(Network.TESTNET4),
                 "Update the provenance comment alongside this value");
     }
 
     /**
      * Mainnet ships a height now, so the wallet opts in there once the chain reaches it. Until it did, the build
      * declined everywhere on mainnet, which is a materially different thing to be shipping. This chain activates
-     * Blake2b from height 1; dummy MAIN is not live.
+     * Blake2b from height 0; dummy MAIN is not live.
      */
     @Test
     public void testTheShippedMainnetHeightIsTheOneKnotsUses() {
-        Assertions.assertEquals(1, AppServices.getUnifiedSigHashActivationHeight(Network.MAINNET),
+        Assertions.assertEquals(0, AppServices.getUnifiedSigHashActivationHeight(Network.MAINNET),
                 "Update the provenance comment alongside this value");
         Assertions.assertNull(AppServices.getUnifiedSigHashActivationHeight(Network.REGTEST),
                 "Regtest chooses its own height through the node, so this build ships none");
@@ -1253,9 +1250,10 @@ public class UnifiedSigHashPolicyTest {
                     network + " with a height but no header still has no header to judge");
         }
 
-        //A header that is present and v1 below the shipped height is the chain answering, which is the other reason entirely
-        BlockHeader v1 = Network.MAINNET.getGenesisHeader();
-        Assertions.assertEquals(UnifiedSigHashDecision.CHAIN_NOT_ACTIVATED, AppServices.chainDecision(Network.MAINNET, 0, v1));
+        //A v1 header on a chain that ships no height is the chain answering, which is the other reason entirely.
+        //MAINNET activates at 0, so a v1 tip there contradicts the schedule instead (covered below).
+        BlockHeader v1 = header(V1_HEADER_HEX);
+        Assertions.assertEquals(UnifiedSigHashDecision.CHAIN_NOT_ACTIVATED, AppServices.chainDecision(Network.REGTEST, 0, v1));
 
         Assertions.assertFalse(UnifiedSigHashDecision.CHAIN_UNSEEN.isOptedIn());
         Assertions.assertNull(UnifiedSigHashDecision.CHAIN_UNSEEN.getRemedy(),
@@ -1272,16 +1270,13 @@ public class UnifiedSigHashPolicyTest {
      */
     @Test
     public void testATipThatContradictsTheScheduleIsReportedAsSuch() {
-        BlockHeader v1 = Network.MAINNET.getGenesisHeader();
+        BlockHeader v1 = header(V1_HEADER_HEX);
         Assertions.assertFalse(v1.isHeaderV2());
 
         int activation = Network.MAINNET.getBlake2bHeight();
+        Assertions.assertEquals(0, activation);
 
-        //Below the height a pre-fork header is exactly what the chain should have, and says nothing about the server
-        Assertions.assertEquals(UnifiedSigHashDecision.CHAIN_NOT_ACTIVATED,
-                AppServices.chainDecision(Network.MAINNET, activation - 1, v1));
-
-        //At and past it the two cannot both be right
+        //Blake2b is from height 0, so a v1 header at any real height cannot both be right
         Assertions.assertEquals(UnifiedSigHashDecision.TIP_CONTRADICTS_SCHEDULE,
                 AppServices.chainDecision(Network.MAINNET, activation, v1));
         Assertions.assertEquals(UnifiedSigHashDecision.TIP_CONTRADICTS_SCHEDULE,
