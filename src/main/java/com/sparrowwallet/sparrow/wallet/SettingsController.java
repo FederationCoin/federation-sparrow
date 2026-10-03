@@ -247,7 +247,7 @@ public class SettingsController extends WalletFormController implements Initiali
         scanDescriptorQR.prefHeightProperty().bind(descriptor.prefHeightProperty());
         showDescriptorQR.managedProperty().bind(showDescriptorQR.visibleProperty());
         showDescriptorQR.prefHeightProperty().bind(descriptor.prefHeightProperty());
-        showDescriptorQR.visibleProperty().bind(scanDescriptorQR.visibleProperty().not());
+        showDescriptorQR.setVisible(false);
         editDescriptor.managedProperty().bind(editDescriptor.visibleProperty());
         showDescriptor.managedProperty().bind(showDescriptor.visibleProperty());
         showDescriptor.visibleProperty().bind(editDescriptor.visibleProperty().not());
@@ -277,9 +277,8 @@ public class SettingsController extends WalletFormController implements Initiali
 
             Wallet wallet = walletForm.getWallet();
             if(wallet.getPolicyType() == PolicyType.MULTI_HD && wallet.getDefaultPolicy().getNumSignaturesRequired() < wallet.getKeystores().size() && addressChange) {
-                String outputDescriptor = OutputDescriptor.getOutputDescriptor(wallet, KeyPurpose.DEFAULT_PURPOSES, null).toString(true);
-                RegistryItem registryItem = getUROutputDescriptor(wallet);
-                MultisigBackupDialog dialog = new MultisigBackupDialog(wallet, outputDescriptor, registryItem.toUR());
+                String policy = wallet.getMlDsaPolicyBackup();
+                MultisigBackupDialog dialog = new MultisigBackupDialog(wallet, policy, null);
                 dialog.initOwner(apply.getScene().getWindow());
                 dialog.showAndWait();
             }
@@ -297,7 +296,7 @@ public class SettingsController extends WalletFormController implements Initiali
     private void setFieldsFromWallet(Wallet wallet) {
         if(wallet.getPolicyType() == null) {
             wallet.setPolicyType(PolicyType.SINGLE_HD);
-            wallet.setScriptType(ScriptType.P2WPKH);
+            wallet.setScriptType(ScriptType.MLDSA_SINGLE);
             Keystore keystore = new Keystore("Keystore 1");
             keystore.setSource(KeystoreSource.SW_WATCH);
             keystore.setWalletModel(WalletModel.SPARROW);
@@ -329,7 +328,7 @@ public class SettingsController extends WalletFormController implements Initiali
             scriptType.getSelectionModel().select(walletForm.getWallet().getScriptType());
         }
 
-        scanDescriptorQR.setVisible(!walletForm.getWallet().isValid());
+        scanDescriptorQR.setVisible(false);
         export.setDisable(!walletForm.getWallet().isValid());
         addAccount.setDisable(!walletForm.getWallet().isValid() || walletForm.getWallet().getScriptType() == ScriptType.P2SH);
         revert.setDisable(true);
@@ -638,14 +637,11 @@ public class SettingsController extends WalletFormController implements Initiali
     }
 
     public void showDescriptor(ActionEvent event) {
-        OutputDescriptor outputDescriptor = OutputDescriptor.getOutputDescriptor(walletForm.getWallet(), KeyPurpose.DEFAULT_PURPOSES, null);
-        String outputDescriptorString = outputDescriptor.toString(walletForm.getWallet().isValid());
-
-        TextAreaDialog dialog = new TextAreaDialog(outputDescriptorString, false);
+        String policy = walletForm.getWallet().getMlDsaPolicyBackup();
+        TextAreaDialog dialog = new TextAreaDialog(policy, false);
         dialog.initOwner(showDescriptor.getScene().getWindow());
-        dialog.setTitle("Show wallet output descriptor");
-        dialog.getDialogPane().setHeaderText("The wallet configuration is specified in the output descriptor.\nThis wallet is no longer editable - create a new wallet to change the descriptor." +
-                (walletForm.getWallet().getPolicyType() == PolicyType.MULTI_HD ? "\nKey expressions are shown in canonical order." : ""));
+        dialog.setTitle("Show wallet policy");
+        dialog.getDialogPane().setHeaderText("Backup the seeds plus this policy. This is not a Bitcoin output descriptor.");
         dialog.showAndWait();
     }
 
@@ -888,7 +884,7 @@ public class SettingsController extends WalletFormController implements Initiali
             apply.setDisable(!wallet.isValid());
             export.setDisable(true);
             addAccount.setDisable(true);
-            scanDescriptorQR.setVisible(!wallet.isValid());
+            scanDescriptorQR.setVisible(false);
         }
     }
 
@@ -897,7 +893,7 @@ public class SettingsController extends WalletFormController implements Initiali
         if(event.getWalletId().equals(walletForm.getWalletId())) {
             export.setDisable(!event.getWallet().isValid());
             addAccount.setDisable(!event.getWallet().isValid() || event.getWallet().getScriptType() == ScriptType.P2SH);
-            scanDescriptorQR.setVisible(!event.getWallet().isValid());
+            scanDescriptorQR.setVisible(false);
         }
     }
 

@@ -48,7 +48,7 @@ public class KeystoreImportDialog extends Dialog<Keystore> {
                 keystoreImportController.setRequiredModel(currentModel);
             }
 
-            final ButtonType watchOnlyButtonType = new javafx.scene.control.ButtonType(Network.get().getXpubHeader().getDisplayName() + " / Watch Only Wallet", ButtonBar.ButtonData.LEFT);
+            final ButtonType watchOnlyButtonType = new javafx.scene.control.ButtonType("Watch Only Wallet", ButtonBar.ButtonData.LEFT);
             if(!restrictImport) {
                 dialogPane.getButtonTypes().add(watchOnlyButtonType);
             }

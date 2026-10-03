@@ -900,7 +900,7 @@ public class SendController extends WalletFormController implements Initializabl
     }
 
     public boolean isInsufficientFeeRate() {
-        return walletTransactionProperty.get() != null && walletTransactionProperty.get().getFeeRate() < AppServices.getMinimumRelayFeeRate();
+        return walletTransactionProperty.get() != null && walletTransactionProperty.get().getFeeRate() < Math.max(AppServices.getMinimumRelayFeeRate(), 1.0 / 12.0);
     }
 
     private void setFeeRate(Double feeRateAmt) {
@@ -1151,7 +1151,8 @@ public class SendController extends WalletFormController implements Initializabl
 
         //The one decision the user can act on is offered here rather than only described: the send screen is where
         //they find out, and a setting reached by leaving the send and hunting through a tab is a setting nobody uses
-        boolean actionable = decision == UnifiedSigHashDecision.EXTERNAL_SIGNER;
+        // Unified-sighash hardware dialog is not a spend on this chain.
+        boolean actionable = false;
         optInStatus.getStyleClass().removeAll("actionable");
         if(actionable) {
             optInStatus.getStyleClass().add("actionable");

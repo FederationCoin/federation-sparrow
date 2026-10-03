@@ -72,12 +72,12 @@ public class Bip39Dialog extends NewWalletDialog {
         buttonPanel.setLayoutData(GridLayout.createLayoutData(GridLayout.Alignment.END, GridLayout.Alignment.CENTER,false,false)).addTo(mainPanel);
         setComponent(mainPanel);
 
-        for(PolicyType policyType : List.of(PolicyType.SINGLE_HD, PolicyType.SINGLE_SP)) {
+        for(PolicyType policyType : List.of(PolicyType.SINGLE_HD, PolicyType.MULTI_HD)) {
             for(ScriptType scriptType : ScriptType.getAddressableScriptTypes(policyType)) {
                 this.scriptType.addItem(new PolicyAndScriptType(policyType, scriptType));
             }
         }
-        scriptType.setSelectedItem(new PolicyAndScriptType(PolicyType.SINGLE_HD, ScriptType.P2WPKH));
+        scriptType.setSelectedItem(new PolicyAndScriptType(PolicyType.SINGLE_HD, ScriptType.MLDSA_SINGLE));
 
         seedWords.setTextChangeListener((newText, changedByUserInteraction) -> {
             try {

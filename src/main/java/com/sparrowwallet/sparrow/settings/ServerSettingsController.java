@@ -1142,7 +1142,7 @@ public class ServerSettingsController extends SettingsDetailController {
                 setText(null);
                 setGraphic(null);
             } else {
-                setText(server + (openPolicyTypes.contains(PolicyType.SINGLE_SP) && server.isSupportedPolicyType(PolicyType.SINGLE_SP) ? " (supports Silent Payments)" : ""));
+                setText(server.toString());
                 setGraphic(null);
             }
         }

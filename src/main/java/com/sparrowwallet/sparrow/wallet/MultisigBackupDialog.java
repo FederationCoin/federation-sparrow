@@ -30,10 +30,10 @@ public class MultisigBackupDialog extends Dialog<String> {
         setTitle("Backup Multisig Wallet?");
 
         DialogPane dialogPane = new MultisigBackupDialogPane();
-        dialogPane.setHeaderText("To restore this multisig wallet, you need at least " + wallet.getDefaultPolicy().getNumSignaturesRequired() + " seeds and ALL of the xpubs! " +
-                "For the xpubs, it is recommended to backup either this wallet file, or the wallet output descriptor.\n\n" +
-                "The wallet output descriptor contains all " + wallet.getKeystores().size() + " of the xpubs and is shown below. " +
-                "Alternatively, use the Export button below to export the Sparrow wallet file.");
+        dialogPane.setHeaderText("To restore this multisig wallet, you need at least " + wallet.getDefaultPolicy().getNumSignaturesRequired() + " seeds and the policy (threshold, count, and sorted key hashes). " +
+                "Backup the seeds plus this policy, or this Sparrow wallet file.\n\n" +
+                "The policy below is not a Bitcoin output descriptor. " +
+                "Alternatively, use the Export button to export the Sparrow wallet file.");
         setDialogPane(dialogPane);
 
         dialogPane.getStyleClass().addAll("alert", "warning");
@@ -80,7 +80,12 @@ public class MultisigBackupDialog extends Dialog<String> {
                         bbqr = new BBQR(BBQRType.UNICODE, descriptor.getBytes(StandardCharsets.UTF_8));
                     }
 
-                    PdfUtils.saveOutputDescriptor(wallet.getFullDisplayName(), descriptor, ur, bbqr);
+                    try {
+                        UR export = ur != null ? ur : new UR(com.sparrowwallet.hummingbird.registry.RegistryType.BYTES, descriptor.getBytes(StandardCharsets.UTF_8));
+                        PdfUtils.saveOutputDescriptor(wallet.getFullDisplayName(), descriptor, export, bbqr);
+                    } catch(Exception e) {
+                        PdfUtils.saveOutputDescriptor(wallet.getFullDisplayName(), descriptor, ur, bbqr);
+                    }
                 });
 
                 button = pdfButton;

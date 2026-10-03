@@ -183,7 +183,9 @@ public class MessageSignDialog extends Dialog<ButtonBar.ButtonData> {
         formatButtons.setToggleGroup(formatGroup);
         formatField.getInputs().add(formatButtons);
 
-        fieldset.getChildren().addAll(addressField, messageField, signatureField, formatField);
+        formatField.setVisible(false);
+        formatField.setManaged(false);
+        fieldset.getChildren().addAll(addressField, messageField, signatureField);
         form.getChildren().add(fieldset);
         dialogPane.setContent(form);
 
@@ -389,18 +391,12 @@ public class MessageSignDialog extends Dialog<ButtonBar.ButtonData> {
         try {
             Keystore keystore = decryptedWallet.getKeystores().getFirst();
             String signatureText;
-            if(decryptedWallet.getPolicyType() == PolicyType.SINGLE_SP) {
-                ECKey spendPrivKey = keystore.getSpendPrivateKey(Collections.emptyMap());
-                signatureText = Bip322.signMessageBip322Sp(walletNode.getAddress(), message.getText().trim(), spendPrivKey, walletNode.getSilentPaymentTweak());
+            if(decryptedWallet.getScriptType() == ScriptType.MLDSA_SINGLE || decryptedWallet.getScriptType() == ScriptType.MLDSA_MULTI) {
+                com.sparrowwallet.drongo.crypto.MlDsa44.Keypair key = keystore.getMlDsaKeypair(walletNode.getIndex());
+                byte[] sig = com.sparrowwallet.drongo.crypto.MlDsa44.sign(key.secret(), message.getText().trim().getBytes(StandardCharsets.UTF_8));
+                signatureText = com.sparrowwallet.drongo.Utils.bytesToHex(sig);
             } else {
-                ECKey privKey = keystore.getKey(walletNode);
-                if(isBip322()) {
-                    ScriptType scriptType = decryptedWallet.getScriptType();
-                    signatureText = Bip322.signMessageBip322(scriptType, message.getText().trim(), privKey);
-                } else {
-                    ScriptType scriptType = isElectrumSignatureFormat() ? ScriptType.P2PKH : decryptedWallet.getScriptType();
-                    signatureText = privKey.signMessage(message.getText().trim(), scriptType);
-                }
+                throw new IllegalArgumentException("Message signing is ML-DSA-44 over a UTF-8 message only");
             }
             signature.clear();
             signature.appendText(signatureText);
@@ -411,53 +407,19 @@ public class MessageSignDialog extends Dialog<ButtonBar.ButtonData> {
     }
 
     private void signDeviceKeystore(Wallet deviceWallet) {
-        List<String> fingerprints = List.of(deviceWallet.getKeystores().getFirst().getKeyDerivation().getMasterFingerprint());
-        KeyDerivation fullDerivation = deviceWallet.getKeystores().getFirst().getKeyDerivation().extend(walletNode.getDerivation());
-        DeviceSignMessageDialog deviceSignMessageDialog = new DeviceSignMessageDialog(fingerprints, deviceWallet, message.getText().trim(), fullDerivation);
-        deviceSignMessageDialog.initOwner(getDialogPane().getScene().getWindow());
-        Optional<String> optSignature = deviceSignMessageDialog.showAndWait();
-        if(optSignature.isPresent()) {
-            signature.clear();
-            signature.appendText(optSignature.get());
-        }
+        AppServices.showErrorDialog("Hardware signing is not a spend on this chain", "Sign with this wallet's ML-DSA-44 seed.");
     }
 
     private void verifyMessage() {
         try {
-            //Find ECKey from message and signature
-            //http://www.secg.org/download/aid-780/sec1-v2.pdf section 4.1.6
+            // ML-DSA-44 over a UTF-8 message only. Secp / BIP322 are not a spend on this chain.
             boolean verified = false;
-            try {
-                ECKey signedMessageKey = ECKey.signedMessageToKey(message.getText().trim(), signature.getText().trim(), true);
-                verified = verifyMessage(signedMessageKey);
-                if(verified) {
-                    formatGroup.selectToggle(formatElectrum);
-                }
-            } catch(SignatureException e) {
-                //ignore
-            }
-
-            if(!verified) {
-                try {
-                    ECKey electrumSignedMessageKey = ECKey.signedMessageToKey(message.getText(), signature.getText(), false);
-                    verified = verifyMessage(electrumSignedMessageKey);
-                    if(verified) {
-                        formatGroup.selectToggle(formatTrezor);
-                    }
-                } catch(SignatureException e) {
-                    //ignore
-                }
-            }
-
-            if(!verified && Bip322.isSupported(getAddress().getScriptType()) && !signature.getText().trim().isEmpty()) {
-                try {
-                    verified = Bip322.verifyMessageBip322(getAddress().getScriptType(), getAddress(), message.getText().trim(), signature.getText().trim());
-                    if(verified) {
-                        formatGroup.selectToggle(formatBip322);
-                    }
-                } catch(SignatureException e) {
-                    //ignore
-                }
+            if(wallet != null && walletNode != null
+                    && (wallet.getScriptType() == ScriptType.MLDSA_SINGLE || wallet.getScriptType() == ScriptType.MLDSA_MULTI)
+                    && !signature.getText().trim().isEmpty()) {
+                com.sparrowwallet.drongo.crypto.MlDsa44.Keypair key = wallet.getKeystores().getFirst().getMlDsaKeypair(walletNode.getIndex());
+                byte[] sig = com.sparrowwallet.drongo.Utils.hexToBytes(signature.getText().trim());
+                verified = com.sparrowwallet.drongo.crypto.MlDsa44.verify(key.pubkey(), sig, message.getText().trim().getBytes(StandardCharsets.UTF_8));
             }
 
             if(verified) {

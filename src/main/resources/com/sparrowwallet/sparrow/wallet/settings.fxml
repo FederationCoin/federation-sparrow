@@ -40,18 +40,18 @@
                                 </FXCollections>
                             </items>
                         </ComboBox>
-                        <HelpLabel helpText="Single signature wallets use a single keystore (hardware wallet or seed).\nMultisignature wallets require multiple keystores, of which a certain number need to sign." />
+                        <HelpLabel helpText="Single-key wallets use one ML-DSA-44 keystore.\nMultisignature wallets require multiple ML-DSA-44 keystores; a threshold of them must sign." />
                     </Field>
                     <Field text="Script Type:">
                         <ComboBox fx:id="scriptType">
                             <items>
                                 <FXCollections fx:factory="observableArrayList">
-                                    <ScriptType fx:constant="P2WPKH" />
-                                    <ScriptType fx:constant="P2WSH" />
+                                    <ScriptType fx:constant="MLDSA_SINGLE" />
+                                    <ScriptType fx:constant="MLDSA_MULTI" />
                                 </FXCollections>
                             </items>
                         </ComboBox>
-                        <HelpLabel helpText="FederationCoin wallets use Native Segwit: P2WPKH for single signature and P2WSH for multisignature.\nLegacy, Nested Segwit, Taproot, and Silent Payments are not offered on this chain." />
+                        <HelpLabel helpText="FederationCoin wallets use ML-DSA-44 witness v0. Legacy, nested, Taproot, and Silent Payments are not offered on this chain." />
                     </Field>
                 </Fieldset>
             </Form>
@@ -71,21 +71,21 @@
 
             <Form GridPane.columnIndex="0" GridPane.columnSpan="2" GridPane.rowIndex="1">
                 <Fieldset inputGrow="SOMETIMES" text="Script Policy">
-                    <Field text="Descriptor:">
+                    <Field text="Policy:">
                         <VirtualizedScrollPane hbarPolicy="NEVER" vbarPolicy="NEVER">
                             <content>
                                 <DescriptorArea fx:id="descriptor" editable="false" styleClass="uneditable-codearea" prefHeight="27" maxHeight="27" />
                             </content>
                         </VirtualizedScrollPane>
-                        <Button fx:id="scanDescriptorQR" onAction="#scanDescriptorQR">
+                        <Button fx:id="scanDescriptorQR" onAction="#scanDescriptorQR" visible="false" managed="false">
                             <graphic>
                                 <Glyph fontFamily="Font Awesome 5 Free Solid" fontSize="12" icon="CAMERA" />
                             </graphic>
                             <tooltip>
-                                <Tooltip text="Scan a QR code" />
+                                <Tooltip text="Bitcoin output descriptors are not a spend on this chain" />
                             </tooltip>
                         </Button>
-                        <Button fx:id="showDescriptorQR" onAction="#showDescriptorQR">
+                        <Button fx:id="showDescriptorQR" onAction="#showDescriptorQR" visible="false" managed="false">
                             <graphic>
                                 <Glyph fontFamily="Font Awesome 5 Free Solid" fontSize="12" icon="QRCODE" />
                             </graphic>
@@ -93,7 +93,7 @@
                                 <Tooltip text="Show as QR code" />
                             </tooltip>
                         </Button>
-                        <Button fx:id="editDescriptor" text="Edit..." onAction="#editDescriptor" />
+                        <Button fx:id="editDescriptor" text="Edit..." onAction="#editDescriptor" visible="false" managed="false" />
                         <Button fx:id="showDescriptor" text="Show..." onAction="#showDescriptor" />
                     </Field>
                 </Fieldset>
