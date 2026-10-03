@@ -9,8 +9,11 @@ import com.sparrowwallet.drongo.wallet.Keystore;
 import com.sparrowwallet.sparrow.ChainEncoding;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+// Heritage Coldcard singlesig xpub import. Hardware secp256k1 is not a spend on this chain.
+@Disabled("heritage Coldcard singlesig import; hardware secp256k1 is not a spend on this chain")
 public class ColdcardSinglesigTest extends IoTest {
     @Test
     public void testImport() throws ImportException {

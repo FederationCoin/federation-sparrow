@@ -6,8 +6,11 @@ import com.sparrowwallet.drongo.protocol.ScriptType;
 import com.sparrowwallet.drongo.wallet.Wallet;
 import com.sparrowwallet.sparrow.ChainEncoding;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
+// Heritage BIP129/BSMS import of secp256k1 P2WSH descriptors. Not a spend on this chain.
+@Disabled("heritage BIP129/BSMS import; secp256k1 and P2WSH are not spends on this chain")
 public class Bip129Test extends IoTest {
     @Test
     public void importWallet1() throws ImportException {

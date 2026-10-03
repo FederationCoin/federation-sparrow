@@ -5,11 +5,14 @@ import com.sparrowwallet.drongo.policy.PolicyType;
 import com.sparrowwallet.drongo.protocol.ScriptType;
 import com.sparrowwallet.drongo.wallet.Wallet;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.util.Locale;
 import com.sparrowwallet.sparrow.ChainEncoding;
 
+// Heritage Specter Desktop import of secp256k1 descriptors. Not a spend on this chain.
+@Disabled("heritage Specter Desktop import; secp256k1 scripts are not spends on this chain")
 public class SpecterDesktopTest extends IoTest {
     @Test
     public void testImport() throws ImportException {

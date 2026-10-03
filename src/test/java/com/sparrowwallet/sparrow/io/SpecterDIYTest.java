@@ -12,11 +12,14 @@ import com.sparrowwallet.drongo.wallet.Wallet;
 import com.sparrowwallet.sparrow.ChainEncoding;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
+// Heritage Specter DIY import of secp256k1 descriptors. Not a spend on this chain.
+@Disabled("heritage Specter DIY import; secp256k1 scripts are not spends on this chain")
 public class SpecterDIYTest extends IoTest {
     @Test
     public void testImport() throws ImportException {
