@@ -66,7 +66,8 @@ public class KeystoreImportDialog extends Dialog<Keystore> {
     }
 
     public static List<KeystoreSource> getSupportedSources() {
-        return List.of(KeystoreSource.HW_USB, KeystoreSource.HW_AIRGAPPED, KeystoreSource.SW_SEED);
+        // Hardware and airgapped devices are not a spend on this chain.
+        return List.of(KeystoreSource.SW_SEED);
     }
 
     private Keystore getWatchOnlyKeystore() {

@@ -891,7 +891,8 @@ public class SendController extends WalletFormController implements Initializabl
         if(userFeeRate != null) {
             minRate = Math.min(userFeeRate, minRate);
         }
-        return Math.max(minRate, Transaction.DUST_RELAY_TX_FEE);
+        // Consensus floor is floor(vsize / 12) sats (~1/12 sat/vB). Paying more is valid.
+        return Math.max(minRate, Math.max(Transaction.DUST_RELAY_TX_FEE, 1.0 / 12.0));
     }
 
     private Map<Date, Set<MempoolRateSize>> getMempoolHistogram() {
@@ -1011,14 +1012,7 @@ public class SendController extends WalletFormController implements Initializabl
     }
 
     private BitcoinURI getPayjoinURI(Address address) {
-        for(Tab tab : paymentTabs.getTabs()) {
-            PaymentController controller = (PaymentController)tab.getUserData();
-            BitcoinURI payjoinURI = controller.getPayjoinURI();
-            if(payjoinURI != null && payjoinURI.getAddress().equals(address)) {
-                return payjoinURI;
-            }
-        }
-
+        // Payjoin is not a spend on this chain.
         return null;
     }
 
