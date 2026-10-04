@@ -563,6 +563,9 @@ public class PaymentController extends WalletFormController implements Initializ
         if(payNym == null) {
             Address parsed = Address.fromString(address.getText());
             parsed.requireSendable();
+            if(parsed.getScriptType().needsQuantumWarning()) {
+                AppServices.showWarningDialog("secp cheap-out", com.sparrowwallet.drongo.protocol.SecpCheapOut.warnSend());
+            }
             return parsed;
         }
 

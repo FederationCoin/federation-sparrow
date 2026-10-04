@@ -1326,6 +1326,9 @@ public class SendController extends WalletFormController implements Initializabl
     }
 
     public void createTransaction(ActionEvent event) {
+        if(getWalletForm().getWallet().getScriptType() != null && getWalletForm().getWallet().getScriptType().needsQuantumWarning()) {
+            AppServices.showWarningDialog("secp cheap-out", com.sparrowwallet.drongo.protocol.SecpCheapOut.warnSend());
+        }
         WalletTransaction walletTransaction = walletTransactionProperty.get();
         if(log.isDebugEnabled()) {
             Map<WalletNode, List<String>> inputHashes = new LinkedHashMap<>();

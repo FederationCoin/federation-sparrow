@@ -95,7 +95,7 @@ public class WatchOnlyDialog extends NewWalletDialog {
             parsed.requireSendable();
             Wallet wallet = new Wallet(walletName);
             wallet.setPolicyType(PolicyType.SINGLE_HD);
-            wallet.setScriptType(ScriptType.MLDSA_SINGLE);
+            wallet.setScriptType(ScriptType.MLDSA87_SINGLE);
             Keystore keystore = new Keystore();
             keystore.setSource(KeystoreSource.SW_WATCH);
             keystore.setWalletModel(WalletModel.SPARROW);

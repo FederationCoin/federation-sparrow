@@ -77,7 +77,7 @@ public class Bip39Dialog extends NewWalletDialog {
                 this.scriptType.addItem(new PolicyAndScriptType(policyType, scriptType));
             }
         }
-        scriptType.setSelectedItem(new PolicyAndScriptType(PolicyType.SINGLE_HD, ScriptType.MLDSA_SINGLE));
+        scriptType.setSelectedItem(new PolicyAndScriptType(PolicyType.SINGLE_HD, ScriptType.MLDSA87_SINGLE));
 
         seedWords.setTextChangeListener((newText, changedByUserInteraction) -> {
             try {

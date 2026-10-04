@@ -296,7 +296,7 @@ public class SettingsController extends WalletFormController implements Initiali
     private void setFieldsFromWallet(Wallet wallet) {
         if(wallet.getPolicyType() == null) {
             wallet.setPolicyType(PolicyType.SINGLE_HD);
-            wallet.setScriptType(ScriptType.MLDSA_SINGLE);
+            wallet.setScriptType(ScriptType.MLDSA87_SINGLE);
             Keystore keystore = new Keystore("Keystore 1");
             keystore.setSource(KeystoreSource.SW_WATCH);
             keystore.setWalletModel(WalletModel.SPARROW);
