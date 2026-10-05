@@ -81,14 +81,14 @@ public class DescriptorArea extends CodeArea {
             });
             getItems().add(copyvalue);
 
-            MenuItem copyOutputDescriptor = new MenuItem("Copy Output Descriptor");
-            copyOutputDescriptor.setOnAction(AE -> {
+            MenuItem copyPolicy = new MenuItem("Copy Policy");
+            copyPolicy.setOnAction(AE -> {
                 hide();
                 ClipboardContent content = new ClipboardContent();
-                content.putString(OutputDescriptor.getOutputDescriptor(wallet, KeyPurpose.DEFAULT_PURPOSES, null).toString(true));
+                content.putString(wallet.getMlDsaPolicyBackup());
                 Clipboard.getSystemClipboard().setContent(content);
             });
-            getItems().add(copyOutputDescriptor);
+            getItems().add(copyPolicy);
             this.setStyle("-fx-background-color: -fx-color; -fx-font-family: System; -fx-font-size: 1em;");
         }
     }

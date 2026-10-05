@@ -176,6 +176,9 @@ public class ReceiveController extends WalletFormController implements Initializ
 
         this.currentEntry = nodeEntry;
         address.setText(nodeEntry.getAddress().toString());
+        if(walletForm.getWallet().getScriptType() != null && walletForm.getWallet().getScriptType().needsQuantumWarning()) {
+            AppServices.showWarningDialog("secp cheap-out", com.sparrowwallet.drongo.protocol.SecpCheapOut.warnReceive());
+        }
         label.textProperty().bindBidirectional(nodeEntry.labelProperty());
         updateDerivationPath(nodeEntry);
 

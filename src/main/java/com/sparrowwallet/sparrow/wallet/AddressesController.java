@@ -51,7 +51,7 @@ public class AddressesController extends WalletFormController implements Initial
         changeTable.initialize(getWalletForm().getNodeEntry(KeyPurpose.CHANGE));
 
         showPayNymAddresses.managedProperty().bind(showPayNymAddresses.visibleProperty());
-        showPayNymAddresses.setVisible(getWalletForm().getWallet().getChildWallets().stream().anyMatch(Wallet::isBip47));
+        showPayNymAddresses.setVisible(false);
     }
 
     @Subscribe
@@ -122,7 +122,7 @@ public class AddressesController extends WalletFormController implements Initial
     @Subscribe
     public void childWalletsAdded(ChildWalletsAddedEvent event) {
         if(event.getWallet().equals(getWalletForm().getWallet())) {
-            showPayNymAddresses.setVisible(getWalletForm().getWallet().getChildWallets().stream().anyMatch(Wallet::isBip47));
+            showPayNymAddresses.setVisible(false);
         }
     }
 

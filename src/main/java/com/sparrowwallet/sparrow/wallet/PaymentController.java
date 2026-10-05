@@ -243,31 +243,7 @@ public class PaymentController extends WalletFormController implements Initializ
                 return;
             }
 
-            if(sendController.getWalletForm().getWallet().hasPaymentCode()) {
-                try {
-                    PaymentCode paymentCode = new PaymentCode(newValue);
-                    Wallet recipientBip47Wallet = sendController.getWalletForm().getWallet().getChildWallet(paymentCode, sendController.getWalletForm().getWallet().getScriptType());
-                    if(recipientBip47Wallet == null && sendController.getWalletForm().getWallet().getScriptType() != ScriptType.P2PKH) {
-                        recipientBip47Wallet = sendController.getWalletForm().getWallet().getChildWallet(paymentCode, ScriptType.P2PKH);
-                    }
-
-                    if(recipientBip47Wallet != null && hasNotificationTransaction(paymentCode)) {
-                        PayNym payNym = PayNym.fromWallet(recipientBip47Wallet);
-                        Platform.runLater(() -> setPayNym(payNym));
-                    } else if(!paymentCode.equals(sendController.getWalletForm().getWallet().getPaymentCode())) {
-                        ButtonType previewType = new ButtonType("Preview Transaction", ButtonBar.ButtonData.YES);
-                        Optional<ButtonType> optButton = AppServices.showAlertDialog("Send notification transaction?", "This payment code is not yet linked with a notification transaction. Send a notification transaction?", Alert.AlertType.CONFIRMATION, ButtonType.CANCEL, previewType);
-                        if(optButton.isPresent() && optButton.get() == previewType) {
-                            Payment payment = new Payment(paymentCode.getNotificationAddress(), "Link " + paymentCode.toAbbreviatedString(), MINIMUM_P2PKH_OUTPUT_SATS, false);
-                            Platform.runLater(() -> EventManager.get().post(new SpendUtxoEvent(sendController.getWalletForm().getWallet(), List.of(payment), List.of(new byte[80]), paymentCode)));
-                        } else {
-                            Platform.runLater(() -> address.setText(""));
-                        }
-                    }
-                } catch(Exception e) {
-                    //ignore, not a payment code
-                }
-            }
+            // PayNym / BIP47 payment codes are not a spend on this chain.
 
             try {
                 Address toAddress = Address.fromString(newValue);
@@ -348,11 +324,7 @@ public class PaymentController extends WalletFormController implements Initializ
             }
         });
         openWallets.setOnShowing(event -> {
-            if(!openWallets.getItems().contains(nfcCardWallet) && CardApi.isReaderAvailable()) {
-                openWallets.getItems().add(nfcCardWallet);
-            } else if(openWallets.getItems().contains(nfcCardWallet) && !CardApi.isReaderAvailable()) {
-                openWallets.getItems().remove(nfcCardWallet);
-            }
+            openWallets.getItems().remove(nfcCardWallet);
         });
 
         payNymProperty.addListener((observable, oldValue, payNym) -> {
@@ -494,15 +466,9 @@ public class PaymentController extends WalletFormController implements Initializ
                 && (wallet == sendController.getWalletForm().getWallet() || !wallet.isWhirlpoolChildWallet())
                 && !wallet.isBip47()
                 && wallet.getPolicyType() != PolicyType.SINGLE_SP
-                && (wallet.getScriptType() == null || !wallet.getScriptType().isParkedOnThisChain())).collect(Collectors.toList());
+                && (wallet.getScriptType() == null || wallet.getScriptType().isOfferedForNewWallets())).collect(Collectors.toList());
 
-        if(sendController.getWalletForm().getWallet().hasPaymentCode()) {
-            openWalletList.add(payNymWallet);
-        }
-
-        if(CardApi.isReaderAvailable()) {
-            openWalletList.add(nfcCardWallet);
-        }
+        // NFC / hardware cards are not a spend on this chain.
 
         openWallets.setItems(FXCollections.observableList(openWalletList));
     }
@@ -597,6 +563,9 @@ public class PaymentController extends WalletFormController implements Initializ
         if(payNym == null) {
             Address parsed = Address.fromString(address.getText());
             parsed.requireSendable();
+            if(parsed.getScriptType().needsQuantumWarning()) {
+                AppServices.showWarningDialog("secp cheap-out", com.sparrowwallet.drongo.protocol.SecpCheapOut.warnSend());
+            }
             return parsed;
         }
 

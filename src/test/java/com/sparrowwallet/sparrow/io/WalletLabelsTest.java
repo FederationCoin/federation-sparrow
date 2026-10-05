@@ -3,11 +3,10 @@ package com.sparrowwallet.sparrow.io;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.sparrowwallet.drongo.ExtendedKey;
-import com.sparrowwallet.drongo.KeyDerivation;
 import com.sparrowwallet.drongo.KeyPurpose;
 import com.sparrowwallet.drongo.Network;
-import com.sparrowwallet.drongo.address.Address;
+import com.sparrowwallet.drongo.OutputDescriptor;
+import com.sparrowwallet.drongo.address.MlDsaAddress;
 import com.sparrowwallet.drongo.policy.Policy;
 import com.sparrowwallet.drongo.policy.PolicyType;
 import com.sparrowwallet.drongo.protocol.Script;
@@ -15,7 +14,6 @@ import com.sparrowwallet.drongo.protocol.ScriptType;
 import com.sparrowwallet.drongo.protocol.Sha256Hash;
 import com.sparrowwallet.drongo.protocol.Transaction;
 import com.sparrowwallet.drongo.wallet.*;
-import com.sparrowwallet.sparrow.ChainEncoding;
 import com.sparrowwallet.sparrow.SparrowWallet;
 import com.sparrowwallet.sparrow.wallet.WalletForm;
 import org.junit.jupiter.api.AfterAll;
@@ -36,10 +34,9 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class WalletLabelsTest {
-    //BIP84 test vector account key at m/84'/0'/0'
-    private static final String XPUB = "xpub6CatWdiZiodmUeTDp8LT5or8nmbKNcuyvz7WyksVFkKB4RHwCD3XyuvPEbvqAQY3rAPshWcMLoP2fMFMKHPJ4ZeZXYVUhLv1VMrjPC7PW6V";
-    private static final String MASTER_FINGERPRINT = "73c5da0a";
-    private static final String ORIGIN = "wpkh([73c5da0a/84h/0h/0h])";
+    private static String originFor(Wallet wallet) {
+        return OutputDescriptor.getOutputDescriptor(wallet).toString(true, false, false);
+    }
 
     @TempDir
     private static Path tempHome;
@@ -60,7 +57,8 @@ public class WalletLabelsTest {
     public void testExport() throws Exception {
         TestWallet testWallet = createTestWallet();
         applyLabels(testWallet);
-        Assertions.assertEquals(ChainEncoding.address("bc1qcr8te4kr609gcawutmrza0j4xv80jy8z306fyu"), testWallet.receiveNode0.getAddress().toString());
+        Assertions.assertInstanceOf(MlDsaAddress.class, testWallet.receiveNode0.getAddress());
+        Assertions.assertTrue(testWallet.receiveNode0.getAddress().toString().startsWith("gfcn1"));
 
         WalletLabels walletLabels = new WalletLabels(List.of(testWallet.walletForm));
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -75,7 +73,7 @@ public class WalletLabelsTest {
 
         JsonObject fundingTxLabel = labels.get("tx:" + fundingTxid);
         Assertions.assertEquals("Funding transaction", fundingTxLabel.get("label").getAsString());
-        Assertions.assertEquals(ORIGIN, fundingTxLabel.get("origin").getAsString());
+        Assertions.assertEquals(originFor(testWallet.wallet), fundingTxLabel.get("origin").getAsString());
         Assertions.assertEquals(850000, fundingTxLabel.get("height").getAsInt());
         Assertions.assertEquals("2023-11-14T22:13:20Z", fundingTxLabel.get("time").getAsString());
         Assertions.assertEquals(300000L, fundingTxLabel.get("value").getAsLong());
@@ -123,10 +121,11 @@ public class WalletLabelsTest {
 
         String fundingTxid = testWallet.fundingBlkTx.getHashAsString();
         String spendingTxid = testWallet.spendingBlkTx.getHashAsString();
+        String origin = originFor(testWallet.wallet);
         String jsonl = String.join("\n",
-                "{\"type\":\"tx\",\"ref\":\"" + fundingTxid + "\",\"label\":\"Funding transaction\",\"origin\":\"wpkh([73c5da0a/84h/0h/0h])\"}",
-                "{\"type\":\"tx\",\"ref\":\"" + spendingTxid + "\",\"label\":\"Wrong origin\",\"origin\":\"wpkh([00000001/84h/0h/0h])\"}",
-                "{\"type\":\"addr\",\"ref\":\"" + testWallet.receiveNode0.getAddress() + "\",\"label\":\"Primary address\",\"origin\":\"wpkh([73C5DA0A/84'/0'/0'])\"}",
+                "{\"type\":\"tx\",\"ref\":\"" + fundingTxid + "\",\"label\":\"Funding transaction\",\"origin\":\"" + origin + "\"}",
+                "{\"type\":\"tx\",\"ref\":\"" + spendingTxid + "\",\"label\":\"Wrong origin\",\"origin\":\"mldsa([00000001/0'])\"}",
+                "{\"type\":\"addr\",\"ref\":\"" + testWallet.receiveNode0.getAddress() + "\",\"label\":\"Primary address\",\"origin\":\"" + origin + "\"}",
                 "{\"type\":\"output\",\"ref\":\"" + fundingTxid + ":1\",\"spendable\":true}",
                 "{\"type\":\"output\",\"ref\":\"" + fundingTxid + ":0\",\"label\":\"Received coins\"}",
                 "{\"type\":\"input\",\"ref\":\"" + spendingTxid + ":0\",\"label\":\"Spent input\"}",
@@ -188,20 +187,22 @@ public class WalletLabelsTest {
     }
 
     private TestWallet createTestWallet() throws Exception {
+        byte[] entropy = new byte[16];
+        java.util.Arrays.fill(entropy, (byte)0x21);
+        DeterministicSeed seed = new DeterministicSeed(entropy, "", 0L);
+        Keystore keystore = Keystore.fromSeed(seed, PolicyType.SINGLE_HD, ScriptType.MLDSA_SINGLE.getDefaultDerivation());
+        keystore.setLabel("Test Keystore");
         Wallet wallet = new Wallet("Labels Test");
         wallet.setPolicyType(PolicyType.SINGLE_HD);
-        wallet.setScriptType(ScriptType.P2WPKH);
-
-        Keystore keystore = new Keystore("Test Keystore");
-        keystore.setSource(KeystoreSource.SW_WATCH);
-        keystore.setWalletModel(WalletModel.SPARROW);
-        //Use hardened notation to ensure origin matching normalizes the wallet-side derivation
-        keystore.setKeyDerivation(new KeyDerivation(MASTER_FINGERPRINT, "m/84h/0h/0h"));
-        keystore.setExtendedPublicKey(ExtendedKey.fromDescriptor(ChainEncoding.extendedKey(XPUB)));
+        wallet.setScriptType(ScriptType.MLDSA_SINGLE);
         wallet.getKeystores().add(keystore);
-        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.SINGLE_HD, ScriptType.P2WPKH, wallet.getKeystores(), null));
+        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.SINGLE_HD, ScriptType.MLDSA_SINGLE, wallet.getKeystores(), 1));
         wallet.setStoredBlockHeight(850010);
-        Assertions.assertTrue(wallet.isValid());
+        try {
+            wallet.checkWallet();
+        } catch(InvalidWalletException e) {
+            Assertions.fail(e.getMessage(), e);
+        }
 
         Iterator<WalletNode> receiveNodes = wallet.getNode(KeyPurpose.RECEIVE).getChildren().iterator();
         WalletNode receiveNode0 = receiveNodes.next();
@@ -217,7 +218,7 @@ public class WalletLabelsTest {
         Date spendingDate = new Date(1700086400000L);
         Transaction spendingTx = new Transaction();
         spendingTx.addInput(fundingTx.getTxId(), 0, new Script(new byte[0]));
-        spendingTx.addOutput(90000L, Address.fromString(ChainEncoding.address("bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4")));
+        spendingTx.addOutput(90000L, receiveNode1.getAddress());
         BlockTransaction spendingBlkTx = new BlockTransaction(spendingTx.getTxId(), 850001, spendingDate, null, spendingTx);
 
         wallet.updateTransactions(Map.of(fundingTx.getTxId(), fundingBlkTx, spendingTx.getTxId(), spendingBlkTx));

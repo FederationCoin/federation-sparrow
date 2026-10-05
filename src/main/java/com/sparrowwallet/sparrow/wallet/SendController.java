@@ -891,7 +891,8 @@ public class SendController extends WalletFormController implements Initializabl
         if(userFeeRate != null) {
             minRate = Math.min(userFeeRate, minRate);
         }
-        return Math.max(minRate, Transaction.DUST_RELAY_TX_FEE);
+        // Consensus floor is floor(vsize / 12) sats (~1/12 sat/vB). Paying more is valid.
+        return Math.max(minRate, Math.max(Transaction.DUST_RELAY_TX_FEE, 1.0 / 12.0));
     }
 
     private Map<Date, Set<MempoolRateSize>> getMempoolHistogram() {
@@ -899,7 +900,7 @@ public class SendController extends WalletFormController implements Initializabl
     }
 
     public boolean isInsufficientFeeRate() {
-        return walletTransactionProperty.get() != null && walletTransactionProperty.get().getFeeRate() < AppServices.getMinimumRelayFeeRate();
+        return walletTransactionProperty.get() != null && walletTransactionProperty.get().getFeeRate() < Math.max(AppServices.getMinimumRelayFeeRate(), 1.0 / 12.0);
     }
 
     private void setFeeRate(Double feeRateAmt) {
@@ -1011,14 +1012,7 @@ public class SendController extends WalletFormController implements Initializabl
     }
 
     private BitcoinURI getPayjoinURI(Address address) {
-        for(Tab tab : paymentTabs.getTabs()) {
-            PaymentController controller = (PaymentController)tab.getUserData();
-            BitcoinURI payjoinURI = controller.getPayjoinURI();
-            if(payjoinURI != null && payjoinURI.getAddress().equals(address)) {
-                return payjoinURI;
-            }
-        }
-
+        // Payjoin is not a spend on this chain.
         return null;
     }
 
@@ -1157,7 +1151,8 @@ public class SendController extends WalletFormController implements Initializabl
 
         //The one decision the user can act on is offered here rather than only described: the send screen is where
         //they find out, and a setting reached by leaving the send and hunting through a tab is a setting nobody uses
-        boolean actionable = decision == UnifiedSigHashDecision.EXTERNAL_SIGNER;
+        // Unified-sighash hardware dialog is not a spend on this chain.
+        boolean actionable = false;
         optInStatus.getStyleClass().removeAll("actionable");
         if(actionable) {
             optInStatus.getStyleClass().add("actionable");
@@ -1331,6 +1326,9 @@ public class SendController extends WalletFormController implements Initializabl
     }
 
     public void createTransaction(ActionEvent event) {
+        if(getWalletForm().getWallet().getScriptType() != null && getWalletForm().getWallet().getScriptType().needsQuantumWarning()) {
+            AppServices.showWarningDialog("secp cheap-out", com.sparrowwallet.drongo.protocol.SecpCheapOut.warnSend());
+        }
         WalletTransaction walletTransaction = walletTransactionProperty.get();
         if(log.isDebugEnabled()) {
             Map<WalletNode, List<String>> inputHashes = new LinkedHashMap<>();

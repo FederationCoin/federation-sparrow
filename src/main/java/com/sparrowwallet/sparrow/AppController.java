@@ -446,7 +446,9 @@ public class AppController implements Initializable {
         refreshWallet.disableProperty().bind(Bindings.or(exportWallet.disableProperty(), Bindings.or(serverToggle.disableProperty(), AppServices.onlineProperty().not())));
         sendToMany.disableProperty().bind(exportWallet.disableProperty());
         sweepPrivateKey.disableProperty().bind(Bindings.or(serverToggle.disableProperty(), AppServices.onlineProperty().not()));
+        sweepPrivateKey.setVisible(false);
         showPayNym.setDisable(true);
+        showPayNym.setVisible(false);
 
         configureSwitchServer();
         setServerType(Config.get().getServerType());
@@ -1143,7 +1145,7 @@ public class AppController implements Initializable {
             WalletNameDialog.NameAndBirthDate nameAndBirthDate = optNameAndBirthDate.get();
             File walletFile = Storage.getWalletFile(nameAndBirthDate.getName());
             Storage storage = new Storage(walletFile);
-            Wallet wallet = new Wallet(nameAndBirthDate.getName(), PolicyType.SINGLE_HD, ScriptType.P2WPKH, nameAndBirthDate.getBirthDate());
+            Wallet wallet = new Wallet(nameAndBirthDate.getName(), PolicyType.SINGLE_HD, ScriptType.MLDSA87_SINGLE, nameAndBirthDate.getBirthDate());
             addWalletTabOrWindow(storage, wallet, false);
         }
     }
@@ -1506,8 +1508,7 @@ public class AppController implements Initializable {
         WalletForm selectedWalletForm = getSelectedWalletForm();
         if(selectedWalletForm != null) {
             Wallet wallet = selectedWalletForm.getWallet();
-            if(wallet.getPolicyType() == PolicyType.SINGLE_HD || wallet.getPolicyType() == PolicyType.SINGLE_SP) {
-                //Can sign and verify
+            if(wallet.getPolicyType() == PolicyType.SINGLE_HD && wallet.getScriptType() != null && wallet.getScriptType().isOfferedForNewWallets()) {
                 messageSignDialog = new MessageSignDialog(wallet);
             }
         }
@@ -1555,25 +1556,11 @@ public class AppController implements Initializable {
     }
 
     public void sweepPrivateKey(ActionEvent event) {
-        Wallet wallet = null;
-        WalletForm selectedWalletForm = getSelectedWalletForm();
-        if(selectedWalletForm != null && selectedWalletForm.getWallet().isValid()) {
-            wallet = selectedWalletForm.getWallet();
-        }
-
-        PrivateKeySweepDialog dialog = new PrivateKeySweepDialog(wallet);
-        dialog.initOwner(rootStack.getScene().getWindow());
-        Optional<Transaction> optTransaction = dialog.showAndWait();
-        optTransaction.ifPresent(transaction -> addTransactionTab(null, null, transaction));
+        // Secp WIF sweep is not a spend on this chain. Send from this wallet's ML-DSA keys instead.
     }
 
     public void showPayNym(ActionEvent event) {
-        WalletForm selectedWalletForm = getSelectedWalletForm();
-        if(selectedWalletForm != null) {
-            PayNymDialog payNymDialog = new PayNymDialog(selectedWalletForm.getWalletId());
-            payNymDialog.initOwner(rootStack.getScene().getWindow());
-            payNymDialog.showAndWait();
-        }
+        // PayNym is not a spend on this chain.
     }
 
     public void verifyDownload(ActionEvent event) {
@@ -2778,7 +2765,7 @@ public class AppController implements Initializable {
                 refreshWallet.setText(walletTabData.getWallet() == null || walletTabData.getWalletForm().getMasterWallet().getChildWallets().stream().allMatch(Wallet::isNested) ? "Refresh Wallet" : "Refresh Wallet Account");
                 showLoadingLog.setDisable(false);
                 showTxHex.setDisable(true);
-                showPayNym.setDisable(exportWallet.isDisable() || !walletTabData.getWallet().hasPaymentCode());
+                showPayNym.setDisable(true);
             }
         }
     }
@@ -2803,7 +2790,7 @@ public class AppController implements Initializable {
         if(selectedWalletForm != null) {
             if(selectedWalletForm.getWalletId().equals(event.getWalletId())) {
                 exportWallet.setDisable(!event.getWallet().isValid() || selectedWalletForm.isLocked());
-                showPayNym.setDisable(exportWallet.isDisable() || !event.getWallet().hasPaymentCode());
+                showPayNym.setDisable(true);
             }
         }
 
