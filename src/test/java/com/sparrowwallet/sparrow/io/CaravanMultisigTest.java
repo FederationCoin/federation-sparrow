@@ -8,7 +8,6 @@ import com.sparrowwallet.drongo.protocol.ScriptType;
 import com.sparrowwallet.drongo.wallet.Wallet;
 import com.sparrowwallet.drongo.wallet.WalletModel;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
@@ -17,8 +16,6 @@ import java.io.IOException;
 import java.util.Locale;
 import com.sparrowwallet.sparrow.ChainEncoding;
 
-// Heritage Caravan JSON import of secp256k1 P2WSH multisig. Not a spend on this chain.
-@Disabled("heritage Caravan import; secp256k1 and P2WSH are not spends on this chain")
 public class CaravanMultisigTest extends IoTest {
     @Test
     public void importWallet1() throws ImportException {

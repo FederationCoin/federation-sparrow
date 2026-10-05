@@ -6,15 +6,12 @@ import com.sparrowwallet.drongo.protocol.ScriptType;
 import com.sparrowwallet.drongo.wallet.Keystore;
 import com.sparrowwallet.drongo.wallet.Wallet;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import com.sparrowwallet.sparrow.ChainEncoding;
 
-// Heritage Bitcoin output-descriptor import/export. Not a spend on this chain.
-@Disabled("heritage Bitcoin descriptor import/export; not a spend on this chain")
 public class DescriptorTest extends IoTest {
     @Test
     public void testImport() throws ImportException {

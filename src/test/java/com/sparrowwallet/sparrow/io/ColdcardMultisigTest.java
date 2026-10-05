@@ -10,15 +10,12 @@ import com.sparrowwallet.drongo.wallet.Keystore;
 import com.sparrowwallet.drongo.wallet.Wallet;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.*;
 import java.util.Locale;
 import com.sparrowwallet.sparrow.ChainEncoding;
 
-// Heritage Coldcard xpub / P2WSH export. Hardware secp256k1 is not a spend on this chain.
-@Disabled("heritage Coldcard import/export; hardware secp256k1 is not a spend on this chain")
 public class ColdcardMultisigTest extends IoTest {
     @Test
     public void importKeystore1() throws ImportException {
