@@ -44,6 +44,11 @@ public class ScriptArea extends CodeArea {
             append(script.getChunks().get(0).toString(), "script-opcode");
             append(" ", "");
             append("<wpkh>", "script-hash");
+        } else if(MLDSA87_SINGLE.isScriptType(script) || MLDSA_SINGLE.isScriptType(script)
+                || MLDSA87_MULTI.isScriptType(script) || MLDSA_MULTI.isScriptType(script)) {
+            append(script.getChunks().get(0).toString(), "script-opcode");
+            append(" ", "");
+            append("<dilithium>", "script-hash");
         } else if(P2WSH.isScriptType(script)) {
             append(script.getChunks().get(0).toString(), "script-opcode");
             append(" ", "");
