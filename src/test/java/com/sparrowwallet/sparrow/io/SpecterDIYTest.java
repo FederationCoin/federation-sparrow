@@ -9,6 +9,8 @@ import com.sparrowwallet.drongo.protocol.ScriptType;
 import com.sparrowwallet.drongo.silentpayments.SilentPaymentScanAddress;
 import com.sparrowwallet.drongo.wallet.Keystore;
 import com.sparrowwallet.drongo.wallet.Wallet;
+import com.sparrowwallet.sparrow.ChainEncoding;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -41,7 +43,7 @@ public class SpecterDIYTest extends IoTest {
         Assertions.assertEquals("0f056943", keystore.getKeyDerivation().getMasterFingerprint());
         Assertions.assertNull(keystore.getExtendedPublicKey());
         Assertions.assertNotNull(keystore.getSilentPaymentScanAddress());
-        Assertions.assertEquals(SilentPaymentScanAddress.fromKeyString("tspscan1q05wxw5wc7wqmkf8cnfc6ry76qej8vhr3a3mmxmwgv35s0tlw24fs82k0npv2hv6p97s8sd9t7vpf44kluka9w863zjwxzfrym2ay9ccfzt06c4"),
+        Assertions.assertEquals(SilentPaymentScanAddress.fromKeyString(ChainEncoding.address("tspscan1q05wxw5wc7wqmkf8cnfc6ry76qej8vhr3a3mmxmwgv35s0tlw24fs82k0npv2hv6p97s8sd9t7vpf44kluka9w863zjwxzfrym2ay9ccfzt06c4")),
                 keystore.getSilentPaymentScanAddress());
         Assertions.assertTrue(keystore.isValid());
         Network.set(Network.MAINNET);
@@ -49,7 +51,7 @@ public class SpecterDIYTest extends IoTest {
 
     @Test
     public void testExport() throws ExportException, IOException {
-        OutputDescriptor walletDescriptor = OutputDescriptor.getOutputDescriptor("wsh(sortedmulti(2,[7fd1bbf4/48h/0h/0h/2h]xpub6DnVFCXjZKhSAJw1oGzksdc1CtMxHxqG6DgNSjZHsymMSgcNEb2c3bz5N2bBMEEUFos98CeAWbh1pTMBcJrsKW63icdAQNGT6Aqv1WWrkxg,[8ff26349/48h/0h/0h/2h]xpub6ErPooPdSeBoXVZocBe8EWF9GXjFuV52kme35p4MtrP2SAFdUmgTJM1urrJzSuA44izrEuiQNNdmWEVRaBJcBDcPpnLBR8tP2Pcu2EiyeHu,[ff3305c2/48h/0h/0h/2h]xpub6Dpndp2xurqbfSGhxKVXzk3nJZgah3PdD3qD11KyPicYYBatRxfxqoN7s9tnWKXaz7zhyVqcvnJyak7BVKonW2wTXHd1zNDxJAu8jcxF59j))");
+        OutputDescriptor walletDescriptor = OutputDescriptor.getOutputDescriptor(ChainEncoding.descriptor("wsh(sortedmulti(2,[7fd1bbf4/48h/0h/0h/2h]xpub6DnVFCXjZKhSAJw1oGzksdc1CtMxHxqG6DgNSjZHsymMSgcNEb2c3bz5N2bBMEEUFos98CeAWbh1pTMBcJrsKW63icdAQNGT6Aqv1WWrkxg,[8ff26349/48h/0h/0h/2h]xpub6ErPooPdSeBoXVZocBe8EWF9GXjFuV52kme35p4MtrP2SAFdUmgTJM1urrJzSuA44izrEuiQNNdmWEVRaBJcBDcPpnLBR8tP2Pcu2EiyeHu,[ff3305c2/48h/0h/0h/2h]xpub6Dpndp2xurqbfSGhxKVXzk3nJZgah3PdD3qD11KyPicYYBatRxfxqoN7s9tnWKXaz7zhyVqcvnJyak7BVKonW2wTXHd1zNDxJAu8jcxF59j))"));
         Wallet wallet = walletDescriptor.toWallet();
         wallet.setName("Sparrow Multisig");
 
@@ -60,6 +62,11 @@ public class SpecterDIYTest extends IoTest {
         String original = new String(walletBytes);
         String exported = new String(baos.toByteArray());
 
-        Assertions.assertEquals(original, exported);
+        Assertions.assertEquals(ChainEncoding.descriptor(original), exported);
+    }
+
+    @AfterEach
+    public void tearDown() {
+        Network.set(null);
     }
 }

@@ -1,0 +1,12 @@
+plugins {
+    id 'java-library'
+}
+
+group = 'dev.bwt'
+version = '0.1.8'
+
+jar {
+    manifest {
+        attributes('Automatic-Module-Name': 'dev.bwt.jni')
+    }
+}

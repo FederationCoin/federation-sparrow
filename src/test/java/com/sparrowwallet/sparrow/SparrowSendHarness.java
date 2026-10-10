@@ -14,7 +14,7 @@ import com.sparrowwallet.drongo.wallet.Wallet;
 import com.sparrowwallet.drongo.wallet.WalletNode;
 
 /**
- * Drives the wallet half of Shrike's send path against a real node, without the GUI.
+ * Drives the wallet half of Federation Sparrow's send path against a real node, without the GUI.
  *
  * This is what SendController does once the user clicks through: build the PSBT for the transaction,
  * decide the hash type through AppServices, then Wallet.sign() and Wallet.finalise(). Only the JavaFX

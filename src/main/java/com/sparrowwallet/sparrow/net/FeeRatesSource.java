@@ -31,7 +31,7 @@ public enum FeeRatesSource {
         apparent from the name. It runs the same API as the instances that stopped at the activation height,
         so it differs from those only in the host it asks.
      */
-    MEMPOOL_GUIDE("mempool.guide", true) {
+    MEMPOOL_GUIDE("mempool.federationcoin.org", true) {
         @Override
         public Map<Integer, Double> getBlockTargetFeeRates(Map<Integer, Double> defaultblockTargetFeeRates) {
             String url = getApiUrl() + "v1/fees/precise";
@@ -63,24 +63,15 @@ public enum FeeRatesSource {
         }
 
         private String getApiUrl() {
-            String url = AppServices.isUsingProxy() ? "http://mempool5nxspkxjk3n5afqh7zswbv4i324z76ltmw3cvfmniw45mnhad.onion/api/" : "https://mempool.guide/api/";
-            if(Network.get() != Network.MAINNET && supportsNetwork(Network.get())) {
-                url = url.replace("/api/", "/" + Network.get().getName() + "/api/");
-            }
-            return url;
+            return mempoolFederationApiUrl(Network.get());
         }
 
-        /*
-            Testnet3 is absent because this instance does not serve it: every /testnet/api/ path returns the
-            frontend with a 200 and text/html rather than a 404, so it would fail as a parse error at runtime
-            instead of being declined here.
-         */
         @Override
         public boolean supportsNetwork(Network network) {
-            return network == Network.MAINNET || network == Network.TESTNET4 || network == Network.SIGNET;
+            return network == Network.MAINNET || network == Network.TESTNET || network == Network.TESTNET4 || network == Network.SIGNET;
         }
     },
-    MINIMUM("Minimum (1 sat/vB)", false) {
+    MINIMUM("Minimum (1 token/vB)", false) {
         @Override
         public Map<Integer, Double> getBlockTargetFeeRates(Map<Integer, Double> defaultblockTargetFeeRates) {
             Map<Integer, Double> blockTargetFeeRates = new LinkedHashMap<>();
@@ -149,6 +140,20 @@ public enum FeeRatesSource {
      */
     public static FeeRatesSource getDefault() {
         return MEMPOOL_GUIDE;
+    }
+
+    /**
+     * Hosted explorer is testnet-first: /api is testnet3.
+     */
+    static String mempoolFederationApiUrl(Network network) {
+        String url = "https://mempool.federationcoin.org/api/";
+        if(network == Network.TESTNET) {
+            return url;
+        }
+        if(network != Network.MAINNET && MEMPOOL_GUIDE.supportsNetwork(network)) {
+            url = url.replace("/api/", "/" + network.getName() + "/api/");
+        }
+        return url;
     }
 
     public boolean isExternal() {

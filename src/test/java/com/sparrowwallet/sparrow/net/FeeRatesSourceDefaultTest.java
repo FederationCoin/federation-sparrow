@@ -21,7 +21,7 @@ public class FeeRatesSourceDefaultTest {
 
     @Test
     public void testTheDefaultCoversTheNetworksTheForkRunsOn() {
-        for(Network network : new Network[] {Network.MAINNET, Network.TESTNET4}) {
+        for(Network network : new Network[] {Network.MAINNET, Network.TESTNET}) {
             Assertions.assertTrue(FeeRatesSource.getDefault().supportsNetwork(network),
                     network + " is a network this fork activates on, so the default must serve it");
         }
@@ -58,7 +58,7 @@ public class FeeRatesSourceDefaultTest {
     @Test
     public void testTheDefaultBlockExplorerHasAdoptedTheFork() {
         Assertions.assertEquals(BlockExplorer.MEMPOOL_GUIDE, BlockExplorer.getDefault());
-        Assertions.assertTrue(BlockExplorer.getDefault().getServer().getUrl().contains("mempool.guide"));
+        Assertions.assertTrue(BlockExplorer.getDefault().getServer().getUrl().contains("mempool.federationcoin.org"));
     }
 
     @Test

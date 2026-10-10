@@ -62,26 +62,13 @@ public class CoinLabel extends Label {
         setContextMenu(contextMenu);
 
         UnitFormat format = Config.get().getUnitFormat() == null ? UnitFormat.DOT : Config.get().getUnitFormat();
-        String satsValue = format.formatSatsValue(value) + " sats";
-        String btcValue = format.formatBtcValue(value) + " BTC";
-
-        BitcoinUnit unit = bitcoinUnit;
-        if(unit == null || unit.equals(BitcoinUnit.AUTO)) {
-            unit = (value >= BitcoinUnit.getAutoThreshold() ? BitcoinUnit.BTC : BitcoinUnit.SATOSHIS);
-        }
-
-        if(unit.equals(BitcoinUnit.BTC)) {
-            tooltip.setText(satsValue);
-            setText(btcValue);
-        } else {
-            tooltip.setText(btcValue);
-            setText(satsValue);
-        }
+        tooltip.setText(CoinAmountText.tooltip(value, bitcoinUnit, format));
+        setText(CoinAmountText.display(value, bitcoinUnit, format));
     }
 
     private class CoinContextMenu extends ContextMenu {
         public CoinContextMenu() {
-            MenuItem copySatsValue = new MenuItem("Copy Value in sats");
+            MenuItem copySatsValue = new MenuItem("Copy Value in tokens");
             copySatsValue.setOnAction(AE -> {
                 hide();
                 ClipboardContent content = new ClipboardContent();
@@ -89,7 +76,7 @@ public class CoinLabel extends Label {
                 Clipboard.getSystemClipboard().setContent(content);
             });
 
-            MenuItem copyBtcValue = new MenuItem("Copy Value in BTC");
+            MenuItem copyBtcValue = new MenuItem("Copy Value in GFCN");
             copyBtcValue.setOnAction(AE -> {
                 hide();
                 ClipboardContent content = new ClipboardContent();

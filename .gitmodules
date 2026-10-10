@@ -1,6 +1,21 @@
 [submodule "drongo"]
 	path = drongo
-	url = https://github.com/privkeyio/drongo.git
+	url = git@github.com:FederationCoin/drongo.git
 [submodule "lark"]
 	path = lark
-	url = https://github.com/privkeyio/lark.git
+	url = git@github.com:FederationCoin/lark.git
+[submodule "tern"]
+	path = tern
+	url = git@github.com:FederationCoin/tern.git
+[submodule "hummingbird"]
+	path = hummingbird
+	url = git@github.com:FederationCoin/hummingbird.git
+[submodule "toucan"]
+	path = toucan
+	url = git@github.com:FederationCoin/toucan.git
+[submodule "bokmakierie"]
+	path = bokmakierie
+	url = git@github.com:FederationCoin/bokmakierie.git
+[submodule "fxsvgimage"]
+	path = fxsvgimage
+	url = git@github.com:hervegirod/fxsvgimage.git

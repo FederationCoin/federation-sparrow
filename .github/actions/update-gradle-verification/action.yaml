@@ -84,15 +84,23 @@ runs:
       shell: bash
       run: |
         ./gradlew --write-verification-metadata sha512 --refresh-keys \
-          dependencies :drongo:dependencies :lark:dependencies jpackageImage
+          dependencies :drongo:dependencies :lark:dependencies \
+          :tern:dependencies :hummingbird:dependencies :toucan:dependencies \
+          :bokmakierie:dependencies :fxsvgimage:dependencies :bwt-jni:dependencies \
+          jpackageImage
         ./gradlew --write-verification-metadata pgp,sha512 --refresh-keys \
-          dependencies :drongo:dependencies :lark:dependencies jpackageImage
+          dependencies :drongo:dependencies :lark:dependencies \
+          :tern:dependencies :hummingbird:dependencies :toucan:dependencies \
+          :bokmakierie:dependencies :fxsvgimage:dependencies :bwt-jni:dependencies \
+          jpackageImage
         ./gradlew --export-keys help
 
     - name: Validate dependency verification metadata
       shell: bash
       run: |
         ./gradlew help dependencies :drongo:dependencies :lark:dependencies \
+          :tern:dependencies :hummingbird:dependencies :toucan:dependencies \
+          :bokmakierie:dependencies :fxsvgimage:dependencies :bwt-jni:dependencies \
           --dependency-verification strict --refresh-keys
 
     - name: Stage verification files

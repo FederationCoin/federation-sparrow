@@ -73,12 +73,12 @@
                                         <BitcoinUnit fx:constant="AUTO" />
                                     </userData>
                                 </RadioMenuItem>
-                                <RadioMenuItem mnemonicParsing="false" text="BTC" toggleGroup="$bitcoinUnit" onAction="#setBitcoinUnit">
+                                <RadioMenuItem mnemonicParsing="false" text="GFCN" toggleGroup="$bitcoinUnit" onAction="#setBitcoinUnit">
                                     <userData>
                                         <BitcoinUnit fx:constant="BTC" />
                                     </userData>
                                 </RadioMenuItem>
-                                <RadioMenuItem mnemonicParsing="false" text="sats" toggleGroup="$bitcoinUnit" onAction="#setBitcoinUnit">
+                                <RadioMenuItem mnemonicParsing="false" text="tokens" toggleGroup="$bitcoinUnit" onAction="#setBitcoinUnit">
                                     <userData>
                                         <BitcoinUnit fx:constant="SATOSHIS" />
                                     </userData>
@@ -145,9 +145,9 @@
                 <Menu fx:id="toolsMenu" mnemonicParsing="false" text="Tools">
                     <MenuItem mnemonicParsing="false" text="Sign/Verify Message" accelerator="Shortcut+M" onAction="#signVerifyMessage"/>
                     <MenuItem fx:id="sendToMany" mnemonicParsing="false" text="Send To Many" onAction="#sendToMany"/>
-                    <MenuItem fx:id="sweepPrivateKey" mnemonicParsing="false" text="Sweep Private Key" onAction="#sweepPrivateKey"/>
+                    <MenuItem fx:id="sweepPrivateKey" mnemonicParsing="false" text="Sweep Private Key" onAction="#sweepPrivateKey" visible="false"/>
                     <SeparatorMenuItem />
-                    <MenuItem fx:id="showPayNym" mnemonicParsing="false" text="Show PayNym" onAction="#showPayNym"/>
+                    <MenuItem fx:id="showPayNym" mnemonicParsing="false" text="Show PayNym" onAction="#showPayNym" visible="false"/>
                     <SeparatorMenuItem />
                     <Menu fx:id="switchServer" text="Switch Server"/>
                     <MenuItem mnemonicParsing="false" text="Verify Download" onAction="#verifyDownload" />

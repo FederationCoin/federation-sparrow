@@ -750,6 +750,21 @@ public class AppServices {
         return tip == null ? null : tip.header();
     }
 
+    public static long getTipAgeMs() {
+        BlockHeader header = getLatestBlockHeader();
+        if(header == null) {
+            return 0;
+        }
+        return Math.max(0L, System.currentTimeMillis() - header.getTime() * 1000L);
+    }
+
+    public static void applyTipAgeToOpenWallets() {
+        long age = getTipAgeMs();
+        for(Wallet wallet : get().getOpenWallets().keySet()) {
+            wallet.setTipAgeMs(age);
+        }
+    }
+
     /**
      * The chain tip as the connected server last announced it, whose height and header are written together. A reader needing both must take them from
      * one of these, since the two accessors above read the tip separately and can straddle a new block, pairing a new height with the previous header.
@@ -2232,6 +2247,7 @@ public class AppServices {
     @Subscribe
     public void newConnection(ConnectionEvent event) {
         setAnnouncedTip(new ChainTip(event.getBlockHeight(), event.getBlockHeader()));
+        applyTipAgeToOpenWallets();
         System.setProperty(Network.BLOCK_HEIGHT_PROPERTY, Integer.toString(event.getBlockHeight()));
         if(getConfiguredMinimumRelayFeeRate(Config.get()) == null) {
             minimumRelayFeeRate = event.getMinimumRelayFeeRate() == null ? Transaction.DEFAULT_MIN_RELAY_FEE : event.getMinimumRelayFeeRate();
@@ -2258,6 +2274,7 @@ public class AppServices {
     @Subscribe
     public void newBlock(NewBlockEvent event) {
         setAnnouncedTip(new ChainTip(event.getHeight(), event.getBlockHeader()));
+        applyTipAgeToOpenWallets();
         System.setProperty(Network.BLOCK_HEIGHT_PROPERTY, Integer.toString(event.getHeight()));
         String status = "Updating to new block height " + event.getHeight();
         EventManager.get().post(new StatusEvent(status));

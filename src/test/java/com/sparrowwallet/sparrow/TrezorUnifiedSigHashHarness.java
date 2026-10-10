@@ -43,7 +43,7 @@ public class TrezorUnifiedSigHashHarness {
         keystore.setSource(KeystoreSource.HW_USB);
         keystore.setWalletModel(WalletModel.TREZOR_1);
         keystore.setKeyDerivation(new KeyDerivation(fingerprint, ScriptType.P2WPKH.getDefaultDerivationPath()));
-        keystore.setExtendedPublicKey(com.sparrowwallet.drongo.ExtendedKey.fromDescriptor(xpub));
+        keystore.setExtendedPublicKey(ChainEncoding.fromPublishedDescriptor(xpub));
         keystore.setUnifiedSigHashSupported(marked);
         wallet.getKeystores().add(keystore);
 
@@ -79,7 +79,7 @@ public class TrezorUnifiedSigHashHarness {
         device.setSource(KeystoreSource.HW_USB);
         device.setWalletModel(WalletModel.TREZOR_1);
         device.setKeyDerivation(new KeyDerivation(fingerprint, KeyDerivation.writePath(ScriptType.P2WSH.getDefaultDerivation())));
-        device.setExtendedPublicKey(com.sparrowwallet.drongo.ExtendedKey.fromDescriptor(xpub));
+        device.setExtendedPublicKey(ChainEncoding.fromPublishedDescriptor(xpub));
         device.setUnifiedSigHashSupported(false);
         wallet.getKeystores().add(device);
 

@@ -1,10 +1,10 @@
-Package: shrike
+Package: federationcoin-sparrow
 Version: ${version}-${release}
 Section: utils
 Maintainer: Kyle Santiago <kyle@privkey.io>
 Priority: optional
 Architecture: ${arch}
-Provides: shrike
-Description: Shrike Wallet
+Provides: federationcoin-sparrow
+Description: Federation Sparrow
 Depends: libasound2, libbsd0, libc6, libmd0, libx11-6, libxau6, libxcb1, libxdmcp6, libxext6, libxi6, libxrender1, libxtst6, xdg-utils
 Installed-Size: ${size}

@@ -66,12 +66,13 @@ public class DownloadVerifierDialog extends Dialog<ButtonBar.ButtonData> {
 
     /*
         The names this fork publishes under, so that picking a downloaded release finds its signature beside it.
-        Left as upstream's, none of this matched: releases here are shrike- and shrikeserver-, and the manifest is
+        Left as upstream's, none of this matched: releases here are federationcoin-sparrow- and
+        federationcoin-sparrow-server-, and the manifest is
         SHA256SUMS rather than a per-version -manifest.txt. Verification never depended on any of it, but every
         convenience built on it was dead, which is worse than not offering the convenience.
      */
-    private static final String SPARROW_RELEASE_PREFIX = "shrike-";
-    private static final String[] SPARROW_RELEASE_ALT_PREFIXES = { "shrike_", "shrikeserver-", "shrikeserver_" };
+    private static final String SPARROW_RELEASE_PREFIX = "federationcoin-sparrow-";
+    private static final String[] SPARROW_RELEASE_ALT_PREFIXES = { "federationcoin-sparrow_", "federationcoin-sparrow-server-", "federationcoin-sparrow-server_" };
     private static final String SPARROW_MANIFEST_NAME = "SHA256SUMS";
     private static final String SPARROW_SIGNATURE_SUFFIX = ".asc";
     private static final Pattern SPARROW_RELEASE_VERSION = Pattern.compile("[0-9]+(\\.[0-9]+)*");
@@ -622,14 +623,14 @@ public class DownloadVerifierDialog extends Dialog<ButtonBar.ButtonData> {
         String arch = System.getProperty("os.arch");
         switch(osType) {
             case MACOS -> {
-                return "Shrike-" + version + "-" + arch;
+                return "federationcoin-sparrow-" + version + "-" + arch;
             }
             case WINDOWS -> {
-                return "Shrike-" + version;
+                return "federationcoin-sparrow-" + version;
             }
             default ->  {
                 //The Debian revision is this fork's release number, not 1, which is what lets apt order releases
-                return "shrike_" + version + "-" + releaseNumber()
+                return "federationcoin-sparrow_" + version + "-" + releaseNumber()
                         + "_" + (arch.equals("aarch64") ? "arm64" : arch);
             }
         }

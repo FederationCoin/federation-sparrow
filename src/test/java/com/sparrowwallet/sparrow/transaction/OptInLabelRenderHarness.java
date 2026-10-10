@@ -192,7 +192,7 @@ public class OptInLabelRenderHarness {
     private static volatile boolean failed;
 
     public static void main(String[] args) throws Exception {
-        System.setProperty(SparrowWallet.APP_HOME_PROPERTY, Files.createTempDirectory("shrike-render").toString());
+        System.setProperty(SparrowWallet.APP_HOME_PROPERTY, Files.createTempDirectory("federation-sparrow-render").toString());
         Network.set(Network.MAINNET);
 
         CountDownLatch done = new CountDownLatch(1);

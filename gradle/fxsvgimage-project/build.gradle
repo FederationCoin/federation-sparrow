@@ -1,0 +1,37 @@
+plugins {
+    id 'java-library'
+    id 'org.openjfx.javafxplugin' version '0.1.0'
+}
+
+group = 'org.girod'
+version = '1.1'
+
+repositories {
+    mavenCentral()
+}
+
+def fxsvgimageSrc = rootProject.file('fxsvgimage/src/core')
+
+javafx {
+    version = '26'
+    modules = ['javafx.controls', 'javafx.graphics', 'javafx.swing']
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = [fxsvgimageSrc]
+        }
+        resources {
+            srcDirs = [fxsvgimageSrc]
+            exclude '**/*.java'
+            exclude 'manifest.mf'
+        }
+    }
+}
+
+jar {
+    manifest {
+        attributes('Automatic-Module-Name': 'org.girod.javafx.svgimage')
+    }
+}

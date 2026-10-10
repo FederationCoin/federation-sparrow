@@ -1,19 +1,58 @@
 name: Package
 
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Git tag (vMAJOR.MINOR.PATCH-federationcoin.<fork>, optional .alpha/.beta/.rcN)
+        required: true
+        type: string
+
+concurrency:
+  group: package-${{ inputs.tag }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
 
 env:
   JDK_JAVAC_OPTIONS: '-Xlint:-module'
+  TAG: ${{ inputs.tag }}
+  # Apple Developer ID / notarization: not yet provisioned. Unsigned only.
+  # apple-id: ""
+  # team-id: ""
+  # MACOS_CERTIFICATE: secrets not yet hosted at https://codesign.federationcoin.org
 
 jobs:
-  build:
-    runs-on: ${{ matrix.os }}
+  gate:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
     env:
-      # The secrets context cannot be read from a step-level if, so its presence is surfaced here.
-      HAS_MACOS_CERT: ${{ secrets.MACOS_CERTIFICATE != '' }}
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - name: Require FederationCoin Sparrow tag with no existing Release
+        run: |
+          set -euo pipefail
+          # Same MAJOR.MINOR.PATCH as build.gradle, then -federationcoin.<fork>
+          # optional .<ext>: .alpha .alpha1 .beta .beta2 .rc1 .rc2
+          # example: v2.6.0-federationcoin.0 or v2.6.0-federationcoin.0.rc1
+          if ! printf '%s\n' "$TAG" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+-federationcoin\.[A-Za-z0-9]+(\.(alpha[0-9]*|beta[0-9]*|rc[0-9]+))?$'; then
+            echo "tag must match vMAJOR.MINOR.PATCH-federationcoin.<fork> with optional .alpha/.beta/.rcN (got: ${TAG})" >&2
+            echo "example: v2.6.0-federationcoin.0 or v2.6.0-federationcoin.0.rc1" >&2
+            exit 1
+          fi
+          git fetch --no-tags origin "refs/tags/${TAG}:refs/tags/${TAG}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "GitHub Release already exists for ${TAG}; will not overwrite" >&2
+            exit 1
+          fi
+          echo "tag ${TAG} is present and has no GitHub Release"
+
+  build:
+    needs: gate
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
@@ -21,6 +60,7 @@ jobs:
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
+          ref: ${{ inputs.tag }}
           submodules: recursive
       - name: Clear Java tool-cache for reproducibility
         shell: bash
@@ -34,41 +74,46 @@ jobs:
         run: ./gradlew -v
       - name: Build with Gradle
         run: ./gradlew jpackage
-      - name: Codesign, package and notarize macOS distribution
-        if: ${{ runner.os == 'macOS' && env.HAS_MACOS_CERT == 'true' }}
-        uses: sparrowwallet/github-actions/codesign-macos@6eeb7bf9b882cf89ff96b77f99bcf487b9d33992 # v1
-        with:
-          app-name: Shrike
-          certificate: ${{ secrets.MACOS_CERTIFICATE }}
-          certificate-password: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
-          apple-id: ${{ secrets.MACOS_NOTARIZATION_APPLE_ID }}
-          team-id: ${{ secrets.MACOS_NOTARIZATION_TEAM_ID }}
-          notarization-password: ${{ secrets.MACOS_NOTARIZATION_PASSWORD }}
+      # Unsigned only. Do not inherit Sparrow Wallet Apple or Microsoft identities.
+      # Future action: https://codesign.federationcoin.org
+      # apple-id: ""   # not yet provisioned
+      # team-id: ""     # not yet provisioned
+      # secrets not yet hosted
+      # - name: Codesign, package and notarize macOS distribution
+      #   if: false
+      #   uses: sparrowwallet/github-actions/codesign-macos@6eeb7bf9b882cf89ff96b77f99bcf487b9d33992 # v1
+      #   with:
+      #     app-name: federationcoin-sparrow
+      #     certificate: ${{ secrets.MACOS_CERTIFICATE }}
+      #     certificate-password: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+      #     apple-id: ${{ secrets.MACOS_NOTARIZATION_APPLE_ID }}
+      #     team-id: ${{ secrets.MACOS_NOTARIZATION_TEAM_ID }}
+      #     notarization-password: ${{ secrets.MACOS_NOTARIZATION_PASSWORD }}
       - name: Package unsigned macOS distribution
-        if: ${{ runner.os == 'macOS' && env.HAS_MACOS_CERT != 'true' }}
+        if: ${{ runner.os == 'macOS' }}
         run: |
           set -euo pipefail
           cd build/jpackage
           # hdiutil ships with macOS; create-dmg would need a brew install that is not available here.
           VERSION=$(grep -m1 "^version" ../../build.gradle | cut -d"'" -f2)
-          DMG="Shrike-${VERSION}-$(uname -m)-unsigned.dmg"
+          DMG="federationcoin-sparrow-${VERSION}-$(uname -m)-unsigned.dmg"
 
           # hdiutil create intermittently fails with "Resource busy", twice in the runs behind this change and
           # on both macOS arms. It succeeds on a retry. Left unhandled it fails the build, and the checksums
           # job then writes a manifest without this platform's dmg in it.
           #
           # Detaching first because a failure can leave the volume attached, and a second create would then
-          # mount alongside it at /Volumes/Shrike 1 rather than clearing what blocked the first.
+          # mount alongside it at /Volumes/Federation Sparrow 1 rather than clearing what blocked the first.
           ATTEMPTS=5
           for attempt in $(seq "$ATTEMPTS"); do
-            if hdiutil create -volname Shrike -srcfolder Shrike.app -ov -format UDZO "$DMG"; then
+            if hdiutil create -volname "Federation Sparrow" -srcfolder federationcoin-sparrow.app -ov -format UDZO "$DMG"; then
               break
             fi
             if [ "$attempt" -eq "$ATTEMPTS" ]; then
               echo "hdiutil create failed $attempt times" >&2
               exit 1
             fi
-            hdiutil detach /Volumes/Shrike -force 2>/dev/null || true
+            hdiutil detach "/Volumes/Federation Sparrow" -force 2>/dev/null || true
             echo "hdiutil create failed, retrying in $((attempt * 5))s"
             sleep $((attempt * 5))
           done
@@ -86,11 +131,11 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: Shrike Build - ${{ runner.os }} ${{ runner.arch }}
+          name: Federation Sparrow Build - ${{ runner.os }} ${{ runner.arch }}
           path: |
             build/jpackage/*
-            !build/jpackage/Shrike/
-            !build/jpackage/Shrike.app/
+            !build/jpackage/federationcoin-sparrow/
+            !build/jpackage/federationcoin-sparrow.app/
       - name: Headless build with Gradle
         if: ${{ runner.os == 'Linux' }}
         run: ./gradlew -Djava.awt.headless=true clean jpackage
@@ -104,17 +149,14 @@ jobs:
         if: ${{ runner.os == 'Linux' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: Shrike Build - ${{ runner.os }} ${{ runner.arch }} Headless
+          name: Federation Sparrow Build - ${{ runner.os }} ${{ runner.arch }} Headless
           path: |
             build/jpackage/*
-            !build/jpackage/Shrike/
+            !build/jpackage/federationcoin-sparrow/
 
   checksums:
     needs: build
-    # Runs even where a build job failed, so that a matrix arm failing for want of codesigning secrets
-    # does not skip this. That also means it can see an incomplete set of artifacts, so the manifest it
-    # writes is checked for completeness below rather than published short. It stands down for a
-    # cancelled run.
+    # Unsigned builds only. Does not wait on Apple/Microsoft signing secrets.
     if: ${{ !cancelled() }}
     runs-on: ubuntu-22.04
     steps:
@@ -166,3 +208,32 @@ jobs:
         with:
           name: SHA256SUMS
           path: SHA256SUMS
+
+  draft:
+    needs: checksums
+    if: ${{ success() }}
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          path: artifacts
+      - name: Create draft GitHub Release
+        run: |
+          set -euo pipefail
+          mapfile -t files < <(find artifacts -type f \
+            \( -name '*.msi' -o -name '*.zip' -o -name '*.tar.gz' -o -name '*.deb' \
+               -o -name '*.dmg' -o -name 'SHA256SUMS' \) | LC_ALL=C sort)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No assets to attach" >&2
+            exit 1
+          fi
+          gh release create "$TAG" --draft --title "$TAG" \
+            --notes "unsigned; not a Guix/Sparrow-signed release" \
+            "${files[@]}"

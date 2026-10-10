@@ -1,5 +1,5 @@
-Summary: Shrike
-Name: shrike
+Summary: Federation Sparrow
+Name: federationcoin-sparrow
 Version: ${version}
 Release: ${release}
 License: ASL 2.0
@@ -13,7 +13,7 @@ URL: https://sparrowwallet.com
 Prefix: /opt
 %endif
 
-Provides: shrike
+Provides: federationcoin-sparrow
 
 %if "xutils" != "x"
 Group: utils
@@ -40,7 +40,7 @@ Requires: xdg-utils
 %define default_filesystem / /opt /usr /usr/bin /usr/lib /usr/local /usr/local/bin /usr/local/lib
 
 %description
-Shrike Wallet
+Federation Sparrow
 
 %global __os_install_post %{nil}
 
@@ -50,8 +50,8 @@ Shrike Wallet
 
 %install
 rm -rf %{buildroot}
-install -d -m 755 %{buildroot}/opt/shrike
-cp -r %{_sourcedir}/opt/shrike/* %{buildroot}/opt/shrike
+install -d -m 755 %{buildroot}/opt/federationcoin-sparrow
+cp -r %{_sourcedir}/opt/federationcoin-sparrow/* %{buildroot}/opt/federationcoin-sparrow
 if [ "$(echo %{_sourcedir}/lib/systemd/system/*.service)" != '%{_sourcedir}/lib/systemd/system/*.service' ]; then
   install -d -m 755 %{buildroot}/lib/systemd/system
   cp %{_sourcedir}/lib/systemd/system/*.service %{buildroot}/lib/systemd/system
@@ -77,9 +77,9 @@ sed -i -e 's/.*/%dir "&"/' %{package_filelist}
 
 %post
 package_type=rpm
-xdg-desktop-menu install /opt/shrike/lib/shrike-Shrike.desktop
-xdg-mime install /opt/shrike/lib/shrike-Shrike-MimeInfo.xml
-install -D -m 644 /opt/shrike/lib/runtime/conf/udev/*.rules /etc/udev/rules.d
+xdg-desktop-menu install /opt/federationcoin-sparrow/lib/federationcoin-sparrow.desktop
+xdg-mime install /opt/federationcoin-sparrow/lib/federationcoin-sparrow-MimeInfo.xml
+install -D -m 644 /opt/federationcoin-sparrow/lib/runtime/conf/udev/*.rules /etc/udev/rules.d
 if ! getent group plugdev > /dev/null; then
     groupadd -r plugdev
 fi
@@ -251,9 +251,9 @@ desktop_trace ()
   echo "$@"
 }
 
-do_if_file_belongs_to_single_package /opt/shrike/lib/shrike-Shrike.desktop xdg-desktop-menu uninstall /opt/shrike/lib/shrike-Shrike.desktop
-do_if_file_belongs_to_single_package /opt/shrike/lib/shrike-Shrike-MimeInfo.xml xdg-mime uninstall /opt/shrike/lib/shrike-Shrike-MimeInfo.xml
-do_if_file_belongs_to_single_package /opt/shrike/lib/shrike-Shrike.desktop desktop_uninstall_default_mime_handler shrike-Shrike.desktop application/psbt application/bitcoin-transaction application/pgp-signature
+do_if_file_belongs_to_single_package /opt/federationcoin-sparrow/lib/federationcoin-sparrow.desktop xdg-desktop-menu uninstall /opt/federationcoin-sparrow/lib/federationcoin-sparrow.desktop
+do_if_file_belongs_to_single_package /opt/federationcoin-sparrow/lib/federationcoin-sparrow-MimeInfo.xml xdg-mime uninstall /opt/federationcoin-sparrow/lib/federationcoin-sparrow-MimeInfo.xml
+do_if_file_belongs_to_single_package /opt/federationcoin-sparrow/lib/federationcoin-sparrow.desktop desktop_uninstall_default_mime_handler federationcoin-sparrow.desktop application/psbt application/bitcoin-transaction application/pgp-signature
 
 
 %clean

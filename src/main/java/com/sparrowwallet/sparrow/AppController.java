@@ -446,7 +446,9 @@ public class AppController implements Initializable {
         refreshWallet.disableProperty().bind(Bindings.or(exportWallet.disableProperty(), Bindings.or(serverToggle.disableProperty(), AppServices.onlineProperty().not())));
         sendToMany.disableProperty().bind(exportWallet.disableProperty());
         sweepPrivateKey.disableProperty().bind(Bindings.or(serverToggle.disableProperty(), AppServices.onlineProperty().not()));
+        sweepPrivateKey.setVisible(false);
         showPayNym.setDisable(true);
+        showPayNym.setVisible(false);
 
         configureSwitchServer();
         setServerType(Config.get().getServerType());
@@ -504,19 +506,18 @@ public class AppController implements Initializable {
     }
 
     private void setNetworkLabel() {
-        if(Network.get() != Network.MAINNET) {
-            Platform.runLater(() -> {
-                StackPane tabBackground = (StackPane)tabs.lookup(".tab-header-background");
-                if(tabBackground != null) {
-                    HBox hBox = new HBox();
-                    Label label = new Label(Network.get().toDisplayString());
-                    label.setPadding(new Insets(0, 10, 0, 0));
-                    hBox.getChildren().add(label);
-                    hBox.setAlignment(Pos.CENTER_RIGHT);
-                    tabBackground.getChildren().add(hBox);
-                }
-            });
-        }
+        Platform.runLater(() -> {
+            StackPane tabBackground = (StackPane)tabs.lookup(".tab-header-background");
+            if(tabBackground != null) {
+                HBox hBox = new HBox();
+                String text = NetworkBanner.text(Network.get());
+                Label label = new Label(text);
+                label.setPadding(new Insets(0, 10, 0, 0));
+                hBox.getChildren().add(label);
+                hBox.setAlignment(Pos.CENTER_RIGHT);
+                tabBackground.getChildren().add(hBox);
+            }
+        });
     }
 
     public void showIntroduction(ActionEvent event) {
@@ -529,7 +530,7 @@ public class AppController implements Initializable {
     }
 
     public void showDocumentation(ActionEvent event) {
-        AppServices.get().getApplication().getHostServices().showDocument("https://shrikewallet.com/docs/");
+        AppServices.get().getApplication().getHostServices().showDocument("https://github.com/FederationCoin/federation-sparrow");
     }
 
     public void showLogFile(ActionEvent event) throws IOException {
@@ -542,7 +543,7 @@ public class AppController implements Initializable {
     }
 
     public void openSupport(ActionEvent event) {
-        AppServices.get().getApplication().getHostServices().showDocument("https://github.com/privkeyio/shrike/issues");
+        AppServices.get().getApplication().getHostServices().showDocument("https://github.com/FederationCoin/federation-sparrow/issues");
     }
 
     public void submitBugReport(ActionEvent event) {
@@ -552,7 +553,7 @@ public class AppController implements Initializable {
 
         if(optResponse.isPresent()) {
             if(optResponse.get() == bugType) {
-                AppServices.get().getApplication().getHostServices().showDocument("https://github.com/privkeyio/shrike/issues/new");
+                AppServices.get().getApplication().getHostServices().showDocument("https://github.com/FederationCoin/federation-sparrow/issues/new");
             } else {
                 openSupport(event);
             }
@@ -1128,7 +1129,7 @@ public class AppController implements Initializable {
     private String getServerToggleTooltipText(Integer currentBlockHeight) {
         if(AppServices.isConnected()) {
             return "Connected to " + Config.get().getServerDisplayName() + (currentBlockHeight != null ? " at height " + currentBlockHeight : "") +
-                    (Config.get().getServerType() == ServerType.PUBLIC_ELECTRUM_SERVER ? "\nWarning! You are connected to a public server and sharing your transaction data with it.\nFor better privacy, consider using your own Bitcoin Knots node or private Electrum server." : "");
+                    (Config.get().getServerType() == ServerType.PUBLIC_ELECTRUM_SERVER ? "\nWarning! You are connected to a public server and sharing your transaction data with it.\nFor better privacy, consider using your own federationcoind node or private Electrum server." : "");
         } else if(AppServices.isConnecting()) {
             return "Connecting...";
         }
@@ -1144,7 +1145,7 @@ public class AppController implements Initializable {
             WalletNameDialog.NameAndBirthDate nameAndBirthDate = optNameAndBirthDate.get();
             File walletFile = Storage.getWalletFile(nameAndBirthDate.getName());
             Storage storage = new Storage(walletFile);
-            Wallet wallet = new Wallet(nameAndBirthDate.getName(), PolicyType.SINGLE_HD, ScriptType.P2WPKH, nameAndBirthDate.getBirthDate());
+            Wallet wallet = new Wallet(nameAndBirthDate.getName(), PolicyType.SINGLE_HD, ScriptType.MLDSA87_SINGLE, nameAndBirthDate.getBirthDate());
             addWalletTabOrWindow(storage, wallet, false);
         }
     }
@@ -1507,8 +1508,7 @@ public class AppController implements Initializable {
         WalletForm selectedWalletForm = getSelectedWalletForm();
         if(selectedWalletForm != null) {
             Wallet wallet = selectedWalletForm.getWallet();
-            if(wallet.getPolicyType() == PolicyType.SINGLE_HD || wallet.getPolicyType() == PolicyType.SINGLE_SP) {
-                //Can sign and verify
+            if(wallet.getPolicyType() == PolicyType.SINGLE_HD && wallet.getScriptType() != null && wallet.getScriptType().isOfferedForNewWallets()) {
                 messageSignDialog = new MessageSignDialog(wallet);
             }
         }
@@ -1556,25 +1556,11 @@ public class AppController implements Initializable {
     }
 
     public void sweepPrivateKey(ActionEvent event) {
-        Wallet wallet = null;
-        WalletForm selectedWalletForm = getSelectedWalletForm();
-        if(selectedWalletForm != null && selectedWalletForm.getWallet().isValid()) {
-            wallet = selectedWalletForm.getWallet();
-        }
-
-        PrivateKeySweepDialog dialog = new PrivateKeySweepDialog(wallet);
-        dialog.initOwner(rootStack.getScene().getWindow());
-        Optional<Transaction> optTransaction = dialog.showAndWait();
-        optTransaction.ifPresent(transaction -> addTransactionTab(null, null, transaction));
+        // Secp WIF sweep is not a spend on this chain. Send from this wallet's ML-DSA keys instead.
     }
 
     public void showPayNym(ActionEvent event) {
-        WalletForm selectedWalletForm = getSelectedWalletForm();
-        if(selectedWalletForm != null) {
-            PayNymDialog payNymDialog = new PayNymDialog(selectedWalletForm.getWalletId());
-            payNymDialog.initOwner(rootStack.getScene().getWindow());
-            payNymDialog.showAndWait();
-        }
+        // PayNym is not a spend on this chain.
     }
 
     public void verifyDownload(ActionEvent event) {
@@ -2265,7 +2251,7 @@ public class AppController implements Initializable {
         if(unit == null || unit.equals(BitcoinUnit.AUTO)) {
             unit = totalAmount >= BitcoinUnit.getAutoThreshold() ? BitcoinUnit.BTC : BitcoinUnit.SATOSHIS;
         }
-        String amount = unit.equals(BitcoinUnit.BTC) ? format.formatBtcValue(totalAmount) + " BTC" : format.formatSatsValue(totalAmount) + " sats";
+        String amount = unit.equals(BitcoinUnit.BTC) ? format.formatBtcValue(totalAmount) + " GFCN" : format.formatSatsValue(totalAmount) + " tokens";
         String outputDesc = unknownScriptOutputs.size() == 1 ? "an output" : unknownScriptOutputs.size() + " outputs";
         Optional<ButtonType> result = AppServices.showWarningDialog("Unknown Script Type",
                 "This transaction contains " + outputDesc + " of a non-standard or unrecognised script type, totalling " + amount + ".\n\n" +
@@ -2779,7 +2765,7 @@ public class AppController implements Initializable {
                 refreshWallet.setText(walletTabData.getWallet() == null || walletTabData.getWalletForm().getMasterWallet().getChildWallets().stream().allMatch(Wallet::isNested) ? "Refresh Wallet" : "Refresh Wallet Account");
                 showLoadingLog.setDisable(false);
                 showTxHex.setDisable(true);
-                showPayNym.setDisable(exportWallet.isDisable() || !walletTabData.getWallet().hasPaymentCode());
+                showPayNym.setDisable(true);
             }
         }
     }
@@ -2804,7 +2790,7 @@ public class AppController implements Initializable {
         if(selectedWalletForm != null) {
             if(selectedWalletForm.getWalletId().equals(event.getWalletId())) {
                 exportWallet.setDisable(!event.getWallet().isValid() || selectedWalletForm.isLocked());
-                showPayNym.setDisable(exportWallet.isDisable() || !event.getWallet().hasPaymentCode());
+                showPayNym.setDisable(true);
             }
         }
 
@@ -3174,16 +3160,16 @@ public class AppController implements Initializable {
     @Subscribe
     public void cormorantPruneStatus(CormorantPruneStatusEvent event) {
         if(event.legacyWalletExists()) {
-            Optional<ButtonType> optButtonType = AppServices.showErrorDialog("Error importing Bitcoin Knots descriptor wallet",
+            Optional<ButtonType> optButtonType = AppServices.showErrorDialog("Error importing federationcoind descriptor wallet",
                     "The connected node is pruned at " + event.getPruneDateAsString() + ", but the wallet birthday for " + event.getWallet().getFullDisplayName() + " is set to " + event.getScanDateAsString() + ".\n\n" +
-                            "Do you want to try using the existing legacy Bitcoin Knots wallet?", ButtonType.YES, ButtonType.NO);
+                            "Do you want to try using the existing legacy federationcoind wallet?", ButtonType.YES, ButtonType.NO);
             if(optButtonType.isPresent() && optButtonType.get() == ButtonType.YES) {
                 Config.get().setUseLegacyCoreWallet(true);
                 onlineProperty().set(false);
                 Platform.runLater(() -> onlineProperty().set(true));
             }
         } else {
-            AppServices.showErrorDialog("Error importing Bitcoin Knots descriptor wallet",
+            AppServices.showErrorDialog("Error importing federationcoind descriptor wallet",
                     "The connected node is pruned at " + event.getPruneDateAsString() + ", but the wallet birthday for " + event.getWallet().getFullDisplayName() + " is set to " + event.getScanDateAsString() + ".");
         }
     }
@@ -3191,8 +3177,8 @@ public class AppController implements Initializable {
     @Subscribe
     public void cormorantImportStatus(CormorantImportStatusEvent event) {
         String walletNames = event.getWallets().stream().map(Wallet::getFullDisplayName).collect(Collectors.joining(", "));
-        AppServices.showErrorDialog("Error importing Bitcoin Knots descriptors",
-                "Bitcoin Knots did not import " + (walletNames.isEmpty() ? "one or more descriptors" : "the descriptors for " + walletNames) + ":\n\n" + event.getErrorMessage() + "\n\n" +
+        AppServices.showErrorDialog("Error importing federationcoind descriptors",
+                "federationcoind did not import " + (walletNames.isEmpty() ? "one or more descriptors" : "the descriptors for " + walletNames) + ":\n\n" + event.getErrorMessage() + "\n\n" +
                         "Transactions and balances may be incomplete until the import succeeds.");
     }
 

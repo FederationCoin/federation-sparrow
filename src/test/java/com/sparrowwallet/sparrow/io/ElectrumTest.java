@@ -1,6 +1,7 @@
 package com.sparrowwallet.sparrow.io;
 
 import com.google.common.io.ByteStreams;
+import com.sparrowwallet.drongo.ExtendedKey;
 import com.sparrowwallet.drongo.Network;
 import com.sparrowwallet.drongo.Utils;
 import com.sparrowwallet.drongo.crypto.InvalidPasswordException;
@@ -16,6 +17,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Locale;
+import com.sparrowwallet.sparrow.ChainEncoding;
 
 public class ElectrumTest extends IoTest {
     @Test
@@ -29,7 +31,7 @@ public class ElectrumTest extends IoTest {
         Assertions.assertEquals("sh(wpkh(trezortest))", wallet.getDefaultPolicy().getMiniscript().getScript().toLowerCase(Locale.ROOT));
         Assertions.assertEquals("ab543c67", wallet.getKeystores().get(0).getKeyDerivation().getMasterFingerprint());
         Assertions.assertEquals("m/49'/0'/0'", wallet.getKeystores().get(0).getKeyDerivation().getDerivationPath());
-        Assertions.assertEquals("xpub6FFEQVG6QR28chQzgSJ7Gjx5j5BGLkCMgZ9bc41YJCXfwYiCKUQdcwm4Fe1stvzRjosz5udMedYZFRL56AeZXCsiVmnVUysio4jkAKTukmN", wallet.getKeystores().get(0).getExtendedPublicKey().toString());
+        Assertions.assertEquals(ChainEncoding.extendedKey("xpub6FFEQVG6QR28chQzgSJ7Gjx5j5BGLkCMgZ9bc41YJCXfwYiCKUQdcwm4Fe1stvzRjosz5udMedYZFRL56AeZXCsiVmnVUysio4jkAKTukmN"), wallet.getKeystores().get(0).getExtendedPublicKey().toString());
         Assertions.assertTrue(wallet.isValid());
     }
 
@@ -49,7 +51,7 @@ public class ElectrumTest extends IoTest {
         Assertions.assertEquals("sh(wpkh(trezortest))", wallet.getDefaultPolicy().getMiniscript().getScript().toLowerCase(Locale.ROOT));
         Assertions.assertEquals("ab543c67", wallet.getKeystores().get(0).getKeyDerivation().getMasterFingerprint());
         Assertions.assertEquals("m/49'/0'/0'", wallet.getKeystores().get(0).getKeyDerivation().getDerivationPath());
-        Assertions.assertEquals("xpub6FFEQVG6QR28chQzgSJ7Gjx5j5BGLkCMgZ9bc41YJCXfwYiCKUQdcwm4Fe1stvzRjosz5udMedYZFRL56AeZXCsiVmnVUysio4jkAKTukmN", wallet.getKeystores().get(0).getExtendedPublicKey().toString());
+        Assertions.assertEquals(ChainEncoding.extendedKey("xpub6FFEQVG6QR28chQzgSJ7Gjx5j5BGLkCMgZ9bc41YJCXfwYiCKUQdcwm4Fe1stvzRjosz5udMedYZFRL56AeZXCsiVmnVUysio4jkAKTukmN"), wallet.getKeystores().get(0).getExtendedPublicKey().toString());
     }
 
     @Test
@@ -64,7 +66,7 @@ public class ElectrumTest extends IoTest {
         Assertions.assertEquals("sh(wsh(sortedmulti(2,coldcard6ba6cfd,coldcard747b698,coldcard7bb026b,coldcard0f05694)))", wallet.getDefaultPolicy().getMiniscript().getScript().toLowerCase(Locale.ROOT));
         Assertions.assertEquals("6ba6cfd0", wallet.getKeystores().get(0).getKeyDerivation().getMasterFingerprint());
         Assertions.assertEquals("m/48'/1'/0'/1'", wallet.getKeystores().get(0).getKeyDerivation().getDerivationPath());
-        Assertions.assertEquals("tpubDFcrvj5n7gyatVbr8dHCUfHT4CGvL8hREBjtxc4ge7HZgqNuPhFimPRtVg6fRRwfXiQthV9EBjNbwbpgV2VoQeL1ZNXoAWXxP2L9vMtRjax", wallet.getKeystores().get(0).getExtendedPublicKey().toString());
+        Assertions.assertEquals(ChainEncoding.extendedKey("tpubDFcrvj5n7gyatVbr8dHCUfHT4CGvL8hREBjtxc4ge7HZgqNuPhFimPRtVg6fRRwfXiQthV9EBjNbwbpgV2VoQeL1ZNXoAWXxP2L9vMtRjax"), wallet.getKeystores().get(0).getExtendedPublicKey().toString());
         Assertions.assertEquals("7bb026be", wallet.getKeystores().get(2).getKeyDerivation().getMasterFingerprint());
         Assertions.assertEquals("m/48'/1'/0'/1'", wallet.getKeystores().get(2).getKeyDerivation().getDerivationPath());
         Assertions.assertTrue(wallet.isValid());
@@ -87,7 +89,7 @@ public class ElectrumTest extends IoTest {
         Assertions.assertEquals("sh(wsh(sortedmulti(2,coldcard6ba6cfd,coldcard747b698,coldcard7bb026b,coldcard0f05694)))", wallet.getDefaultPolicy().getMiniscript().getScript().toLowerCase(Locale.ROOT));
         Assertions.assertEquals("6ba6cfd0", wallet.getKeystores().get(0).getKeyDerivation().getMasterFingerprint());
         Assertions.assertEquals("m/48'/1'/0'/1'", wallet.getKeystores().get(0).getKeyDerivation().getDerivationPath());
-        Assertions.assertEquals("tpubDFcrvj5n7gyatVbr8dHCUfHT4CGvL8hREBjtxc4ge7HZgqNuPhFimPRtVg6fRRwfXiQthV9EBjNbwbpgV2VoQeL1ZNXoAWXxP2L9vMtRjax", wallet.getKeystores().get(0).getExtendedPublicKey().toString());
+        Assertions.assertEquals(ChainEncoding.extendedKey("tpubDFcrvj5n7gyatVbr8dHCUfHT4CGvL8hREBjtxc4ge7HZgqNuPhFimPRtVg6fRRwfXiQthV9EBjNbwbpgV2VoQeL1ZNXoAWXxP2L9vMtRjax"), wallet.getKeystores().get(0).getExtendedPublicKey().toString());
         Assertions.assertEquals("7bb026be", wallet.getKeystores().get(2).getKeyDerivation().getMasterFingerprint());
         Assertions.assertEquals("m/48'/1'/0'/1'", wallet.getKeystores().get(2).getKeyDerivation().getDerivationPath());
     }
@@ -105,7 +107,7 @@ public class ElectrumTest extends IoTest {
         Assertions.assertEquals("wpkh(electrum)", wallet.getDefaultPolicy().getMiniscript().getScript().toLowerCase(Locale.ROOT));
         Assertions.assertEquals("f881eac5", wallet.getKeystores().get(0).getKeyDerivation().getMasterFingerprint());
         Assertions.assertEquals("m/0'", wallet.getKeystores().get(0).getKeyDerivation().getDerivationPath());
-        Assertions.assertEquals("xpub69iSRreMB6fu24sU8Tdxv7yYGqzPkDwPkwqUfKJTxW3p8afW7XvTewVCapuX3dQjdD197iF65WcjYaNpFbwWT3RyuZ1KJ3ToJNVWKWyAJ6f", wallet.getKeystores().get(0).getExtendedPublicKey().toString());
+        Assertions.assertEquals(ChainEncoding.extendedKey("xpub69iSRreMB6fu24sU8Tdxv7yYGqzPkDwPkwqUfKJTxW3p8afW7XvTewVCapuX3dQjdD197iF65WcjYaNpFbwWT3RyuZ1KJ3ToJNVWKWyAJ6f"), wallet.getKeystores().get(0).getExtendedPublicKey().toString());
     }
 
     @Test
@@ -135,7 +137,7 @@ public class ElectrumTest extends IoTest {
         Assertions.assertEquals("wpkh(electrum)", wallet.getDefaultPolicy().getMiniscript().getScript().toLowerCase(Locale.ROOT));
         Assertions.assertEquals("59c5474f", wallet.getKeystores().get(0).getKeyDerivation().getMasterFingerprint());
         Assertions.assertEquals("m/0'", wallet.getKeystores().get(0).getKeyDerivation().getDerivationPath());
-        Assertions.assertEquals("xpub68YmVxWbxqjpxbUqqaPrgkBQPBSJuq6gEaL22uuytSEojtS2x5eLPN2uspUuyigtnMkoHrFSF1KwoXPwjzuaUjErUwztxfHquAwuaQhSd9J", wallet.getKeystores().get(0).getExtendedPublicKey().toString());
+        Assertions.assertEquals(ChainEncoding.extendedKey("xpub68YmVxWbxqjpxbUqqaPrgkBQPBSJuq6gEaL22uuytSEojtS2x5eLPN2uspUuyigtnMkoHrFSF1KwoXPwjzuaUjErUwztxfHquAwuaQhSd9J"), wallet.getKeystores().get(0).getExtendedPublicKey().toString());
         Assertions.assertEquals(wallet.getKeystores().get(0).getSeed().getMnemonicString().asString(), "coach fan denial rifle frost rival join install one wasp cool antique");
         Assertions.assertEquals("e14c40c638e2c83d1f20e5ee9cd744bc2ba1ef64fa939926f3778fc8735e891f56852f687b32bbd044f272d2831137e3eeba61fd1f285fa73dcc97d9f2be3cd1", Utils.bytesToHex(wallet.getKeystores().get(0).getSeed().getSeedBytes()));
     }

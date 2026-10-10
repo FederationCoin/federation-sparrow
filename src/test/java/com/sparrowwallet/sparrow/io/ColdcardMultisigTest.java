@@ -3,6 +3,7 @@ package com.sparrowwallet.sparrow.io;
 import com.google.common.io.ByteStreams;
 import com.sparrowwallet.drongo.ExtendedKey;
 import com.sparrowwallet.drongo.Network;
+import com.sparrowwallet.drongo.OutputDescriptor;
 import com.sparrowwallet.drongo.policy.PolicyType;
 import com.sparrowwallet.drongo.protocol.ScriptType;
 import com.sparrowwallet.drongo.wallet.Keystore;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.*;
 import java.util.Locale;
+import com.sparrowwallet.sparrow.ChainEncoding;
 
 public class ColdcardMultisigTest extends IoTest {
     @Test
@@ -41,7 +43,7 @@ public class ColdcardMultisigTest extends IoTest {
         Assertions.assertEquals("Coldcard", keystore.getLabel());
         Assertions.assertEquals("m/45'", keystore.getKeyDerivation().getDerivationPath());
         Assertions.assertEquals("6ba6cfd0", keystore.getKeyDerivation().getMasterFingerprint());
-        Assertions.assertEquals(ExtendedKey.fromDescriptor("tpubD9429UXFGCTKJ9NdiNK4rC5ygqSUkginycYHccqSg5gkmyQ7PZRHNjk99M6a6Y3NY8ctEUUJvCu6iCCui8Ju3xrHRu3Ez1CKB4ZFoRZDdP9"), keystore.getExtendedPublicKey());
+        Assertions.assertEquals(ChainEncoding.fromPublishedDescriptor("tpubD9429UXFGCTKJ9NdiNK4rC5ygqSUkginycYHccqSg5gkmyQ7PZRHNjk99M6a6Y3NY8ctEUUJvCu6iCCui8Ju3xrHRu3Ez1CKB4ZFoRZDdP9"), keystore.getExtendedPublicKey());
         Assertions.assertTrue(keystore.isValid());
     }
 
@@ -93,7 +95,7 @@ public class ColdcardMultisigTest extends IoTest {
         Assertions.assertEquals("wsh(sortedmulti(3,coldcard1,coldcard2,coldcard3))", wallet.getDefaultPolicy().getMiniscript().getScript().toLowerCase(Locale.ROOT));
         Assertions.assertEquals("06b57041", wallet.getKeystores().get(0).getKeyDerivation().getMasterFingerprint());
         Assertions.assertEquals("m/48'/0'/0'/2'", wallet.getKeystores().get(0).getKeyDerivation().getDerivationPath());
-        Assertions.assertEquals("xpub6EfEGa5isJbQFSswM5Uptw5BSq2Td1ZDJr3QUNUcMySpC7itZ3ccypVHtLPnvMzKQ2qxrAgH49vhVxRcaQLFbixAVRR8RACrYTp88Uv9h8Z", wallet.getKeystores().get(0).getExtendedPublicKey().toString());
+        Assertions.assertEquals(ChainEncoding.extendedKey("xpub6EfEGa5isJbQFSswM5Uptw5BSq2Td1ZDJr3QUNUcMySpC7itZ3ccypVHtLPnvMzKQ2qxrAgH49vhVxRcaQLFbixAVRR8RACrYTp88Uv9h8Z"), wallet.getKeystores().get(0).getExtendedPublicKey().toString());
         Assertions.assertEquals("ca9a2b19", wallet.getKeystores().get(2).getKeyDerivation().getMasterFingerprint());
         Assertions.assertEquals("m/47'/0'/0'/1'", wallet.getKeystores().get(2).getKeyDerivation().getDerivationPath());
         Assertions.assertTrue(wallet.isValid());
@@ -109,7 +111,7 @@ public class ColdcardMultisigTest extends IoTest {
         byte[] exportedBytes = baos.toByteArray();
         String original = new String(walletBytes);
         String exported = new String(exportedBytes);
-        Assertions.assertEquals(original.replaceAll("created on [0-9A-F]+", ""), exported.replace("created by Sparrow", ""));
+        Assertions.assertEquals(ChainEncoding.descriptor(original.replaceAll("created on [0-9A-F]+", "")), exported.replace("created by Sparrow", ""));
     }
 
     @Test
@@ -122,7 +124,7 @@ public class ColdcardMultisigTest extends IoTest {
         byte[] exportedBytes = baos.toByteArray();
         String original = new String(walletBytes);
         String exported = new String(exportedBytes);
-        Assertions.assertEquals(original.replaceAll("Exported from Electrum", ""), exported.replace("Coldcard Multisig setup file (created by Sparrow)\n#", ""));
+        Assertions.assertEquals(ChainEncoding.descriptor(original.replaceAll("Exported from Electrum", "")), exported.replace("Coldcard Multisig setup file (created by Sparrow)\n#", ""));
     }
 
     @AfterEach

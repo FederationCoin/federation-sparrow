@@ -1,12 +1,18 @@
 package com.sparrowwallet.sparrow.io;
 
 import com.sparrowwallet.drongo.KeyPurpose;
-import com.sparrowwallet.drongo.Utils;
+import com.sparrowwallet.drongo.address.MlDsaAddress;
+import com.sparrowwallet.drongo.crypto.Argon2KeyDeriver;
+import com.sparrowwallet.drongo.policy.Policy;
 import com.sparrowwallet.drongo.policy.PolicyType;
 import com.sparrowwallet.drongo.protocol.ScriptType;
+import com.sparrowwallet.drongo.wallet.DeterministicSeed;
+import com.sparrowwallet.drongo.wallet.InvalidWalletException;
 import com.sparrowwallet.drongo.wallet.Keystore;
+import com.sparrowwallet.drongo.wallet.KeystoreSource;
 import com.sparrowwallet.drongo.wallet.MnemonicException;
 import com.sparrowwallet.drongo.wallet.Wallet;
+import com.sparrowwallet.drongo.wallet.WalletModel;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -17,26 +23,48 @@ import java.nio.file.Path;
 import java.util.Arrays;
 
 public class StorageTest extends IoTest {
-    @Test
-    public void loadWallet() throws IOException, MnemonicException, StorageException {
-        System.setProperty(Wallet.ALLOW_DERIVATIONS_MATCHING_OTHER_NETWORKS_PROPERTY, "true");
-        Storage storage = new Storage(getFile("sparrow-single-wallet"));
-        Wallet wallet = storage.loadEncryptedWallet("pass").getWallet();
-        Assertions.assertTrue(wallet.isValid());
+    private Wallet createMlDsaSeedWallet(String name) throws MnemonicException {
+        byte[] entropy = new byte[16];
+        Arrays.fill(entropy, (byte)0x21);
+        DeterministicSeed seed = new DeterministicSeed(entropy, "", 0L);
+        Keystore keystore = Keystore.fromSeed(seed, PolicyType.SINGLE_HD, ScriptType.MLDSA_SINGLE.getDefaultDerivation());
+        Wallet wallet = new Wallet(name);
+        wallet.setPolicyType(PolicyType.SINGLE_HD);
+        wallet.setScriptType(ScriptType.MLDSA_SINGLE);
+        wallet.getKeystores().add(keystore);
+        wallet.setDefaultPolicy(Policy.getPolicy(wallet.getPolicyType(), wallet.getScriptType(), wallet.getKeystores(), 1));
+        return wallet;
     }
 
-    @Test
-    public void loadSeedWallet() throws IOException, MnemonicException, StorageException {
-        Storage storage = new Storage(getFile("sparrow-single-seed-wallet"));
-        WalletAndKey walletAndKey = storage.loadEncryptedWallet("pass");
-        Wallet wallet = walletAndKey.getWallet();
-        Wallet copy = wallet.copy();
-        copy.decrypt(walletAndKey.getKey());
+    private Wallet createMlDsaWatchWallet(String name) throws MnemonicException {
+        Wallet seedWallet = createMlDsaSeedWallet(name);
+        Keystore fromSeed = seedWallet.getKeystores().get(0);
+        Keystore watch = new Keystore("Keystore 1");
+        watch.setSource(KeystoreSource.SW_WATCH);
+        watch.setWalletModel(WalletModel.SPARROW);
+        watch.setKeyDerivation(fromSeed.getKeyDerivation());
+        watch.setExtendedPublicKey(fromSeed.getExtendedPublicKey());
+        Wallet wallet = new Wallet(name);
+        wallet.setPolicyType(PolicyType.SINGLE_HD);
+        wallet.setScriptType(ScriptType.MLDSA_SINGLE);
+        wallet.getKeystores().add(watch);
+        wallet.setDefaultPolicy(Policy.getPolicy(wallet.getPolicyType(), wallet.getScriptType(), wallet.getKeystores(), 1));
+        return wallet;
+    }
 
+    private void assertValid(Wallet wallet) {
+        try {
+            wallet.checkWallet();
+        } catch(InvalidWalletException e) {
+            Assertions.fail(e.getMessage(), e);
+        }
+    }
+
+    private void rederiveSeedXpubs(Wallet wallet, Wallet decryptedCopy) throws MnemonicException {
         for(int i = 0; i < wallet.getKeystores().size(); i++) {
             Keystore keystore = wallet.getKeystores().get(i);
             if(keystore.hasSeed()) {
-                Keystore copyKeystore = copy.getKeystores().get(i);
+                Keystore copyKeystore = decryptedCopy.getKeystores().get(i);
                 Keystore derivedKeystore = Keystore.fromSeed(copyKeystore.getSeed(), wallet.getPolicyType(), copyKeystore.getKeyDerivation().getDerivation());
                 keystore.setKeyDerivation(derivedKeystore.getKeyDerivation());
                 keystore.setExtendedPublicKey(derivedKeystore.getExtendedPublicKey());
@@ -44,47 +72,96 @@ public class StorageTest extends IoTest {
                 copyKeystore.getSeed().clear();
             }
         }
+    }
 
-        Assertions.assertTrue(wallet.isValid());
-
-        Assertions.assertEquals("testd2", wallet.getName());
-        Assertions.assertEquals(PolicyType.SINGLE_HD, wallet.getPolicyType());
-        Assertions.assertEquals(ScriptType.P2WPKH, wallet.getScriptType());
-        Assertions.assertEquals(1, wallet.getDefaultPolicy().getNumSignaturesRequired());
-        Assertions.assertEquals("pkh(60bcd3a7)", wallet.getDefaultPolicy().getMiniscript().getScript());
-        Assertions.assertEquals("60bcd3a7", wallet.getKeystores().get(0).getKeyDerivation().getMasterFingerprint());
-        Assertions.assertEquals("m/84'/0'/3'", wallet.getKeystores().get(0).getKeyDerivation().getDerivationPath());
-        Assertions.assertEquals("xpub6BrhGFTWPd3DXo8s2BPxHHzCmBCyj8QvamcEUaq8EDwnwXpvvcU9LzpJqENHcqHkqwTn2vPhynGVoEqj3PAB3NxnYZrvCsSfoCniJKaggdy", wallet.getKeystores().get(0).getExtendedPublicKey().toString());
-        Assertions.assertEquals("af6ebd81714c301c3a71fe11a7a9c99ccef4b33d4b36582220767bfa92768a2aa040f88b015b2465f8075a8b9dbf892a7d6e6c49932109f2cbc05ba0bd7f355fbcc34c237f71be5fb4dd7f8184e44cb0", Utils.bytesToHex(wallet.getKeystores().get(0).getSeed().getEncryptedData().getEncryptedBytes()));
-        Assertions.assertNull(wallet.getKeystores().get(0).getSeed().getMnemonicCode());
-        Assertions.assertEquals("bc1q2mkrttcuzryrdyn9vtu3nfnt3jlngwn476ktus", wallet.getFreshNode(KeyPurpose.RECEIVE).getAddress().toString());
+    private Storage saveMlDsaWallet(Wallet wallet, CharSequence password) throws Exception {
+        Path dir = Files.createTempDirectory("sprw-storage");
+        dir.toFile().deleteOnExit();
+        File tempWallet = dir.resolve(wallet.getName() + ".mv.db").toFile();
+        Storage storage = new Storage(PersistenceType.DB, tempWallet);
+        storage.setKeyDeriver(new Argon2KeyDeriver());
+        storage.setEncryptionPubKey(password == null ? Storage.NO_PASSWORD_KEY : com.sparrowwallet.drongo.crypto.ECKey.fromPublicOnly(storage.getKeyDeriver().deriveECKey(password)));
+        storage.saveWallet(wallet);
+        return storage;
     }
 
     @Test
-    public void multipleLoadTest() throws IOException, MnemonicException, StorageException {
+    public void loadWallet() throws Exception {
+        Storage storage = saveMlDsaWallet(createMlDsaWatchWallet("testd"), null);
+        try {
+            Wallet wallet = storage.loadUnencryptedWallet().getWallet();
+            assertValid(wallet);
+            Assertions.assertEquals(ScriptType.MLDSA_SINGLE, wallet.getScriptType());
+        } finally {
+            storage.closeAndWait();
+        }
+    }
+
+    @Test
+    public void loadSeedWallet() throws Exception {
+        Storage saved = saveMlDsaWallet(createMlDsaSeedWallet("testd2"), "pass");
+        File walletFile = saved.getWalletFile();
+        saved.closeAndWait();
+
+        Storage storage = new Storage(PersistenceType.DB, walletFile);
+        try {
+            WalletAndKey walletAndKey = storage.loadEncryptedWallet("pass");
+            Wallet wallet = walletAndKey.getWallet();
+            Wallet copy = wallet.copy();
+            copy.decrypt(walletAndKey.getKey());
+            rederiveSeedXpubs(wallet, copy);
+
+            assertValid(wallet);
+            Assertions.assertEquals("testd2", wallet.getName());
+            Assertions.assertEquals(PolicyType.SINGLE_HD, wallet.getPolicyType());
+            Assertions.assertEquals(ScriptType.MLDSA_SINGLE, wallet.getScriptType());
+            Assertions.assertEquals(1, wallet.getDefaultPolicy().getNumSignaturesRequired());
+            Assertions.assertTrue(wallet.getKeystores().get(0).hasSeed());
+            Assertions.assertInstanceOf(MlDsaAddress.class, wallet.getFreshNode(KeyPurpose.RECEIVE).getAddress());
+        } finally {
+            storage.closeAndWait();
+        }
+    }
+
+    @Test
+    public void multipleLoadTest() throws Exception {
         for(int i = 0; i < 5; i++) {
             loadSeedWallet();
         }
     }
 
     @Test
-    public void saveWallet() throws IOException, MnemonicException, StorageException {
-        System.setProperty(Wallet.ALLOW_DERIVATIONS_MATCHING_OTHER_NETWORKS_PROPERTY, "true");
-        Storage storage = new Storage(getFile("sparrow-single-wallet"));
-        Wallet wallet = storage.loadEncryptedWallet("pass").getWallet();
-        Assertions.assertTrue(wallet.isValid());
+    public void saveWallet() throws Exception {
+        Storage storage = saveMlDsaWallet(createMlDsaWatchWallet("testd"), "pass");
+        File walletFile = storage.getWalletFile();
+        storage.closeAndWait();
 
-        File tempWallet = File.createTempFile("sparrow", "tmp");
-        tempWallet.deleteOnExit();
+        Storage loaded = new Storage(PersistenceType.DB, walletFile);
+        try {
+            Wallet wallet = loaded.loadEncryptedWallet("pass").getWallet();
+            assertValid(wallet);
+            Assertions.assertEquals(ScriptType.MLDSA_SINGLE, wallet.getScriptType());
 
-        Storage tempStorage = new Storage(tempWallet);
-        tempStorage.setKeyDeriver(storage.getKeyDeriver());
-        tempStorage.setEncryptionPubKey(storage.getEncryptionPubKey());
-        tempStorage.saveWallet(wallet);
+            Path dir = Files.createTempDirectory("sprw-storage-copy");
+            dir.toFile().deleteOnExit();
+            File tempWallet = dir.resolve("testd.mv.db").toFile();
+            Storage tempStorage = new Storage(PersistenceType.DB, tempWallet);
+            tempStorage.setKeyDeriver(loaded.getKeyDeriver());
+            tempStorage.setEncryptionPubKey(loaded.getEncryptionPubKey());
+            tempStorage.saveWallet(wallet);
+            tempStorage.closeAndWait();
 
-        Storage temp2Storage = new Storage(tempWallet);
-        wallet = temp2Storage.loadEncryptedWallet("pass").getWallet();
-        Assertions.assertTrue(wallet.isValid());
+            Storage temp2Storage = new Storage(PersistenceType.DB, tempWallet);
+            try {
+                wallet = temp2Storage.loadEncryptedWallet("pass").getWallet();
+                assertValid(wallet);
+                Assertions.assertEquals(ScriptType.MLDSA_SINGLE, wallet.getScriptType());
+            } finally {
+                temp2Storage.closeAndWait();
+            }
+        } finally {
+            loaded.closeAndWait();
+        }
     }
 
     @Test

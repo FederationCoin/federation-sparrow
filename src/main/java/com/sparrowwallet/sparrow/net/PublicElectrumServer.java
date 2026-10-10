@@ -22,7 +22,7 @@ public enum PublicElectrumServer {
     SIGNET_MEMPOOL_SPACE("mempool.space", "ssl://mempool.space:60602", Network.SIGNET),
     TESTNET4_MEMPOOL_SPACE("mempool.space", "ssl://mempool.space:40002", Network.TESTNET4),
     TESTNET4_C3_SOFT("blackie.c3-soft.com", "ssl://blackie.c3-soft.com:57010", Network.TESTNET4),
-    FRIGATE_2140_DEV("frigate.2140.dev", "ssl://frigate.2140.dev:50002", Network.MAINNET, List.of(PolicyType.SINGLE_HD, PolicyType.MULTI_HD, PolicyType.SINGLE_SP));
+    FRIGATE_2140_DEV("frigate.2140.dev", "ssl://frigate.2140.dev:50002", Network.MAINNET, List.of(PolicyType.SINGLE_HD, PolicyType.MULTI_HD));
 
     PublicElectrumServer(String name, String url, Network network) {
         this(name, url, network, List.of(PolicyType.SINGLE_HD, PolicyType.MULTI_HD));

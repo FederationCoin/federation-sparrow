@@ -1,6 +1,6 @@
 # Reproducing the unified sighash regtest verification
 
-How to run Shrike against a solo regtest chain that activates the fork at a low height, to confirm that transactions it sends after activation opt in to the unified signature hash and that the node accepts them.
+How to run Federation Sparrow against a solo regtest chain that activates the fork at a low height, to confirm that transactions it sends after activation opt in to the unified signature hash and that the node accepts them.
 
 This requires a build of Bitcoin Knots at `v29.4.1.knots20260508`, the release that carries the BLAKE2b proof of work and the unified signature hash together. Build it separately and substitute its `bitcoind` and `bitcoin-cli` below. Release candidates before rc3 define a different signature hash message and will reject what this wallet signs. The setup is the same as [blake2b-regtest.md](blake2b-regtest.md); only the checks at the end differ.
 
@@ -30,28 +30,28 @@ cli generatetoaddress 25 $ADDR
 cli getdeploymentinfo | jq .blake2b            # {"height": 20, "active": true}
 ```
 
-## Point Shrike at it
+## Point Federation Sparrow at it
 
 ```
-SPARROW_NETWORK=regtest /opt/shrike/bin/Shrike     # installed from the published deb
+SPARROW_NETWORK=regtest /opt/federationcoin-sparrow/bin/federationcoin-sparrow     # installed from the published deb
 SPARROW_NETWORK=regtest ./gradlew run             # or from a source checkout
 ```
 
-Choose the **Bitcoin Core** server type with URL `127.0.0.1:18443` and the RPC user and password above.
+Choose the **federationcoind** server type with URL `127.0.0.1:18443` and the RPC user and password above.
 
-Shrike opts in when the fork is scheduled for the network and the tip carries a v2 header. Regtest chooses its own activation height through `-testactivationheight`, so there the v2 tip is the only answer available and nothing needs configuring for this test. On a network with a scheduled flagday the height ships with the wallet, and the connected node is used to check that value has not gone stale; see the next section.
+Federation Sparrow opts in when the fork is scheduled for the network and the tip carries a v2 header. Regtest chooses its own activation height through `-testactivationheight`, so there the v2 tip is the only answer available and nothing needs configuring for this test. On a network with a scheduled flagday the height ships with the wallet, and the connected node is used to check that value has not gone stale; see the next section.
 
 ## Send a transaction and check the hash type
 
-Fund a Shrike receive address and mature it, as in the BLAKE2b document:
+Fund a Federation Sparrow receive address and mature it, as in the BLAKE2b document:
 
 ```
-SHRIKE_ADDR=<receive address from Shrike>
-cli generatetoaddress 1 $SHRIKE_ADDR
+WALLET_ADDR=<receive address from Federation Sparrow>
+cli generatetoaddress 1 $WALLET_ADDR
 cli generatetoaddress 100 $ADDR
 ```
 
-Send from Shrike to `cli getnewaddress`, then inspect what it produced:
+Send from Federation Sparrow to `cli getnewaddress`, then inspect what it produced:
 
 ```
 cli getrawtransaction <txid> true | grep -A3 txinwitness
@@ -59,7 +59,7 @@ cli getrawtransaction <txid> true | grep -A3 txinwitness
 
 The first witness item is the signature. Its final byte is the hash type, and it must be `21`: `20` is the opt-in bit and `01` is SIGHASH_ALL. A transaction created before height 20 carries `01` instead, which is still valid and still relayed, it simply has no replay protection.
 
-That the node accepted the transaction at all is the other half of the check: a signature carrying `21` only verifies if the node computed the same unified message that Shrike signed.
+That the node accepted the transaction at all is the other half of the check: a signature carrying `21` only verifies if the node computed the same unified message that Federation Sparrow signed.
 
 ## The wallet level check, without the GUI
 

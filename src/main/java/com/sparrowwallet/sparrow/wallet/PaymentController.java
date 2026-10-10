@@ -243,38 +243,7 @@ public class PaymentController extends WalletFormController implements Initializ
                 return;
             }
 
-            if(sendController.getWalletForm().getWallet().hasPaymentCode()) {
-                try {
-                    PaymentCode paymentCode = new PaymentCode(newValue);
-                    Wallet recipientBip47Wallet = sendController.getWalletForm().getWallet().getChildWallet(paymentCode, sendController.getWalletForm().getWallet().getScriptType());
-                    if(recipientBip47Wallet == null && sendController.getWalletForm().getWallet().getScriptType() != ScriptType.P2PKH) {
-                        recipientBip47Wallet = sendController.getWalletForm().getWallet().getChildWallet(paymentCode, ScriptType.P2PKH);
-                    }
-
-                    if(recipientBip47Wallet != null && hasNotificationTransaction(paymentCode)) {
-                        PayNym payNym = PayNym.fromWallet(recipientBip47Wallet);
-                        Platform.runLater(() -> setPayNym(payNym));
-                    } else if(!paymentCode.equals(sendController.getWalletForm().getWallet().getPaymentCode())) {
-                        ButtonType previewType = new ButtonType("Preview Transaction", ButtonBar.ButtonData.YES);
-                        Optional<ButtonType> optButton = AppServices.showAlertDialog("Send notification transaction?", "This payment code is not yet linked with a notification transaction. Send a notification transaction?", Alert.AlertType.CONFIRMATION, ButtonType.CANCEL, previewType);
-                        if(optButton.isPresent() && optButton.get() == previewType) {
-                            Payment payment = new Payment(paymentCode.getNotificationAddress(), "Link " + paymentCode.toAbbreviatedString(), MINIMUM_P2PKH_OUTPUT_SATS, false);
-                            Platform.runLater(() -> EventManager.get().post(new SpendUtxoEvent(sendController.getWalletForm().getWallet(), List.of(payment), List.of(new byte[80]), paymentCode)));
-                        } else {
-                            Platform.runLater(() -> address.setText(""));
-                        }
-                    }
-                } catch(Exception e) {
-                    //ignore, not a payment code
-                }
-            }
-
-            try {
-                SilentPaymentAddress silentPaymentAddress = SilentPaymentAddress.from(newValue);
-                setSilentPaymentAddress(silentPaymentAddress);
-            } catch(Exception e) {
-                //ignore, not a silent payment address
-            }
+            // PayNym / BIP47 payment codes are not a spend on this chain.
 
             try {
                 Address toAddress = Address.fromString(newValue);
@@ -355,11 +324,7 @@ public class PaymentController extends WalletFormController implements Initializ
             }
         });
         openWallets.setOnShowing(event -> {
-            if(!openWallets.getItems().contains(nfcCardWallet) && CardApi.isReaderAvailable()) {
-                openWallets.getItems().add(nfcCardWallet);
-            } else if(openWallets.getItems().contains(nfcCardWallet) && !CardApi.isReaderAvailable()) {
-                openWallets.getItems().remove(nfcCardWallet);
-            }
+            openWallets.getItems().remove(nfcCardWallet);
         });
 
         payNymProperty.addListener((observable, oldValue, payNym) -> {
@@ -468,10 +433,15 @@ public class PaymentController extends WalletFormController implements Initializ
 
     public void setDnsPayment(DnsPayment dnsPayment) {
         if(dnsPayment.hasAddress()) {
-            DnsPaymentCache.putDnsPayment(dnsPayment.bitcoinURI().getAddress(), dnsPayment);
+            Address resolved = dnsPayment.bitcoinURI().getAddress();
+            if(resolved.getScriptType().isParkedOnThisChain()) {
+                AppServices.showWarningDialog("Taproot is not enabled", ScriptType.TAPROOT_NOT_ENABLED_MESSAGE);
+                return;
+            }
+            DnsPaymentCache.putDnsPayment(resolved, dnsPayment);
         } else if(dnsPayment.hasSilentPaymentAddress()) {
-            DnsPaymentCache.putDnsPayment(dnsPayment.bitcoinURI().getSilentPaymentAddress(), dnsPayment);
-            setSilentPaymentAddress(dnsPayment.bitcoinURI().getSilentPaymentAddress());
+            AppServices.showWarningDialog("Taproot is not enabled", ScriptType.TAPROOT_NOT_ENABLED_MESSAGE);
+            return;
         } else {
             AppServices.showWarningDialog("No Address Provided", "The DNS payment instruction for " + dnsPayment.hrn() + " resolved correctly but did not contain a bitcoin address.");
             return;
@@ -487,16 +457,6 @@ public class PaymentController extends WalletFormController implements Initializ
         label.requestFocus();
     }
 
-    private void setSilentPaymentAddress(SilentPaymentAddress silentPaymentAddress) {
-        if(!sendController.getWalletForm().getWallet().canSendSilentPayments()) {
-            Platform.runLater(() -> AppServices.showErrorDialog("Silent Payments Unsupported", "This wallet does not support sending silent payments. Use a single signature wallet."));
-            return;
-        }
-
-        silentPaymentAddressProperty.set(silentPaymentAddress);
-        label.requestFocus();
-    }
-
     private void updateOpenWallets() {
         updateOpenWallets(AppServices.get().getOpenWallets().keySet());
     }
@@ -504,15 +464,11 @@ public class PaymentController extends WalletFormController implements Initializ
     private void updateOpenWallets(Collection<Wallet> wallets) {
         List<Wallet> openWalletList = wallets.stream().filter(wallet -> wallet.isValid()
                 && (wallet == sendController.getWalletForm().getWallet() || !wallet.isWhirlpoolChildWallet())
-                && !wallet.isBip47()).collect(Collectors.toList());
+                && !wallet.isBip47()
+                && wallet.getPolicyType() != PolicyType.SINGLE_SP
+                && (wallet.getScriptType() == null || wallet.getScriptType().isOfferedForNewWallets())).collect(Collectors.toList());
 
-        if(sendController.getWalletForm().getWallet().hasPaymentCode()) {
-            openWalletList.add(payNymWallet);
-        }
-
-        if(CardApi.isReaderAvailable()) {
-            openWalletList.add(nfcCardWallet);
-        }
+        // NFC / hardware cards are not a spend on this chain.
 
         openWallets.setItems(FXCollections.observableList(openWalletList));
     }
@@ -539,7 +495,18 @@ public class PaymentController extends WalletFormController implements Initializ
         this.validationSupport = validationSupport;
 
         validationSupport.registerValidator(address, Validator.combine(
-                (Control c, String newValue) -> ValidationResult.fromErrorIf( c, "Invalid Address", !newValue.isEmpty() && !isValidRecipientAddress())
+                (Control c, String newValue) -> {
+                    if(newValue == null || newValue.isEmpty()) {
+                        return ValidationResult.fromErrorIf(c, "Invalid Address", false);
+                    }
+                    try {
+                        getRecipientAddress();
+                        return ValidationResult.fromErrorIf(c, "Invalid Address", false);
+                    } catch(InvalidAddressException e) {
+                        String msg = (e.getMessage() != null && !e.getMessage().isEmpty()) ? e.getMessage() : "Invalid Address";
+                        return ValidationResult.fromErrorIf(c, msg, true);
+                    }
+                }
         ));
         validationSupport.registerValidator(label, Validator.combine(
                 Validator.createEmptyValidator("Label is required")
@@ -568,19 +535,38 @@ public class PaymentController extends WalletFormController implements Initializ
     }
 
     private Address getRecipientAddress() throws InvalidAddressException {
+        String recipientText = address.getText();
+        if(recipientText != null && !recipientText.isEmpty()) {
+            try {
+                SilentPaymentAddress.from(recipientText);
+                throw new InvalidAddressException(ScriptType.TAPROOT_NOT_ENABLED_MESSAGE);
+            } catch(InvalidAddressException e) {
+                throw e;
+            } catch(Exception e) {
+                // not a silent payment address
+            }
+        }
+
         SilentPaymentAddress silentPaymentAddress = silentPaymentAddressProperty.get();
         if(silentPaymentAddress != null) {
-            return SilentPayment.getDummyAddress();
+            throw new InvalidAddressException(ScriptType.TAPROOT_NOT_ENABLED_MESSAGE);
         }
 
         DnsPayment dnsPayment = dnsPaymentProperty.get();
         if(dnsPayment != null && dnsPayment.hasAddress()) {
-            return dnsPayment.bitcoinURI().getAddress();
+            Address resolved = dnsPayment.bitcoinURI().getAddress();
+            resolved.requireSendable();
+            return resolved;
         }
 
         PayNym payNym = payNymProperty.get();
         if(payNym == null) {
-            return Address.fromString(address.getText());
+            Address parsed = Address.fromString(address.getText());
+            parsed.requireSendable();
+            if(parsed.getScriptType().needsQuantumWarning()) {
+                AppServices.showWarningDialog("secp cheap-out", com.sparrowwallet.drongo.protocol.SecpCheapOut.warnSend());
+            }
+            return parsed;
         }
 
         try {

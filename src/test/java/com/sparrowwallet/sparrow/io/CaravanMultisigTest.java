@@ -1,6 +1,8 @@
 package com.sparrowwallet.sparrow.io;
 
 import com.google.common.io.ByteStreams;
+import com.sparrowwallet.drongo.ExtendedKey;
+import com.sparrowwallet.drongo.OutputDescriptor;
 import com.sparrowwallet.drongo.policy.PolicyType;
 import com.sparrowwallet.drongo.protocol.ScriptType;
 import com.sparrowwallet.drongo.wallet.Wallet;
@@ -12,6 +14,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Locale;
+import com.sparrowwallet.sparrow.ChainEncoding;
 
 public class CaravanMultisigTest extends IoTest {
     @Test
@@ -27,7 +30,7 @@ public class CaravanMultisigTest extends IoTest {
         Assertions.assertEquals("8188029f", wallet.getKeystores().get(0).getKeyDerivation().getMasterFingerprint());
         Assertions.assertEquals("m/48'/0'/0'/2'", wallet.getKeystores().get(0).getKeyDerivation().getDerivationPath());
         Assertions.assertEquals(WalletModel.TREZOR_1, wallet.getKeystores().get(0).getWalletModel());
-        Assertions.assertEquals("xpub6EMVvcTUbaABdaPLaVWE72CjcN72URa5pKK1knrKLz1hKaDwUkgddc3832a8MHEpLyuow7MfjMRomt2iMtwPH4pWrFLft4JsquHjeZfKsYp", wallet.getKeystores().get(0).getExtendedPublicKey().toString());
+        Assertions.assertEquals(ChainEncoding.extendedKey("xpub6EMVvcTUbaABdaPLaVWE72CjcN72URa5pKK1knrKLz1hKaDwUkgddc3832a8MHEpLyuow7MfjMRomt2iMtwPH4pWrFLft4JsquHjeZfKsYp"), wallet.getKeystores().get(0).getExtendedPublicKey().toString());
     }
 
     @Test
@@ -53,6 +56,6 @@ public class CaravanMultisigTest extends IoTest {
         byte[] exportedBytes = baos.toByteArray();
         String original = new String(walletBytes);
         String exported = new String(exportedBytes);
-        Assertions.assertEquals(original, exported);
+        Assertions.assertEquals(ChainEncoding.descriptor(original), exported);
     }
 }

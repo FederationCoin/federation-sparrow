@@ -1,13 +1,12 @@
 package com.sparrowwallet.sparrow.io;
 
-import com.sparrowwallet.drongo.ExtendedKey;
-import com.sparrowwallet.drongo.KeyDerivation;
 import com.sparrowwallet.drongo.crypto.Argon2KeyDeriver;
 import com.sparrowwallet.drongo.crypto.ECKey;
 import com.sparrowwallet.drongo.policy.Policy;
 import com.sparrowwallet.drongo.policy.PolicyType;
 import com.sparrowwallet.drongo.protocol.ScriptType;
 import com.sparrowwallet.drongo.protocol.Sha256Hash;
+import com.sparrowwallet.drongo.wallet.DeterministicSeed;
 import com.sparrowwallet.drongo.wallet.Keystore;
 import com.sparrowwallet.drongo.wallet.KeystoreSource;
 import com.sparrowwallet.drongo.wallet.Wallet;
@@ -108,22 +107,26 @@ public class DbPersistenceTest {
         assertRejected(buildWalletFile("create domain wallet_master.dm as int default 0"));
     }
 
-    private static final String TEST_XPUB = "xpub6BrhGFTWPd3DXo8s2BPxHHzCmBCyj8QvamcEUaq8EDwnwXpvvcU9LzpJqENHcqHkqwTn2vPhynGVoEqj3PAB3NxnYZrvCsSfoCniJKaggdy";
-
     private Wallet createWallet(String walletName) {
-        Wallet wallet = new Wallet(walletName);
-        wallet.setPolicyType(PolicyType.SINGLE_HD);
-        wallet.setScriptType(ScriptType.P2WPKH);
-
-        Keystore keystore = new Keystore("Keystore 1");
-        keystore.setSource(KeystoreSource.SW_WATCH);
-        keystore.setWalletModel(WalletModel.SPARROW);
-        keystore.setKeyDerivation(new KeyDerivation("60bcd3a7", "m/84'/0'/3'"));
-        keystore.setExtendedPublicKey(ExtendedKey.fromDescriptor(TEST_XPUB));
-        wallet.getKeystores().add(keystore);
-        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.SINGLE_HD, ScriptType.P2WPKH, wallet.getKeystores(), null));
-
-        return wallet;
+        try {
+            byte[] entropy = new byte[16];
+            java.util.Arrays.fill(entropy, (byte)0x21);
+            DeterministicSeed seed = new DeterministicSeed(entropy, "", 0L);
+            Keystore fromSeed = Keystore.fromSeed(seed, PolicyType.SINGLE_HD, ScriptType.MLDSA_SINGLE.getDefaultDerivation());
+            Keystore keystore = new Keystore("Keystore 1");
+            keystore.setSource(KeystoreSource.SW_WATCH);
+            keystore.setWalletModel(WalletModel.SPARROW);
+            keystore.setKeyDerivation(fromSeed.getKeyDerivation());
+            keystore.setExtendedPublicKey(fromSeed.getExtendedPublicKey());
+            Wallet wallet = new Wallet(walletName);
+            wallet.setPolicyType(PolicyType.SINGLE_HD);
+            wallet.setScriptType(ScriptType.MLDSA_SINGLE);
+            wallet.getKeystores().add(keystore);
+            wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.SINGLE_HD, ScriptType.MLDSA_SINGLE, wallet.getKeystores(), 1));
+            return wallet;
+        } catch(Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private Storage createUnencryptedWallet(String walletName) throws Exception {

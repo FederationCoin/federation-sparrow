@@ -9,6 +9,7 @@ import com.sparrowwallet.drongo.dns.DnsPayment;
 import com.sparrowwallet.drongo.dns.DnsPaymentCache;
 import com.sparrowwallet.drongo.dns.DnsPaymentResolver;
 import com.sparrowwallet.drongo.dns.DnsPaymentValidationException;
+import com.sparrowwallet.drongo.protocol.ScriptType;
 import com.sparrowwallet.drongo.silentpayments.SilentPayment;
 import com.sparrowwallet.drongo.silentpayments.SilentPaymentAddress;
 import com.sparrowwallet.drongo.uri.BitcoinURIParseException;
@@ -565,12 +566,19 @@ public class SendToManyDialog extends Dialog<List<Payment>> {
                     Optional<DnsPayment> optDnsPayment = resolver.resolve(AppServices.getProxy());
                     if(optDnsPayment.isPresent()) {
                         dnsPayment = optDnsPayment.get();
-                        if(dnsPayment.hasAddress()) {
-                            DnsPaymentCache.putDnsPayment(dnsPayment.bitcoinURI().getAddress(), dnsPayment);
-                        } else if(dnsPayment.hasSilentPaymentAddress()) {
-                            DnsPaymentCache.putDnsPayment(dnsPayment.bitcoinURI().getSilentPaymentAddress(), dnsPayment);
+                        if(dnsPayment.hasSilentPaymentAddress()) {
+                            throw new IllegalArgumentException(ScriptType.TAPROOT_NOT_ENABLED_MESSAGE);
                         }
-                        return getPayment(optDnsPayment.get(), label, value, sendMax);
+                        if(dnsPayment.hasAddress()) {
+                            Address resolved = dnsPayment.bitcoinURI().getAddress();
+                            try {
+                                resolved.requireSendable();
+                            } catch(InvalidAddressException e) {
+                                throw new IllegalArgumentException(e.getMessage(), e);
+                            }
+                            DnsPaymentCache.putDnsPayment(resolved, dnsPayment);
+                        }
+                        return getPayment(dnsPayment, label, value, sendMax);
                     } else {
                         throw new IllegalArgumentException("Payment to " + hrn + " could not be resolved.");
                     }
@@ -580,20 +588,30 @@ public class SendToManyDialog extends Dialog<List<Payment>> {
             }
 
             if(silentPaymentAddress != null) {
-                return new SilentPayment(silentPaymentAddress, label, value, sendMax);
-            } else {
-                return new Payment(address, label, value, sendMax);
+                throw new IllegalArgumentException(ScriptType.TAPROOT_NOT_ENABLED_MESSAGE);
             }
+            try {
+                address.requireSendable();
+            } catch(InvalidAddressException e) {
+                throw new IllegalArgumentException(e.getMessage(), e);
+            }
+            return new Payment(address, label, value, sendMax);
         }
 
         private static Payment getPayment(DnsPayment dnsPayment, String label, long value, boolean sendMax) {
-            if(dnsPayment.hasAddress()) {
-                return new Payment(dnsPayment.bitcoinURI().getAddress(), label, value, sendMax);
-            } else if(dnsPayment.hasSilentPaymentAddress()) {
-                return new SilentPayment(dnsPayment.bitcoinURI().getSilentPaymentAddress(), label, value, sendMax);
-            } else {
-                throw new IllegalArgumentException("Payment to " + dnsPayment + " has no associated address.");
+            if(dnsPayment.hasSilentPaymentAddress()) {
+                throw new IllegalArgumentException(ScriptType.TAPROOT_NOT_ENABLED_MESSAGE);
             }
+            if(dnsPayment.hasAddress()) {
+                Address resolved = dnsPayment.bitcoinURI().getAddress();
+                try {
+                    resolved.requireSendable();
+                } catch(InvalidAddressException e) {
+                    throw new IllegalArgumentException(e.getMessage(), e);
+                }
+                return new Payment(resolved, label, value, sendMax);
+            }
+            throw new IllegalArgumentException("Payment to " + dnsPayment + " has no associated address.");
         }
     }
 
@@ -608,12 +626,18 @@ public class SendToManyDialog extends Dialog<List<Payment>> {
             }
 
             try {
-                SilentPaymentAddress silentPaymentAddress = SilentPaymentAddress.from(value);
-                return new SendToAddress(silentPaymentAddress);
+                SilentPaymentAddress.from(value);
+                throw new IllegalArgumentException(ScriptType.TAPROOT_NOT_ENABLED_MESSAGE);
+            } catch(IllegalArgumentException e) {
+                if(ScriptType.TAPROOT_NOT_ENABLED_MESSAGE.equals(e.getMessage())) {
+                    throw e;
+                }
             } catch(Exception e) {
-                Address address = addressStringConverter.fromString(value);
-                return address == null ? null : new SendToAddress(address);
+                // not a silent payment address
             }
+
+            Address address = addressStringConverter.fromString(value);
+            return address == null ? null : new SendToAddress(address);
         }
 
         @Override
