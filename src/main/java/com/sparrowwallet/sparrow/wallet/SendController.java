@@ -1,7 +1,7 @@
 package com.sparrowwallet.sparrow.wallet;
 
 import com.google.common.eventbus.Subscribe;
-import com.sparrowwallet.drongo.BitcoinUnit;
+import com.sparrowwallet.drongo.CoinUnit;
 import com.sparrowwallet.drongo.KeyPurpose;
 import com.sparrowwallet.drongo.Network;
 import com.sparrowwallet.drongo.SecureString;
@@ -13,7 +13,7 @@ import com.sparrowwallet.drongo.policy.PolicyType;
 import com.sparrowwallet.drongo.protocol.*;
 import com.sparrowwallet.drongo.psbt.PSBT;
 import com.sparrowwallet.drongo.silentpayments.SilentPayment;
-import com.sparrowwallet.drongo.uri.BitcoinURI;
+import com.sparrowwallet.drongo.uri.CoinURI;
 import com.sparrowwallet.drongo.wallet.*;
 import com.sparrowwallet.sparrow.*;
 import com.sparrowwallet.sparrow.control.*;
@@ -113,10 +113,13 @@ public class SendController extends WalletFormController implements Initializabl
     private TextField fee;
 
     @FXML
-    private ComboBox<BitcoinUnit> feeAmountUnit;
+    private ComboBox<CoinUnit> feeAmountUnit;
 
     @FXML
     private FiatLabel fiatFeeAmount;
+
+    @FXML
+    private Label chainMinimumFee;
 
     @FXML
     private BlockTargetFeeRatesChart blockTargetFeeRatesChart;
@@ -370,8 +373,8 @@ public class SendController extends WalletFormController implements Initializabl
         fee.setTextFormatter(new CoinTextFormatter(Config.get().getUnitFormat()));
         fee.textProperty().addListener(feeListener);
 
-        BitcoinUnit unit = getBitcoinUnit(Config.get().getBitcoinUnit());
-        feeAmountUnit.getSelectionModel().select(BitcoinUnit.BTC.equals(unit) ? 0 : 1);
+        CoinUnit unit = getCoinUnit(Config.get().getCoinUnit());
+        feeAmountUnit.getSelectionModel().select(CoinUnit.GFCN.equals(unit) ? 0 : 1);
         feeAmountUnit.valueProperty().addListener((observable, oldValue, newValue) -> {
             Long value = getFeeValueSats(oldValue);
             if(value != null) {
@@ -419,6 +422,10 @@ public class SendController extends WalletFormController implements Initializabl
                 }
 
                 setFeeRate(feeRate);
+                long vsize = (long)Math.ceil(walletTransaction.getTransaction().getVirtualSize());
+                chainMinimumFee.setText(SettlementFee.chainMinimumSentence(vsize));
+            } else {
+                chainMinimumFee.setText(SettlementFee.chainMinimumSentence(0));
             }
 
             transactionDiagram.setPayjoinURI(walletTransaction == null ? null : getPayjoinURI(walletTransaction.getPayments()));
@@ -480,9 +487,9 @@ public class SendController extends WalletFormController implements Initializabl
         });
     }
 
-    public BitcoinUnit getBitcoinUnit(BitcoinUnit bitcoinUnit) {
-        BitcoinUnit unit = bitcoinUnit;
-        if(unit == null || unit.equals(BitcoinUnit.AUTO)) {
+    public CoinUnit getCoinUnit(CoinUnit coinUnit) {
+        CoinUnit unit = coinUnit;
+        if(unit == null || unit.equals(CoinUnit.AUTO)) {
             unit = getWalletForm().getWallet().getAutoUnit();
         }
         return unit;
@@ -789,15 +796,15 @@ public class SendController extends WalletFormController implements Initializabl
         return getFeeValueSats(feeAmountUnit.getSelectionModel().getSelectedItem());
     }
 
-    private Long getFeeValueSats(BitcoinUnit bitcoinUnit) {
-        return getFeeValueSats(Config.get().getUnitFormat(), bitcoinUnit);
+    private Long getFeeValueSats(CoinUnit coinUnit) {
+        return getFeeValueSats(Config.get().getUnitFormat(), coinUnit);
     }
 
-    private Long getFeeValueSats(UnitFormat unitFormat, BitcoinUnit bitcoinUnit) {
+    private Long getFeeValueSats(UnitFormat unitFormat, CoinUnit coinUnit) {
         if(fee.getText() != null && !fee.getText().isEmpty()) {
             UnitFormat format = unitFormat == null ? UnitFormat.DOT : unitFormat;
             double fieldValue = Double.parseDouble(fee.getText().replaceAll(Pattern.quote(format.getGroupingSeparator()), "").replaceAll(",", "."));
-            return bitcoinUnit.getSatsValue(fieldValue);
+            return coinUnit.getTokensValue(fieldValue);
         }
 
         return null;
@@ -892,7 +899,7 @@ public class SendController extends WalletFormController implements Initializabl
             minRate = Math.min(userFeeRate, minRate);
         }
         // Consensus floor is floor(vsize / 12) sats (~1/12 sat/vB). Paying more is valid.
-        return Math.max(minRate, Math.max(Transaction.DUST_RELAY_TX_FEE, 1.0 / 12.0));
+        return Math.max(minRate, Math.max(Transaction.DUST_RELAY_TX_FEE, 1.0 / SettlementFee.VSIZE_DIVISOR));
     }
 
     private Map<Date, Set<MempoolRateSize>> getMempoolHistogram() {
@@ -996,13 +1003,13 @@ public class SendController extends WalletFormController implements Initializabl
         return false;
     }
 
-    private BitcoinURI getPayjoinURI(List<Payment> payments) {
+    private CoinURI getPayjoinURI(List<Payment> payments) {
         if(getWalletForm().getWallet().getPolicyType() == PolicyType.SINGLE_SP || payments.stream().anyMatch(payment -> payment instanceof SilentPayment)) {
             return null;
         }
 
         for(Payment payment : payments) {
-            BitcoinURI payjoinURI = getPayjoinURI(payment.getAddress());
+            CoinURI payjoinURI = getPayjoinURI(payment.getAddress());
             if(payjoinURI != null) {
                 return payjoinURI;
             }
@@ -1011,7 +1018,7 @@ public class SendController extends WalletFormController implements Initializabl
         return null;
     }
 
-    private BitcoinURI getPayjoinURI(Address address) {
+    private CoinURI getPayjoinURI(Address address) {
         // Payjoin is not a spend on this chain.
         return null;
     }
@@ -1326,10 +1333,13 @@ public class SendController extends WalletFormController implements Initializabl
     }
 
     public void createTransaction(ActionEvent event) {
-        if(getWalletForm().getWallet().getScriptType() != null && getWalletForm().getWallet().getScriptType().needsQuantumWarning()) {
-            AppServices.showWarningDialog("secp cheap-out", com.sparrowwallet.drongo.protocol.SecpCheapOut.warnSend());
-        }
         WalletTransaction walletTransaction = walletTransactionProperty.get();
+        long vsize = (long)Math.ceil(walletTransaction.getTransaction().getVirtualSize());
+        long feeTokens = walletTransaction.getFee();
+        if(!SettlementFee.feeMeetsMinimum(feeTokens, vsize)) {
+            AppServices.showErrorDialog("Fee below chain minimum", SettlementFee.chainMinimumSentence(vsize));
+            return;
+        }
         if(log.isDebugEnabled()) {
             Map<WalletNode, List<String>> inputHashes = new LinkedHashMap<>();
             for(WalletNode node : walletTransaction.getSelectedUtxos().values()) {
@@ -1346,7 +1356,7 @@ public class SendController extends WalletFormController implements Initializabl
         addWalletTransactionNodes();
         walletForm.setCreatedWalletTransaction(walletTransaction);
         PSBT psbt = AppServices.createPSBT(walletTransaction);
-        BitcoinURI payjoinURI = getPayjoinURI(walletTransaction.getPayments());
+        CoinURI payjoinURI = getPayjoinURI(walletTransaction.getPayments());
         if(payjoinURI != null) {
             AppServices.addPayjoinURI(psbt, payjoinURI);
         }
@@ -1728,9 +1738,9 @@ public class SendController extends WalletFormController implements Initializabl
                 clear(null);
                 Platform.runLater(() -> {
                     setPayments(event.getPayments());
-                    if(event.getBitcoinURI() != null) {
+                    if(event.getCoinURI() != null) {
                         PaymentController controller = (PaymentController)paymentTabs.getTabs().get(0).getUserData();
-                        controller.setPayjoinURI(event.getBitcoinURI());
+                        controller.setPayjoinURI(event.getCoinURI());
                     }
                     updateTransaction(event.getPayments() == null || event.getPayments().stream().anyMatch(Payment::isSendMax));
                 });
@@ -1739,9 +1749,9 @@ public class SendController extends WalletFormController implements Initializabl
     }
 
     @Subscribe
-    public void bitcoinUnitChanged(BitcoinUnitChangedEvent event) {
-        BitcoinUnit unit = getBitcoinUnit(event.getBitcoinUnit());
-        feeAmountUnit.getSelectionModel().select(BitcoinUnit.BTC.equals(unit) ? 0 : 1);
+    public void coinUnitChanged(CoinUnitChangedEvent event) {
+        CoinUnit unit = getCoinUnit(event.getCoinUnit());
+        feeAmountUnit.getSelectionModel().select(CoinUnit.GFCN.equals(unit) ? 0 : 1);
     }
 
     @Subscribe

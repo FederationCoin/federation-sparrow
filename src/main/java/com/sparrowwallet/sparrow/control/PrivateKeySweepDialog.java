@@ -114,7 +114,7 @@ public class PrivateKeySweepDialog extends Dialog<Transaction> {
         Field keyScriptTypeField = new Field();
         keyScriptTypeField.setText("Script Type:");
         keyScriptType = new ComboBox<>();
-        keyScriptType.setItems(FXCollections.observableList(ScriptType.getAddressableScriptTypes(PolicyType.SINGLE_HD)));
+        keyScriptType.setItems(FXCollections.observableList(ScriptType.getAddressableScriptTypes(PolicyType.SINGLE_MLDSA87)));
         keyScriptTypeField.getInputs().add(keyScriptType);
 
         keyScriptType.setConverter(new StringConverter<ScriptType>() {
@@ -321,14 +321,14 @@ public class PrivateKeySweepDialog extends Dialog<Transaction> {
     private void setFromAddress() {
         DumpedPrivateKey privateKey = getPrivateKey();
         ScriptType scriptType = keyScriptType.getValue();
-        Address address = scriptType.getAddress(PolicyType.SINGLE_HD, privateKey.getKey());
+        Address address = scriptType.getAddress(PolicyType.SINGLE_MLDSA87, privateKey.getKey());
         keyAddress.setText(address.toString());
     }
 
     private void setScriptTypes(boolean isValidKey) {
         boolean compressed = !isValidKey || getPrivateKey().getKey().isCompressed();
-        if(compressed && !keyScriptType.getItems().equals(ScriptType.getAddressableScriptTypes(PolicyType.SINGLE_HD))) {
-            keyScriptType.getItems().addAll(ScriptType.getAddressableScriptTypes(PolicyType.SINGLE_HD).stream().filter(s -> !keyScriptType.getItems().contains(s)).collect(Collectors.toList()));
+        if(compressed && !keyScriptType.getItems().equals(ScriptType.getAddressableScriptTypes(PolicyType.SINGLE_MLDSA87))) {
+            keyScriptType.getItems().addAll(ScriptType.getAddressableScriptTypes(PolicyType.SINGLE_MLDSA87).stream().filter(s -> !keyScriptType.getItems().contains(s)).collect(Collectors.toList()));
         } else if(!compressed) {
             keyScriptType.getItems().setAll(ScriptType.P2PKH);
             keyScriptType.getSelectionModel().select(ScriptType.P2PKH);
@@ -380,7 +380,7 @@ public class PrivateKeySweepDialog extends Dialog<Transaction> {
         try {
             DumpedPrivateKey privateKey = getPrivateKey();
             ScriptType scriptType = keyScriptType.getValue();
-            Address fromAddress = scriptType.getAddress(PolicyType.SINGLE_HD, privateKey.getKey());
+            Address fromAddress = scriptType.getAddress(PolicyType.SINGLE_MLDSA87, privateKey.getKey());
             Payment payment = silentPaymentAddress != null ? new SilentPayment(silentPaymentAddress, null, 0, true)
                     : new Payment(getToAddress(), null, 0, true);
 
@@ -460,7 +460,7 @@ public class PrivateKeySweepDialog extends Dialog<Transaction> {
             //Sized for the opt-in, as Wallet does for its own inputs. A schnorr signature carrying a hash type is a
             //byte longer than one taking the default, so a dummy built without it under-measures the weight of the
             //transaction this dialog now signs, and the fee is taken off that measurement.
-            scriptType.addSpendingInput(PolicyType.SINGLE_HD, noFeeTransaction, txOutput,
+            scriptType.addSpendingInput(scriptType.isDilithium87() ? PolicyType.SINGLE_MLDSA87 : scriptType.isDilithium() ? PolicyType.SINGLE_MLDSA44 : PolicyType.SINGLE_SEGWIT, noFeeTransaction, txOutput,
                     pubKey, TransactionSignature.dummy(scriptType == P2TR ? TransactionSignature.Type.SCHNORR : TransactionSignature.Type.ECDSA,
                             SigHash.UNIFIED_ALL.value));
             total += txOutput.getValue();
@@ -470,7 +470,9 @@ public class PrivateKeySweepDialog extends Dialog<Transaction> {
         noFeeTransaction.addOutput(sweepOutput);
 
         double feeRate = feeRange.getFeeRate();
-        long fee = (long)Math.ceil(noFeeTransaction.getVirtualSize() * feeRate);
+        long vsize = (long)Math.ceil(noFeeTransaction.getVirtualSize());
+        long fee = (long)Math.ceil(vsize * feeRate);
+        fee = Math.max(fee, com.sparrowwallet.drongo.protocol.SettlementFee.minimumTokens(vsize));
         if(feeRate == AppServices.getMinimumRelayFeeRate() && feeRate > 0d) {
             fee++;
         }
@@ -515,7 +517,7 @@ public class PrivateKeySweepDialog extends Dialog<Transaction> {
                 psbtInput.setWitnessScript(txInput.getWitness().getWitnessScript());
             }
 
-            if(!psbtInput.sign(scriptType.getOutputKey(PolicyType.SINGLE_HD, privKey))) {
+            if(!psbtInput.sign(scriptType.getOutputKey(PolicyType.SINGLE_MLDSA87, privKey))) {
                 AppServices.showErrorDialog("Failed to sign", "Failed to sign for transaction output " + utxoOutput.getHash() + ":" + utxoOutput.getIndex());
                 return;
             }
@@ -523,7 +525,7 @@ public class PrivateKeySweepDialog extends Dialog<Transaction> {
             TransactionSignature signature = psbtInput.isTaproot() ? psbtInput.getTapKeyPathSignature() : psbtInput.getPartialSignature(pubKey);
 
             Transaction finalizeTransaction = new Transaction();
-            TransactionInput finalizedTxInput = scriptType.addSpendingInput(PolicyType.SINGLE_HD, finalizeTransaction, utxoOutput, pubKey, signature);
+            TransactionInput finalizedTxInput = scriptType.addSpendingInput(PolicyType.SINGLE_MLDSA87, finalizeTransaction, utxoOutput, pubKey, signature);
             psbtInput.setFinalScriptSig(finalizedTxInput.getScriptSig());
             psbtInput.setFinalScriptWitness(finalizedTxInput.getWitness());
         }
@@ -536,7 +538,7 @@ public class PrivateKeySweepDialog extends Dialog<Transaction> {
     }
 
     private Address computeSilentPaymentAddress(ECKey privKey, ScriptType scriptType, List<TransactionOutput> txOutputs, SilentPayment silentPayment) {
-        ECKey summedPrivateKey = scriptType.getOutputKey(PolicyType.SINGLE_HD, privKey);
+        ECKey summedPrivateKey = scriptType.getOutputKey(PolicyType.SINGLE_MLDSA87, privKey);
         if(scriptType == P2TR && summedPrivateKey.hasOddYCoord()) {
             summedPrivateKey = summedPrivateKey.negatePrivate();
         }

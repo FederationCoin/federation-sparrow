@@ -12,7 +12,7 @@ import com.sparrowwallet.drongo.protocol.ScriptType;
 import com.sparrowwallet.drongo.protocol.Transaction;
 import com.sparrowwallet.drongo.psbt.PSBT;
 import com.sparrowwallet.drongo.psbt.PSBTParseException;
-import com.sparrowwallet.drongo.uri.BitcoinURI;
+import com.sparrowwallet.drongo.uri.CoinURI;
 import com.sparrowwallet.drongo.wallet.Bip39MnemonicCode;
 import com.sparrowwallet.drongo.wallet.DeterministicSeed;
 import com.sparrowwallet.drongo.wallet.SeedQR;
@@ -319,7 +319,7 @@ public class QRScanDialog extends Dialog<QRScanDialog.Result> {
             } else {
                 PSBT psbt;
                 Transaction transaction;
-                BitcoinURI bitcoinURI;
+                CoinURI coinURI;
                 Address address;
                 ExtendedKey extendedKey;
                 DeterministicSeed seed;
@@ -332,8 +332,8 @@ public class QRScanDialog extends Dialog<QRScanDialog.Result> {
                 }
 
                 try {
-                    bitcoinURI = new BitcoinURI(qrtext);
-                    result = new Result(bitcoinURI);
+                    coinURI = new CoinURI(qrtext);
+                    result = new Result(coinURI);
                     return;
                 } catch(Exception e) {
                     //Ignore, not an BIP 21 URI
@@ -478,7 +478,7 @@ public class QRScanDialog extends Dialog<QRScanDialog.Result> {
                     CryptoAddress cryptoAddress = (CryptoAddress)ur.decodeFromRegistry();
                     Address address = getAddress(cryptoAddress);
                     if(address != null) {
-                        return new Result(BitcoinURI.fromAddress(address));
+                        return new Result(CoinURI.fromAddress(address));
                     } else {
                         return new Result(new URException("Unknown " + urRegistryType + " type of " + cryptoAddress.getType()));
                     }
@@ -515,7 +515,7 @@ public class QRScanDialog extends Dialog<QRScanDialog.Result> {
                     URAddress urAddress = (URAddress)ur.decodeFromRegistry();
                     Address address = getAddress(urAddress);
                     if(address != null) {
-                        return new Result(BitcoinURI.fromAddress(address));
+                        return new Result(CoinURI.fromAddress(address));
                     } else {
                         return new Result(new URException("Unknown " + urRegistryType + " type of " + urAddress.getType()));
                     }
@@ -817,7 +817,7 @@ public class QRScanDialog extends Dialog<QRScanDialog.Result> {
     public static class Result {
         public final Transaction transaction;
         public final PSBT psbt;
-        public final BitcoinURI uri;
+        public final CoinURI uri;
         public final ExtendedKey extendedKey;
         public final String extendedKeyName;
         public final OutputDescriptor outputDescriptor;
@@ -852,7 +852,7 @@ public class QRScanDialog extends Dialog<QRScanDialog.Result> {
             this.exception = null;
         }
 
-        public Result(BitcoinURI uri) {
+        public Result(CoinURI uri) {
             this.transaction = null;
             this.psbt = null;
             this.uri = uri;
@@ -868,7 +868,7 @@ public class QRScanDialog extends Dialog<QRScanDialog.Result> {
         public Result(Address address) {
             this.transaction = null;
             this.psbt = null;
-            this.uri = BitcoinURI.fromAddress(address);
+            this.uri = CoinURI.fromAddress(address);
             this.extendedKey = null;
             this.extendedKeyName = null;
             this.outputDescriptor = null;

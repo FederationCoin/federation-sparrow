@@ -417,7 +417,7 @@ public class EntryCell extends TreeTableCell<Entry, Entry> implements Confirmati
     private static boolean canSignMessage(WalletNode walletNode) {
         Wallet wallet = walletNode.getWallet();
         PolicyType policyType = wallet.getPolicyType();
-        return (policyType == PolicyType.SINGLE_HD || policyType == PolicyType.SINGLE_SP) && (!wallet.isBip47() || walletNode.getKeyPurpose() == KeyPurpose.RECEIVE);
+        return (policyType == PolicyType.SINGLE_MLDSA87 || policyType == PolicyType.SINGLE_SP) && (!wallet.isBip47() || walletNode.getKeyPurpose() == KeyPurpose.RECEIVE);
     }
 
     private static boolean containsWalletOutputs(TransactionEntry transactionEntry) {

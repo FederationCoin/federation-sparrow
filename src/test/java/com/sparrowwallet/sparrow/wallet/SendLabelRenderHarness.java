@@ -56,7 +56,7 @@ public class SendLabelRenderHarness {
         }
 
         wallet.setDefaultPolicy(Policy.getPolicy(policyType, scriptType, wallet.getKeystores(),
-                policyType == PolicyType.MULTI_HD ? 2 : null));
+                policyType == PolicyType.MULTI_MLDSA87 ? 2 : null));
         wallet.getNode(KeyPurpose.RECEIVE);
         return wallet;
     }
@@ -126,11 +126,11 @@ public class SendLabelRenderHarness {
                         new com.sparrowwallet.sparrow.ChainTip(Network.get().getBlake2bHeight() + 10, header));
 
                 render("no transaction yet", null);
-                render("software seed, signs here", wallet(PolicyType.SINGLE_HD, ScriptType.P2WPKH, one, -1));
-                render("one device, not marked", wallet(PolicyType.SINGLE_HD, ScriptType.P2WPKH, one, 0));
-                render("one device, marked", wallet(PolicyType.SINGLE_HD, ScriptType.P2WPKH, one, 1));
-                render("2 of 3, one signer marked", wallet(PolicyType.MULTI_HD, ScriptType.P2WSH, three, 1));
-                render("2 of 3, every signer marked", wallet(PolicyType.MULTI_HD, ScriptType.P2WSH, three, 3));
+                render("software seed, signs here", wallet(PolicyType.SINGLE_MLDSA87, ScriptType.P2WPKH, one, -1));
+                render("one device, not marked", wallet(PolicyType.SINGLE_MLDSA87, ScriptType.P2WPKH, one, 0));
+                render("one device, marked", wallet(PolicyType.SINGLE_MLDSA87, ScriptType.P2WPKH, one, 1));
+                render("2 of 3, one signer marked", wallet(PolicyType.MULTI_MLDSA87, ScriptType.P2WSH, three, 1));
+                render("2 of 3, every signer marked", wallet(PolicyType.MULTI_MLDSA87, ScriptType.P2WSH, three, 3));
                 render("wallet with no keystores", new Wallet());
             } catch(Throwable t) {
                 System.out.println("RENDER FAILED: " + t);

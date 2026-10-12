@@ -9,8 +9,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class WalletUtxosEntry extends Entry {
-    public static final int DUST_ATTACK_THRESHOLD_SATS = 1000;
-    public static final int DUST_ATTACK_THRESHOLD_SP_SATS = 5000;
+    public static final int DUST_ATTACK_THRESHOLD_TOKENS = 1000;
+    public static final int DUST_ATTACK_THRESHOLD_SP_TOKENS = 5000;
 
     public WalletUtxosEntry(Wallet wallet) {
         super(wallet, wallet.getName(), wallet.getWalletUtxos().entrySet().stream().map(entry -> new UtxoEntry(entry.getValue().getWallet(), entry.getKey(), HashIndexEntry.Type.OUTPUT, entry.getValue())).collect(Collectors.toList()));

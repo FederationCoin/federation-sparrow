@@ -32,7 +32,7 @@ public class SignedStateTest {
 
     private PSBT unsigned(SigHash sigHash) {
         ECKey key = ECKey.fromPrivate(Utils.hexToBytes(PRIVATE_KEY));
-        Script spk = ScriptType.P2WPKH.getOutputScript(PolicyType.SINGLE_HD, key);
+        Script spk = ScriptType.P2WPKH.getOutputScript(PolicyType.SINGLE_MLDSA87, key);
 
         Transaction transaction = new Transaction();
         transaction.setVersion(2);
@@ -56,7 +56,7 @@ public class SignedStateTest {
     public void a_partial_signature_counts() {
         PSBT psbt = unsigned(SigHash.ALL);
         Assertions.assertTrue(psbt.getPsbtInputs().get(0).sign(
-                ScriptType.P2WPKH.getOutputKey(PolicyType.SINGLE_HD, ECKey.fromPrivate(Utils.hexToBytes(PRIVATE_KEY)))));
+                ScriptType.P2WPKH.getOutputKey(PolicyType.SINGLE_MLDSA87, ECKey.fromPrivate(Utils.hexToBytes(PRIVATE_KEY)))));
 
         Assertions.assertFalse(HeadersController.nothingSigned(psbt));
     }

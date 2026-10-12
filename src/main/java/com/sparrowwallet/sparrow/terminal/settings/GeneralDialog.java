@@ -3,10 +3,10 @@ package com.sparrowwallet.sparrow.terminal.settings;
 import com.googlecode.lanterna.TerminalSize;
 import com.googlecode.lanterna.gui2.*;
 import com.googlecode.lanterna.gui2.dialogs.DialogWindow;
-import com.sparrowwallet.drongo.BitcoinUnit;
+import com.sparrowwallet.drongo.CoinUnit;
 import com.sparrowwallet.sparrow.EventManager;
 import com.sparrowwallet.sparrow.UnitFormat;
-import com.sparrowwallet.sparrow.event.BitcoinUnitChangedEvent;
+import com.sparrowwallet.sparrow.event.CoinUnitChangedEvent;
 import com.sparrowwallet.sparrow.event.FiatCurrencySelectedEvent;
 import com.sparrowwallet.sparrow.event.UnitFormatChangedEvent;
 import com.sparrowwallet.sparrow.io.Config;
@@ -21,7 +21,7 @@ import java.util.List;
 public class GeneralDialog extends DialogWindow {
     private static final Logger log = LoggerFactory.getLogger(GeneralDialog.class);
 
-    private final ComboBox<BitcoinUnit> bitcoinUnit;
+    private final ComboBox<CoinUnit> coinUnit;
     private final ComboBox<String> unitFormat;
 
     private final ComboBox<Currency> fiatCurrency;
@@ -49,8 +49,8 @@ public class GeneralDialog extends DialogWindow {
         mainPanel.setLayoutManager(new GridLayout(2).setHorizontalSpacing(5));
 
         mainPanel.addComponent(new Label("Bitcoin Unit"));
-        bitcoinUnit = new ComboBox<>(BitcoinUnit.values());
-        mainPanel.addComponent(bitcoinUnit);
+        coinUnit = new ComboBox<>(CoinUnit.values());
+        mainPanel.addComponent(coinUnit);
 
         mainPanel.addComponent(new Label("Unit Format"));
         unitFormat = new ComboBox<>("1,234.56", "1.235,56");
@@ -67,7 +67,7 @@ public class GeneralDialog extends DialogWindow {
         exchangeSource = new ComboBox<>(ExchangeSource.values());
         mainPanel.addComponent(exchangeSource);
 
-        bitcoinUnit.setSelectedItem(Config.get().getBitcoinUnit() == null ? BitcoinUnit.AUTO : Config.get().getBitcoinUnit());
+        coinUnit.setSelectedItem(Config.get().getCoinUnit() == null ? CoinUnit.AUTO : Config.get().getCoinUnit());
         unitFormat.setSelectedIndex(Config.get().getUnitFormat() == UnitFormat.COMMA ? 1 : 0);
 
         if(Config.get().getExchangeSource() == null) {
@@ -75,11 +75,11 @@ public class GeneralDialog extends DialogWindow {
         }
         exchangeSource.setSelectedItem(Config.get().getExchangeSource());
 
-        bitcoinUnit.addListener((int selectedIndex, int previousSelection, boolean changedByUserInteraction) -> {
-            BitcoinUnit newValue = bitcoinUnit.getSelectedItem();
-            Config.get().setBitcoinUnit(newValue);
+        coinUnit.addListener((int selectedIndex, int previousSelection, boolean changedByUserInteraction) -> {
+            CoinUnit newValue = coinUnit.getSelectedItem();
+            Config.get().setCoinUnit(newValue);
             Platform.runLater(() -> {
-                EventManager.get().post(new BitcoinUnitChangedEvent(newValue));
+                EventManager.get().post(new CoinUnitChangedEvent(newValue));
             });
         });
 

@@ -74,13 +74,14 @@ public class CoboVaultSinglesig implements KeystoreFileImport, WalletImport {
     @Override
     public Wallet importWallet(InputStream inputStream, String password) throws ImportException {
         //Use default of P2WPKH
-        Keystore keystore = getKeystore(PolicyType.SINGLE_HD, ScriptType.P2WPKH, inputStream, "");
+        PolicyType policyType = PolicyType.forScript(ScriptType.P2WPKH, false);
+        Keystore keystore = getKeystore(policyType, ScriptType.P2WPKH, inputStream, "");
 
         Wallet wallet = new Wallet();
-        wallet.setPolicyType(PolicyType.SINGLE_HD);
+        wallet.setPolicyType(policyType);
         wallet.setScriptType(ScriptType.P2WPKH);
         wallet.getKeystores().add(keystore);
-        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.SINGLE_HD, ScriptType.P2WPKH, wallet.getKeystores(), null));
+        wallet.setDefaultPolicy(Policy.getPolicy(policyType, ScriptType.P2WPKH, wallet.getKeystores(), null));
 
         try {
             wallet.checkWallet();

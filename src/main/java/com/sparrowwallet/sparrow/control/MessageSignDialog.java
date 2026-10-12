@@ -267,11 +267,9 @@ public class MessageSignDialog extends Dialog<ButtonBar.ButtonData> {
                 }
             });
 
-            formatGroup.selectedToggleProperty().addListener((_, _, newVal) -> {
-                if(wallet != null) {
-                    boolean canSignSelectedFormat = canSignAllFormats(wallet) || newVal == formatElectrum;
-                    signButton.setDisable(!isValidAddress() || !canSign || !canSignSelectedFormat);
-                }
+            formatGroup.selectedToggleProperty().addListener((_, _, _) -> {
+                signButton.setDisable(!isValidAddress() || !canSign);
+                updateFormatRow();
             });
         }
 
@@ -308,7 +306,46 @@ public class MessageSignDialog extends Dialog<ButtonBar.ButtonData> {
     }
 
     private void checkWalletSigning(Wallet wallet) {
-        if(wallet.getKeystores().size() != 1 || (wallet.getPolicyType() != PolicyType.SINGLE_HD && wallet.getPolicyType() != PolicyType.SINGLE_SP)) {
+        if(wallet.getPolicyType() == null || wallet.getKeystores().isEmpty()) {
+            throw new IllegalArgumentException("Cannot sign messages using this wallet type");
+        }
+        boolean allowed = wallet.getPolicyType().accept(new com.sparrowwallet.drongo.policy.PolicyVisitor<Boolean>() {
+            @Override
+            public Boolean visitSingleMldsa87() {
+                return true;
+            }
+
+            @Override
+            public Boolean visitSingleMldsa44() {
+                return true;
+            }
+
+            @Override
+            public Boolean visitSingleSegwit() {
+                return true;
+            }
+
+            @Override
+            public Boolean visitMultiMldsa87() {
+                return true;
+            }
+
+            @Override
+            public Boolean visitMultiMldsa44() {
+                return true;
+            }
+
+            @Override
+            public Boolean visitMultiSegwit() {
+                return true;
+            }
+
+            @Override
+            public Boolean visitSingleSp() {
+                return false;
+            }
+        });
+        if(!allowed) {
             throw new IllegalArgumentException("Cannot sign messages using this wallet type");
         }
     }
@@ -334,7 +371,10 @@ public class MessageSignDialog extends Dialog<ButtonBar.ButtonData> {
     private boolean isValidAddress() {
         try {
             Address address = getAddress();
-            return address.getScriptType().isAllowed(PolicyType.SINGLE_HD) || address.getScriptType() == ScriptType.P2SH;
+            ScriptType scriptType = address.getScriptType();
+            return scriptType.isOfferedForNewWallets() || scriptType == ScriptType.P2WPKH || scriptType == ScriptType.P2WSH
+                    || scriptType == ScriptType.MLDSA87_SINGLE || scriptType == ScriptType.MLDSA_SINGLE
+                    || scriptType == ScriptType.P2SH || scriptType == ScriptType.P2SH_P2WPKH;
         } catch (InvalidAddressException e) {
             return false;
         }
@@ -389,15 +429,8 @@ public class MessageSignDialog extends Dialog<ButtonBar.ButtonData> {
 
     private void signUnencryptedKeystore(Wallet decryptedWallet) {
         try {
-            Keystore keystore = decryptedWallet.getKeystores().getFirst();
-            String signatureText;
-            if(decryptedWallet.getScriptType() == ScriptType.MLDSA_SINGLE || decryptedWallet.getScriptType() == ScriptType.MLDSA_MULTI) {
-                com.sparrowwallet.drongo.crypto.MlDsa44.Keypair key = keystore.getMlDsaKeypair(walletNode.getIndex());
-                byte[] sig = com.sparrowwallet.drongo.crypto.MlDsa44.sign(key.secret(), message.getText().trim().getBytes(StandardCharsets.UTF_8));
-                signatureText = com.sparrowwallet.drongo.Utils.bytesToHex(sig);
-            } else {
-                throw new IllegalArgumentException("Message signing is ML-DSA-44 over a UTF-8 message only");
-            }
+            MessageSignStrategy strategy = MessageSignStrategy.forAddress(walletNode.getAddress());
+            String signatureText = strategy.sign(decryptedWallet, walletNode, message.getText().trim(), selectedFormat());
             signature.clear();
             signature.appendText(signatureText);
         } catch(Exception e) {
@@ -407,21 +440,33 @@ public class MessageSignDialog extends Dialog<ButtonBar.ButtonData> {
     }
 
     private void signDeviceKeystore(Wallet deviceWallet) {
-        AppServices.showErrorDialog("Hardware signing is not a spend on this chain", "Sign with this wallet's ML-DSA-44 seed.");
+        if(deviceWallet.getScriptType() != null && deviceWallet.getScriptType().isDilithium()) {
+            AppServices.showErrorDialog("Could not sign message", "This device cannot sign this format.");
+            return;
+        }
+        try {
+            Keystore keystore = deviceWallet.getKeystores().getFirst();
+            KeyDerivation keyDerivation = keystore.getKeyDerivation().extend(walletNode.getDerivation());
+            DeviceSignMessageDialog dialog = new DeviceSignMessageDialog(
+                    List.of(keystore.getKeyDerivation().getMasterFingerprint()),
+                    deviceWallet, message.getText().trim(), keyDerivation);
+            dialog.initOwner(getDialogPane().getScene().getWindow());
+            Optional<String> signed = dialog.showAndWait();
+            signed.ifPresent(sig -> {
+                signature.clear();
+                signature.appendText(sig);
+            });
+        } catch(Exception e) {
+            log.error("Could not sign message", e);
+            AppServices.showErrorDialog("Could not sign message", e.getMessage() == null ? "This device cannot sign this format." : e.getMessage());
+        }
     }
 
     private void verifyMessage() {
         try {
-            // ML-DSA-44 over a UTF-8 message only. Secp / BIP322 are not a spend on this chain.
-            boolean verified = false;
-            if(wallet != null && walletNode != null
-                    && (wallet.getScriptType() == ScriptType.MLDSA_SINGLE || wallet.getScriptType() == ScriptType.MLDSA_MULTI)
-                    && !signature.getText().trim().isEmpty()) {
-                com.sparrowwallet.drongo.crypto.MlDsa44.Keypair key = wallet.getKeystores().getFirst().getMlDsaKeypair(walletNode.getIndex());
-                byte[] sig = com.sparrowwallet.drongo.Utils.hexToBytes(signature.getText().trim());
-                verified = com.sparrowwallet.drongo.crypto.MlDsa44.verify(key.pubkey(), sig, message.getText().trim().getBytes(StandardCharsets.UTF_8));
-            }
-
+            Address provided = getAddress();
+            MessageSignStrategy strategy = MessageSignStrategy.forAddress(provided);
+            boolean verified = strategy.verify(provided, message.getText().trim(), signature.getText().trim(), wallet, walletNode, selectedFormat());
             if(verified) {
                 AppServices.showSuccessDialog("Verification Succeeded", "The signature verified against the message.");
             } else {
@@ -435,17 +480,39 @@ public class MessageSignDialog extends Dialog<ButtonBar.ButtonData> {
         }
     }
 
+    private MessageSignFormat selectedFormat() {
+        if(formatBip322.isSelected()) {
+            return MessageSignFormat.BIP322;
+        }
+        if(formatTrezor.isSelected()) {
+            return MessageSignFormat.BIP137;
+        }
+        return MessageSignFormat.ELECTRUM;
+    }
+
+    private void updateFormatRow() {
+        try {
+            Address provided = getAddress();
+            boolean show = MessageSignStrategy.forAddress(provided).showsFormatRow();
+            formatElectrum.getParent().setVisible(show);
+            formatElectrum.getParent().setManaged(show);
+        } catch(InvalidAddressException e) {
+            formatElectrum.getParent().setVisible(false);
+            formatElectrum.getParent().setManaged(false);
+        }
+    }
+
     private boolean verifyMessage(ECKey signedMessageKey) throws InvalidAddressException, SignatureException {
         Address providedAddress = getAddress();
         ScriptType scriptType = providedAddress.getScriptType();
         if(scriptType == ScriptType.P2SH) {
             scriptType = ScriptType.P2SH_P2WPKH;
         }
-        if(!ScriptType.getScriptTypesForPolicyType(PolicyType.SINGLE_HD).contains(scriptType)) {
+        if(!ScriptType.getScriptTypesForPolicyType(PolicyType.SINGLE_MLDSA87).contains(scriptType)) {
             throw new IllegalArgumentException("Only single signature P2PKH, P2SH-P2WPKH or P2WPKH addresses can verify messages.");
         }
 
-        Address signedMessageAddress = scriptType.getAddress(PolicyType.SINGLE_HD, signedMessageKey);
+        Address signedMessageAddress = scriptType.getAddress(PolicyType.SINGLE_MLDSA87, signedMessageKey);
         return providedAddress.equals(signedMessageAddress);
     }
 

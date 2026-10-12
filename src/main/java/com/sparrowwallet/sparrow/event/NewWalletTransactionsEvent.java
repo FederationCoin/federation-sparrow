@@ -1,6 +1,6 @@
 package com.sparrowwallet.sparrow.event;
 
-import com.sparrowwallet.drongo.BitcoinUnit;
+import com.sparrowwallet.drongo.CoinUnit;
 import com.sparrowwallet.drongo.wallet.BlockTransaction;
 import com.sparrowwallet.drongo.wallet.Wallet;
 import com.sparrowwallet.sparrow.UnitFormat;
@@ -58,16 +58,16 @@ public class NewWalletTransactionsEvent {
             format = UnitFormat.DOT;
         }
 
-        BitcoinUnit unit = Config.get().getBitcoinUnit();
-        if(unit == null || unit.equals(BitcoinUnit.AUTO)) {
-            unit = (value >= BitcoinUnit.getAutoThreshold() ? BitcoinUnit.BTC : BitcoinUnit.SATOSHIS);
+        CoinUnit unit = Config.get().getCoinUnit();
+        if(unit == null || unit.equals(CoinUnit.AUTO)) {
+            unit = (value >= CoinUnit.getAutoThreshold() ? CoinUnit.GFCN : CoinUnit.TOKENS);
         }
 
-        if(unit == BitcoinUnit.BTC) {
-            return format.formatBtcValue(value) + " GFCN";
+        if(unit == CoinUnit.GFCN) {
+            return format.formatCoinValue(value) + " GFCN";
         }
 
-        return format.formatSatsValue(value) + " tokens";
+        return format.formatTokensValue(value) + " tokens";
     }
 
     public List<BlockTransaction> getUnspentConfirmingWhirlpoolMixTransactions() {

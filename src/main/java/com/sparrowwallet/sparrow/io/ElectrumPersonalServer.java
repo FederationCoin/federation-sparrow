@@ -65,7 +65,7 @@ public class ElectrumPersonalServer implements WalletExport {
         writer.write(wallet.getFullName().replace(' ', '_') + " = ");
 
         ExtendedKey.Header xpubHeader = ExtendedKey.Header.fromScriptType(wallet.getScriptType(), false);
-        if(wallet.getPolicyType() == PolicyType.MULTI_HD) {
+        if(wallet.getPolicyType().isHomogeneousMultisig()) {
             writer.write(wallet.getDefaultPolicy().getNumSignaturesRequired() + " ");
         }
 

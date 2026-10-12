@@ -85,7 +85,7 @@ public class WalletLabels implements WalletImport, WalletExport {
                 labels.add(new TransactionLabel(blkTx.getHashAsString(), blkTx.getLabel(), origin,
                         txEntry.isConfirming() ? null : blkTx.getHeight(), blkTx.getDate(),
                         getFee(walletTransactionsEntry.getWallet(), blkTx), txEntry.getValue(),
-                        getFiatValue(blkTx.getDate(), Transaction.SATOSHIS_PER_BITCOIN, fiatRates)));
+                        getFiatValue(blkTx.getDate(), Transaction.TOKENS_PER_COIN, fiatRates)));
                 if(txEntry.isConfirming()) {
                     confirmingTxs.add(blkTx.getHash());
                 }
@@ -449,7 +449,7 @@ public class WalletLabels implements WalletImport, WalletExport {
             }
 
             if(dayRate != null) {
-                BigDecimal fiatValue = BigDecimal.valueOf(dayRate * value / Transaction.SATOSHIS_PER_BITCOIN);
+                BigDecimal fiatValue = BigDecimal.valueOf(dayRate * value / Transaction.TOKENS_PER_COIN);
                 return Map.of(fiatCurrency, fiatValue.setScale(fiatCurrency.getDefaultFractionDigits(), RoundingMode.HALF_UP));
             }
         }

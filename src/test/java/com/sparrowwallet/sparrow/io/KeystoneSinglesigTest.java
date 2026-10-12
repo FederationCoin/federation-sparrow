@@ -15,7 +15,7 @@ public class KeystoneSinglesigTest extends IoTest {
     @Test
     public void testImport() throws ImportException {
         KeystoneSinglesig keystoneSingleSig = new KeystoneSinglesig();
-        Keystore keystore = keystoneSingleSig.getKeystore(PolicyType.SINGLE_HD, ScriptType.P2WPKH, getInputStream("keystone-singlesig-keystore-1.txt"), null);
+        Keystore keystore = keystoneSingleSig.getKeystore(PolicyType.SINGLE_MLDSA87, ScriptType.P2WPKH, getInputStream("keystone-singlesig-keystore-1.txt"), null);
 
         Assertions.assertEquals("Keystone", keystore.getLabel());
         Assertions.assertEquals("m/84'/0'/0'", keystore.getKeyDerivation().getDerivationPath());
@@ -27,7 +27,7 @@ public class KeystoneSinglesigTest extends IoTest {
     @Test
     public void testIncorrectScriptType() throws ImportException {
         KeystoneSinglesig keystoneSingleSig = new KeystoneSinglesig();
-        Assertions.assertThrows(ImportException.class, () -> keystoneSingleSig.getKeystore(PolicyType.SINGLE_HD, ScriptType.P2SH_P2WPKH, getInputStream("keystone-singlesig-keystore-1.txt"), null));
+        Assertions.assertThrows(ImportException.class, () -> keystoneSingleSig.getKeystore(PolicyType.SINGLE_MLDSA87, ScriptType.P2SH_P2WPKH, getInputStream("keystone-singlesig-keystore-1.txt"), null));
     }
 
     @Test

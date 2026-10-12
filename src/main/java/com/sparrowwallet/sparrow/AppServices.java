@@ -28,7 +28,7 @@ import com.sparrowwallet.drongo.protocol.Transaction;
 import com.sparrowwallet.drongo.protocol.TransactionSignature;
 import com.sparrowwallet.drongo.psbt.PSBT;
 import com.sparrowwallet.drongo.psbt.PSBTInput;
-import com.sparrowwallet.drongo.uri.BitcoinURI;
+import com.sparrowwallet.drongo.uri.CoinURI;
 import com.sparrowwallet.sparrow.control.TrayManager;
 import com.sparrowwallet.sparrow.event.*;
 import com.sparrowwallet.sparrow.io.*;
@@ -162,7 +162,7 @@ public class AppServices {
 
     private static final List<URI> argUris = new ArrayList<>();
 
-    private static final Map<Sha256Hash, BitcoinURI> payjoinURIs = new HashMap<>();
+    private static final Map<Sha256Hash, CoinURI> payjoinURIs = new HashMap<>();
 
     private final ChangeListener<Boolean> onlineServicesListener = new ChangeListener<>() {
         @Override
@@ -1189,7 +1189,7 @@ public class AppServices {
             if(ScriptType.P2TR.isScriptType(walletScript)) {
                 //Only the output key authorises a key path spend, not the untweaked key it came from
                 keys.add(ScriptType.P2TR.getPublicKeyFromScript(walletScript));
-            } else if(wallet.getPolicyType() == PolicyType.MULTI_HD) {
+            } else if(wallet.getPolicyType() != null && wallet.getPolicyType().isHomogeneousMultisig()) {
                 keys.addAll(walletNode.getPubKeys());
             } else {
                 keys.add(walletNode.getPubKey());
@@ -1801,15 +1801,15 @@ public class AppServices {
         return devices == null ? new ArrayList<>() : devices;
     }
 
-    public static BitcoinURI getPayjoinURI(PSBT psbt) {
+    public static CoinURI getPayjoinURI(PSBT psbt) {
         return psbt == null ? null : payjoinURIs.get(psbt.getTransaction().calculateTxId(false));
     }
 
-    public static void addPayjoinURI(PSBT psbt, BitcoinURI bitcoinURI) {
-        if(bitcoinURI.getPayjoinUrl() == null || bitcoinURI.getAddress() == null) {
+    public static void addPayjoinURI(PSBT psbt, CoinURI coinURI) {
+        if(coinURI.getPayjoinUrl() == null || coinURI.getAddress() == null) {
             throw new IllegalArgumentException("Not a valid payjoin URI");
         }
-        payjoinURIs.put(psbt.getTransaction().calculateTxId(false), bitcoinURI);
+        payjoinURIs.put(psbt.getTransaction().calculateTxId(false), coinURI);
     }
 
     public static void clearPayjoinURI(PSBT psbt) {
@@ -1838,7 +1838,7 @@ public class AppServices {
 
     public boolean changePublicServer() {
         List<PolicyType> policyTypes = getOpenWallets().keySet().stream().map(Wallet::getPolicyType).filter(Objects::nonNull).collect(Collectors.toList());
-        return changePublicServer(policyTypes.isEmpty() ? List.of(PolicyType.SINGLE_HD) : policyTypes);
+        return changePublicServer(policyTypes.isEmpty() ? List.of(PolicyType.SINGLE_MLDSA87) : policyTypes);
     }
 
     private boolean changePublicServer(List<PolicyType> policyTypes) {
@@ -2048,7 +2048,7 @@ public class AppServices {
 
     private static void openBitcoinUri(URI uri) {
         try {
-            BitcoinURI bitcoinURI = new BitcoinURI(uri.toString());
+            CoinURI coinURI = new CoinURI(uri.toString());
             List<PolicyType> policyTypes = Arrays.asList(PolicyType.values());
             List<ScriptType> scriptTypes = Arrays.asList(ScriptType.ADDRESSABLE_TYPES);
             Wallet wallet = selectWallet(policyTypes, scriptTypes, true, false, "pay from", false);
@@ -2056,7 +2056,7 @@ public class AppServices {
             if(wallet != null) {
                 final Wallet sendingWallet = wallet;
                 EventManager.get().post(new SendActionEvent(sendingWallet, new ArrayList<>(sendingWallet.getSpendableUtxos().keySet()), true));
-                Platform.runLater(() -> EventManager.get().post(new SendPaymentsEvent(sendingWallet, List.of(bitcoinURI.toPayment()), bitcoinURI)));
+                Platform.runLater(() -> EventManager.get().post(new SendPaymentsEvent(sendingWallet, List.of(coinURI.toPayment()), coinURI)));
             }
         } catch(Exception e) {
             showErrorDialog("Not a valid bitcoin URI", e.getMessage());
@@ -2067,7 +2067,7 @@ public class AppServices {
         try {
             Auth47 auth47 = new Auth47(uri);
             List<ScriptType> scriptTypes = PaymentCode.SEGWIT_SCRIPT_TYPES;
-            Wallet wallet = selectWallet(List.of(PolicyType.SINGLE_HD), scriptTypes, false, true, auth47.getLoginMessage(), true);
+            Wallet wallet = selectWallet(List.of(PolicyType.SINGLE_MLDSA87), scriptTypes, false, true, auth47.getLoginMessage(), true);
 
             if(wallet != null) {
                 try {
@@ -2087,8 +2087,8 @@ public class AppServices {
     private static void openLnurlAuthUri(URI uri) {
         try {
             LnurlAuth lnurlAuth = new LnurlAuth(uri);
-            List<ScriptType> scriptTypes = ScriptType.getAddressableScriptTypes(PolicyType.SINGLE_HD);
-            Wallet wallet = selectWallet(List.of(PolicyType.SINGLE_HD), scriptTypes, true, true, lnurlAuth.getLoginMessage(), true);
+            List<ScriptType> scriptTypes = ScriptType.getAddressableScriptTypes(PolicyType.SINGLE_MLDSA87);
+            Wallet wallet = selectWallet(List.of(PolicyType.SINGLE_MLDSA87), scriptTypes, true, true, lnurlAuth.getLoginMessage(), true);
 
             if(wallet != null) {
                 if(wallet.isEncrypted()) {
@@ -2201,7 +2201,7 @@ public class AppServices {
 
     public static boolean isWhirlpoolCompatible(Wallet wallet) {
         return WHIRLPOOL_NETWORKS.contains(Network.get())
-                && wallet.getPolicyType() == PolicyType.SINGLE_HD
+                && wallet.getPolicyType() == PolicyType.SINGLE_MLDSA87
                 && wallet.getScriptType() != ScriptType.P2TR    //Taproot not yet supported
                 && wallet.getKeystores().size() == 1
                 && wallet.getKeystores().get(0).hasSeed()
@@ -2212,7 +2212,7 @@ public class AppServices {
 
     public static boolean isWhirlpoolPostmixCompatible(Wallet wallet) {
         return WHIRLPOOL_NETWORKS.contains(Network.get())
-                && wallet.getPolicyType() == PolicyType.SINGLE_HD
+                && wallet.getPolicyType() == PolicyType.SINGLE_MLDSA87
                 && wallet.getScriptType() != ScriptType.P2TR    //Taproot not yet supported
                 && wallet.getKeystores().size() == 1
                 && wallet.getKeystores().getFirst().getWalletModel() != WalletModel.BITBOX_02; //BitBox02 does not support high account numbers

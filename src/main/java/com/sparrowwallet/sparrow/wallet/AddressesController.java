@@ -89,8 +89,8 @@ public class AddressesController extends WalletFormController implements Initial
 
     @Subscribe
     public void unitFormatChanged(UnitFormatChangedEvent event) {
-        receiveTable.setUnitFormat(getWalletForm().getWallet(), event.getUnitFormat(), event.getBitcoinUnit());
-        changeTable.setUnitFormat(getWalletForm().getWallet(), event.getUnitFormat(), event.getBitcoinUnit());
+        receiveTable.setUnitFormat(getWalletForm().getWallet(), event.getUnitFormat(), event.getCoinUnit());
+        changeTable.setUnitFormat(getWalletForm().getWallet(), event.getUnitFormat(), event.getCoinUnit());
     }
 
     @Subscribe

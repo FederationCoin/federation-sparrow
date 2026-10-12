@@ -16,7 +16,7 @@ public class ColdcardSinglesigTest extends IoTest {
     public void testImport() throws ImportException {
         Network.set(Network.TESTNET);
         ColdcardSinglesig ccSingleSig = new ColdcardSinglesig();
-        Keystore keystore = ccSingleSig.getKeystore(PolicyType.SINGLE_HD, ScriptType.P2SH_P2WPKH, getInputStream("cc-singlesig-keystore-1.json"), null);
+        Keystore keystore = ccSingleSig.getKeystore(PolicyType.SINGLE_MLDSA87, ScriptType.P2SH_P2WPKH, getInputStream("cc-singlesig-keystore-1.json"), null);
 
         Assertions.assertEquals("Coldcard", keystore.getLabel());
         Assertions.assertEquals("m/49'/1'/123'", keystore.getKeyDerivation().getDerivationPath());
@@ -29,7 +29,7 @@ public class ColdcardSinglesigTest extends IoTest {
     public void testImportWitness() throws ImportException {
         Network.set(Network.TESTNET);
         ColdcardSinglesig ccSingleSig = new ColdcardSinglesig();
-        Keystore keystore = ccSingleSig.getKeystore(PolicyType.SINGLE_HD, ScriptType.P2WPKH, getInputStream("cc-singlesig-keystore-1.json"), null);
+        Keystore keystore = ccSingleSig.getKeystore(PolicyType.SINGLE_MLDSA87, ScriptType.P2WPKH, getInputStream("cc-singlesig-keystore-1.json"), null);
 
         Assertions.assertEquals("Coldcard", keystore.getLabel());
         Assertions.assertEquals("m/84'/1'/123'", keystore.getKeyDerivation().getDerivationPath());

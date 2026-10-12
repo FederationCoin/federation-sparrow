@@ -307,7 +307,7 @@ public class DevicePane extends TitledDescriptionPane {
             if(wallet.getScriptType() == null) {
                 if(wallet.getPolicyType() == null) {
                     List<PolicyAndScriptType> types = new ArrayList<>();
-                    for(PolicyType policyType : List.of(PolicyType.SINGLE_HD, PolicyType.SINGLE_SP)) {
+                    for(PolicyType policyType : List.of(PolicyType.SINGLE_MLDSA87, PolicyType.SINGLE_SP)) {
                         for(ScriptType scriptType : ScriptType.getAddressableScriptTypes(policyType)) {
                             types.add(new PolicyAndScriptType(policyType, scriptType));
                         }
@@ -844,7 +844,7 @@ public class DevicePane extends TitledDescriptionPane {
     private void importKeystore(List<ChildNumber> derivation, Keystore keystore) {
         if(wallet.getScriptType() == null) {
             ScriptType scriptType = Arrays.stream(ScriptType.ADDRESSABLE_TYPES).filter(type -> type.getDefaultDerivation().getFirst().equals(derivation.getFirst())).findFirst().orElse(ScriptType.P2PKH);
-            PolicyType policyType = wallet.getPolicyType() != null ? wallet.getPolicyType() : PolicyType.SINGLE_HD;
+            PolicyType policyType = wallet.getPolicyType() != null ? wallet.getPolicyType() : PolicyType.SINGLE_MLDSA87;
             wallet.setName(device.getModel().toDisplayString());
             wallet.setPolicyType(policyType);
             wallet.setScriptType(scriptType);
@@ -1001,7 +1001,7 @@ public class DevicePane extends TitledDescriptionPane {
 
         List<StandardAccount> discoveryAccounts = new ArrayList<>(Arrays.asList(StandardAccount.values()).subList(0, optRange.get() + 1));
         Map<Hwi.WalletType, String> derivationPaths = new LinkedHashMap<>();
-        List<ScriptType> scriptTypes = new ArrayList<>(ScriptType.getAddressableScriptTypes(PolicyType.SINGLE_HD));
+        List<ScriptType> scriptTypes = new ArrayList<>(ScriptType.getAddressableScriptTypes(PolicyType.SINGLE_MLDSA87));
         if(device.getModel() == WalletModel.BITBOX_02) {
             scriptTypes.remove(ScriptType.P2PKH);
         }
@@ -1018,7 +1018,7 @@ public class DevicePane extends TitledDescriptionPane {
             for(Map.Entry<Hwi.WalletType, ExtendedKey> entry : accountXpubs.entrySet()) {
                 try {
                     Wallet wallet = new Wallet(device.getModel().toDisplayString());
-                    wallet.setPolicyType(PolicyType.SINGLE_HD);
+                    wallet.setPolicyType(PolicyType.SINGLE_MLDSA87);
                     wallet.setScriptType(entry.getKey().scriptType());
                     Keystore keystore = new Keystore();
                     keystore.setLabel(device.getModel().toDisplayString());
@@ -1027,7 +1027,7 @@ public class DevicePane extends TitledDescriptionPane {
                     keystore.setKeyDerivation(new KeyDerivation(device.getFingerprint(), derivationPaths.get(entry.getKey())));
                     keystore.setExtendedPublicKey(entry.getValue());
                     wallet.getKeystores().add(keystore);
-                    wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.SINGLE_HD, entry.getKey().scriptType(), wallet.getKeystores(), 1));
+                    wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.SINGLE_MLDSA87, entry.getKey().scriptType(), wallet.getKeystores(), 1));
                     if(entry.getKey().standardAccount().equals(StandardAccount.ACCOUNT_0)) {
                         wallets.add(wallet);
                     } else {

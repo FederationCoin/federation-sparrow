@@ -50,20 +50,20 @@ public class UnifiedSigHashDecisionTest {
 
     private Wallet multisigWith(int threshold, KeystoreSource... sources) {
         Wallet wallet = new Wallet();
-        wallet.setPolicyType(PolicyType.MULTI_HD);
+        wallet.setPolicyType(PolicyType.MULTI_MLDSA87);
         wallet.setScriptType(ScriptType.P2WSH);
         for(KeystoreSource source : sources) {
             Keystore keystore = new Keystore();
             keystore.setSource(source);
             wallet.getKeystores().add(keystore);
         }
-        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_HD, ScriptType.P2WSH, wallet.getKeystores(), threshold));
+        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_MLDSA87, ScriptType.P2WSH, wallet.getKeystores(), threshold));
         return wallet;
     }
 
     private Wallet walletWith(KeystoreSource... sources) {
         Wallet wallet = new Wallet();
-        wallet.setPolicyType(PolicyType.SINGLE_HD);
+        wallet.setPolicyType(PolicyType.SINGLE_MLDSA87);
         wallet.setScriptType(ScriptType.P2WPKH);
         for(KeystoreSource source : sources) {
             Keystore keystore = new Keystore();

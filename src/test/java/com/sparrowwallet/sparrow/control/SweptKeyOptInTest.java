@@ -30,12 +30,12 @@ public class SweptKeyOptInTest {
 
         PSBTInput psbtInput = psbt.getPsbtInputs().getFirst();
         Assertions.assertEquals(SigHash.UNIFIED_ALL, psbtInput.getSigHash());
-        Assertions.assertTrue(psbtInput.sign(ScriptType.P2WPKH.getOutputKey(PolicyType.SINGLE_HD, privKey)));
+        Assertions.assertTrue(psbtInput.sign(ScriptType.P2WPKH.getOutputKey(PolicyType.SINGLE_MLDSA87, privKey)));
 
         //The swept key is the whole of what there is to vouch for, since it belongs to no wallet. Read through the
         //input itself rather than the wallet path, which has no wallet here to ask.
         java.util.List<com.sparrowwallet.drongo.protocol.TransactionSignature> verified =
-                psbtInput.getVerifiedSignatures(java.util.List.of(ScriptType.P2WPKH.getOutputKey(PolicyType.SINGLE_HD, privKey)));
+                psbtInput.getVerifiedSignatures(java.util.List.of(ScriptType.P2WPKH.getOutputKey(PolicyType.SINGLE_MLDSA87, privKey)));
         int[] counts = new int[] {(int)verified.stream().filter(s -> (s.sighashFlags & SigHash.UNIFIED_FLAG) != 0).count(),
                 verified.size(), psbtInput.getSignatures().size()};
         Assertions.assertEquals(1, counts[2], "the key signed");
@@ -55,17 +55,17 @@ public class SweptKeyOptInTest {
 
         PSBTInput psbtInput = psbt.getPsbtInputs().getFirst();
         Assertions.assertNull(psbtInput.getSigHash(), "nothing declared, which signs the default");
-        Assertions.assertTrue(psbtInput.sign(ScriptType.P2WPKH.getOutputKey(PolicyType.SINGLE_HD, privKey)));
+        Assertions.assertTrue(psbtInput.sign(ScriptType.P2WPKH.getOutputKey(PolicyType.SINGLE_MLDSA87, privKey)));
 
         Assertions.assertTrue(psbt.getPsbtInputs().getFirst()
-                .getVerifiedSignatures(java.util.List.of(ScriptType.P2WPKH.getOutputKey(PolicyType.SINGLE_HD, privKey)))
+                .getVerifiedSignatures(java.util.List.of(ScriptType.P2WPKH.getOutputKey(PolicyType.SINGLE_MLDSA87, privKey)))
                 .stream().noneMatch(s -> (s.sighashFlags & SigHash.UNIFIED_FLAG) != 0), "no signature opted in");
         psbt.verifySignatures();
     }
 
     /** Built through the dialog's own seam, so removing the opt-in from it fails these. */
     private PSBT sweepPsbtFor(ECKey privKey, boolean optedIn) {
-        Script spk = ScriptType.P2WPKH.getOutputScript(PolicyType.SINGLE_HD, privKey);
+        Script spk = ScriptType.P2WPKH.getOutputScript(PolicyType.SINGLE_MLDSA87, privKey);
 
         Transaction transaction = new Transaction();
         transaction.setVersion(2);

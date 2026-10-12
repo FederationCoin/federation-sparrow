@@ -1,6 +1,6 @@
 package com.sparrowwallet.sparrow.event;
 
-import com.sparrowwallet.drongo.BitcoinUnit;
+import com.sparrowwallet.drongo.CoinUnit;
 import com.sparrowwallet.sparrow.UnitFormat;
 import com.sparrowwallet.sparrow.io.Config;
 
@@ -15,7 +15,7 @@ public class UnitFormatChangedEvent {
         return unitFormat;
     }
 
-    public BitcoinUnit getBitcoinUnit() {
-        return Config.get().getBitcoinUnit();
+    public CoinUnit getCoinUnit() {
+        return Config.get().getCoinUnit();
     }
 }

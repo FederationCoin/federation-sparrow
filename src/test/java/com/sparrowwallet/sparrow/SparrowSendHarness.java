@@ -50,13 +50,13 @@ public class SparrowSendHarness {
 
     private static Wallet multisigWallet(boolean spare, ScriptType scriptType) throws Exception {
         Wallet wallet = new Wallet();
-        wallet.setPolicyType(PolicyType.MULTI_HD);
+        wallet.setPolicyType(PolicyType.MULTI_MLDSA87);
         wallet.setScriptType(scriptType);
         for(String mnemonic : spare ? new String[] {MNEMONIC, MNEMONIC2, MNEMONIC3} : new String[] {MNEMONIC, MNEMONIC2}) {
             DeterministicSeed seed = new DeterministicSeed(mnemonic, "", 0, DeterministicSeed.Type.BIP39);
-            wallet.getKeystores().add(Keystore.fromSeed(seed, PolicyType.MULTI_HD, wallet.getScriptType().getDefaultDerivation()));
+            wallet.getKeystores().add(Keystore.fromSeed(seed, PolicyType.MULTI_MLDSA87, wallet.getScriptType().getDefaultDerivation()));
         }
-        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_HD, scriptType, wallet.getKeystores(), 2));
+        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_MLDSA87, scriptType, wallet.getKeystores(), 2));
         wallet.getNode(KeyPurpose.RECEIVE);
         return wallet;
     }
@@ -79,12 +79,12 @@ public class SparrowSendHarness {
 
     private static Wallet wallet() throws Exception {
         Wallet wallet = new Wallet();
-        wallet.setPolicyType(PolicyType.SINGLE_HD);
+        wallet.setPolicyType(PolicyType.SINGLE_MLDSA87);
         wallet.setScriptType(ScriptType.P2WPKH);
         DeterministicSeed seed = new DeterministicSeed(MNEMONIC, "", 0, DeterministicSeed.Type.BIP39);
-        Keystore keystore = Keystore.fromSeed(seed, PolicyType.SINGLE_HD, wallet.getScriptType().getDefaultDerivation());
+        Keystore keystore = Keystore.fromSeed(seed, PolicyType.SINGLE_MLDSA87, wallet.getScriptType().getDefaultDerivation());
         wallet.getKeystores().add(keystore);
-        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.SINGLE_HD, ScriptType.P2WPKH, wallet.getKeystores(), 1));
+        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.SINGLE_MLDSA87, ScriptType.P2WPKH, wallet.getKeystores(), 1));
 
         //getNode() fills to the lookahead index, so the receive nodes exist and
         //getWalletOutputScripts() can match the spent output to a key

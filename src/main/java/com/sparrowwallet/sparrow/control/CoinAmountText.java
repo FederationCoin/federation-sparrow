@@ -1,6 +1,6 @@
 package com.sparrowwallet.sparrow.control;
 
-import com.sparrowwallet.drongo.BitcoinUnit;
+import com.sparrowwallet.drongo.CoinUnit;
 import com.sparrowwallet.sparrow.UnitFormat;
 
 /**
@@ -10,35 +10,35 @@ public final class CoinAmountText {
     private CoinAmountText() {
     }
 
-    public static BitcoinUnit resolve(long value, BitcoinUnit bitcoinUnit) {
-        BitcoinUnit unit = bitcoinUnit;
-        if(unit == null || unit.equals(BitcoinUnit.AUTO)) {
-            unit = (value >= BitcoinUnit.getAutoThreshold() ? BitcoinUnit.BTC : BitcoinUnit.SATOSHIS);
+    public static CoinUnit resolve(long value, CoinUnit coinUnit) {
+        CoinUnit unit = coinUnit;
+        if(unit == null || unit.equals(CoinUnit.AUTO)) {
+            unit = (value >= CoinUnit.getAutoThreshold() ? CoinUnit.GFCN : CoinUnit.TOKENS);
         }
         return unit;
     }
 
-    public static String btcLabel(UnitFormat format, long value) {
+    public static String coinLabel(UnitFormat format, long value) {
         UnitFormat f = format == null ? UnitFormat.DOT : format;
-        return f.formatBtcValue(value) + " GFCN";
+        return f.formatCoinValue(value) + " GFCN";
     }
 
     public static String tokensLabel(UnitFormat format, long value) {
         UnitFormat f = format == null ? UnitFormat.DOT : format;
-        return f.formatSatsValue(value) + " tokens";
+        return f.formatTokensValue(value) + " tokens";
     }
 
-    public static String display(long value, BitcoinUnit bitcoinUnit, UnitFormat format) {
-        if(resolve(value, bitcoinUnit).equals(BitcoinUnit.BTC)) {
-            return btcLabel(format, value);
+    public static String display(long value, CoinUnit coinUnit, UnitFormat format) {
+        if(resolve(value, coinUnit).equals(CoinUnit.GFCN)) {
+            return coinLabel(format, value);
         }
         return tokensLabel(format, value);
     }
 
-    public static String tooltip(long value, BitcoinUnit bitcoinUnit, UnitFormat format) {
-        if(resolve(value, bitcoinUnit).equals(BitcoinUnit.BTC)) {
+    public static String tooltip(long value, CoinUnit coinUnit, UnitFormat format) {
+        if(resolve(value, coinUnit).equals(CoinUnit.GFCN)) {
             return tokensLabel(format, value);
         }
-        return btcLabel(format, value);
+        return coinLabel(format, value);
     }
 }

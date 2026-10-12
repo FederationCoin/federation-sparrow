@@ -35,8 +35,8 @@
                         <ComboBox fx:id="policyType" prefWidth="180">
                             <items>
                                 <FXCollections fx:factory="observableArrayList">
-                                    <PolicyType fx:constant="SINGLE_HD" />
-                                    <PolicyType fx:constant="MULTI_HD" />
+                                    <PolicyType fx:constant="SINGLE_MLDSA87" />
+                                    <PolicyType fx:constant="MULTI_MLDSA87" />
                                 </FXCollections>
                             </items>
                         </ComboBox>

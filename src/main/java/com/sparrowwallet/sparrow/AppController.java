@@ -8,6 +8,7 @@ import com.sparrowwallet.drongo.crypto.*;
 import com.sparrowwallet.drongo.dns.DnsPayment;
 import com.sparrowwallet.drongo.dns.DnsPaymentCache;
 import com.sparrowwallet.drongo.policy.PolicyType;
+import com.sparrowwallet.drongo.policy.PolicyVisitor;
 import com.sparrowwallet.drongo.protocol.*;
 import com.sparrowwallet.drongo.psbt.*;
 import com.sparrowwallet.drongo.silentpayments.SilentPaymentAddress;
@@ -141,7 +142,7 @@ public class AppController implements Initializable {
     private MenuItem openTransactionIdItem;
 
     @FXML
-    private ToggleGroup bitcoinUnit;
+    private ToggleGroup coinUnit;
 
     @FXML
     private ToggleGroup unitFormat;
@@ -366,16 +367,16 @@ public class AppController implements Initializable {
 
         registerShortcuts();
 
-        BitcoinUnit unit = Config.get().getBitcoinUnit();
+        CoinUnit unit = Config.get().getCoinUnit();
         if(unit == null) {
-            unit = BitcoinUnit.AUTO;
-            Config.get().setBitcoinUnit(unit);
+            unit = CoinUnit.AUTO;
+            Config.get().setCoinUnit(unit);
         }
-        final BitcoinUnit selectedUnit = unit;
-        Optional<Toggle> selectedUnitToggle = bitcoinUnit.getToggles().stream().filter(toggle -> selectedUnit.equals(toggle.getUserData())).findFirst();
-        selectedUnitToggle.ifPresent(toggle -> bitcoinUnit.selectToggle(toggle));
-        Optional<Toggle> otherUnitToggle = bitcoinUnit.getToggles().stream().filter(toggle ->
-                (List.of(BitcoinUnit.AUTO, BitcoinUnit.SATOSHIS).contains(selectedUnit) && BitcoinUnit.BTC.equals(toggle.getUserData()) || (selectedUnit == BitcoinUnit.BTC && BitcoinUnit.SATOSHIS.equals(toggle.getUserData())))).findFirst();
+        final CoinUnit selectedUnit = unit;
+        Optional<Toggle> selectedUnitToggle = coinUnit.getToggles().stream().filter(toggle -> selectedUnit.equals(toggle.getUserData())).findFirst();
+        selectedUnitToggle.ifPresent(toggle -> coinUnit.selectToggle(toggle));
+        Optional<Toggle> otherUnitToggle = coinUnit.getToggles().stream().filter(toggle ->
+                (List.of(CoinUnit.AUTO, CoinUnit.TOKENS).contains(selectedUnit) && CoinUnit.GFCN.equals(toggle.getUserData()) || (selectedUnit == CoinUnit.GFCN && CoinUnit.TOKENS.equals(toggle.getUserData())))).findFirst();
         otherUnitToggle.ifPresent(toggle -> ((RadioMenuItem)toggle).setAccelerator(new KeyCodeCombination(KeyCode.B, KeyCombination.SHORTCUT_DOWN)));
 
         UnitFormat format = Config.get().getUnitFormat();
@@ -1028,11 +1029,11 @@ public class AppController implements Initializable {
         EventManager.get().post(new TransactionTabChangedEvent(tabs.getSelectionModel().getSelectedItem(), item.isSelected()));
     }
 
-    public void setBitcoinUnit(ActionEvent event) {
+    public void setCoinUnit(ActionEvent event) {
         MenuItem item = (MenuItem)event.getSource();
-        BitcoinUnit unit = (BitcoinUnit)item.getUserData();
-        Config.get().setBitcoinUnit(unit);
-        EventManager.get().post(new BitcoinUnitChangedEvent(unit));
+        CoinUnit unit = (CoinUnit)item.getUserData();
+        Config.get().setCoinUnit(unit);
+        EventManager.get().post(new CoinUnitChangedEvent(unit));
     }
 
     public void setUnitFormat(ActionEvent event) {
@@ -1145,7 +1146,7 @@ public class AppController implements Initializable {
             WalletNameDialog.NameAndBirthDate nameAndBirthDate = optNameAndBirthDate.get();
             File walletFile = Storage.getWalletFile(nameAndBirthDate.getName());
             Storage storage = new Storage(walletFile);
-            Wallet wallet = new Wallet(nameAndBirthDate.getName(), PolicyType.SINGLE_HD, ScriptType.MLDSA87_SINGLE, nameAndBirthDate.getBirthDate());
+            Wallet wallet = new Wallet(nameAndBirthDate.getName(), PolicyType.SINGLE_MLDSA87, ScriptType.MLDSA87_SINGLE, nameAndBirthDate.getBirthDate());
             addWalletTabOrWindow(storage, wallet, false);
         }
     }
@@ -1297,7 +1298,7 @@ public class AppController implements Initializable {
                 List<ExtendedKey> xpubs = wallet.getKeystores().stream().map(Keystore::getExtendedPublicKey).filter(Objects::nonNull).collect(Collectors.toList());
                 Optional<WalletForm> optNewWalletForm = walletTabData.stream()
                         .map(WalletTabData::getWalletForm)
-                        .filter(wf -> wf.getSettingsWalletForm() != null && wf.getSettingsWalletForm().getWallet().getPolicyType() == PolicyType.MULTI_HD &&
+                        .filter(wf -> wf.getSettingsWalletForm() != null && wf.getSettingsWalletForm().getWallet().getPolicyType() == PolicyType.MULTI_MLDSA87 &&
                                 wf.getSettingsWalletForm().getWallet().getScriptType() == wallet.getScriptType() && !wf.getSettingsWalletForm().getWallet().isValid() &&
                                 wf.getSettingsWalletForm().getWallet().getKeystores().stream().map(Keystore::getExtendedPublicKey).anyMatch(xpubs::contains)).findFirst();
                 if(optNewWalletForm.isPresent()) {
@@ -1508,7 +1509,42 @@ public class AppController implements Initializable {
         WalletForm selectedWalletForm = getSelectedWalletForm();
         if(selectedWalletForm != null) {
             Wallet wallet = selectedWalletForm.getWallet();
-            if(wallet.getPolicyType() == PolicyType.SINGLE_HD && wallet.getScriptType() != null && wallet.getScriptType().isOfferedForNewWallets()) {
+            if(wallet.getPolicyType() != null && wallet.getPolicyType().accept(new PolicyVisitor<Boolean>() {
+                @Override
+                public Boolean visitSingleMldsa87() {
+                    return scriptOffered(wallet);
+                }
+
+                @Override
+                public Boolean visitSingleMldsa44() {
+                    return scriptOffered(wallet);
+                }
+
+                @Override
+                public Boolean visitSingleSegwit() {
+                    return scriptOffered(wallet);
+                }
+
+                @Override
+                public Boolean visitMultiMldsa87() {
+                    return scriptOffered(wallet);
+                }
+
+                @Override
+                public Boolean visitMultiMldsa44() {
+                    return scriptOffered(wallet);
+                }
+
+                @Override
+                public Boolean visitMultiSegwit() {
+                    return scriptOffered(wallet);
+                }
+
+                @Override
+                public Boolean visitSingleSp() {
+                    return false;
+                }
+            })) {
                 messageSignDialog = new MessageSignDialog(wallet);
             }
         }
@@ -1520,6 +1556,10 @@ public class AppController implements Initializable {
 
         messageSignDialog.initOwner(rootStack.getScene().getWindow());
         messageSignDialog.showAndWait();
+    }
+
+    private static boolean scriptOffered(Wallet wallet) {
+        return wallet.getScriptType() != null && wallet.getScriptType().isOfferedForNewWallets();
     }
 
     public void sendToMany(ActionEvent event) {
@@ -1537,12 +1577,12 @@ public class AppController implements Initializable {
         WalletForm selectedWalletForm = getSelectedWalletForm();
         if(selectedWalletForm != null) {
             Wallet wallet = selectedWalletForm.getWallet();
-            BitcoinUnit bitcoinUnit = Config.get().getBitcoinUnit();
-            if(bitcoinUnit == BitcoinUnit.AUTO) {
-                bitcoinUnit = wallet.getAutoUnit();
+            CoinUnit coinUnit = Config.get().getCoinUnit();
+            if(coinUnit == CoinUnit.AUTO) {
+                coinUnit = wallet.getAutoUnit();
             }
 
-            sendToManyDialog = new SendToManyDialog(bitcoinUnit, Config.get().getUnitFormat(), initialPayments);
+            sendToManyDialog = new SendToManyDialog(coinUnit, Config.get().getUnitFormat(), initialPayments);
             sendToManyDialog.initModality(Modality.NONE);
             Optional<List<Payment>> optPayments = sendToManyDialog.showAndWait();
             sendToManyDialog = null;
@@ -2010,7 +2050,7 @@ public class AppController implements Initializable {
                 if(address != null && DnsPaymentCache.getDnsPayment(address) == null) {
                     try {
                         Optional<DnsPayment> optDnsPayment = psbtOutput.getDnsPayment();
-                        if(optDnsPayment.isPresent() && address.equals(optDnsPayment.get().bitcoinURI().getAddress())) {
+                        if(optDnsPayment.isPresent() && address.equals(optDnsPayment.get().coinURI().getAddress())) {
                             DnsPaymentCache.putDnsPayment(address, optDnsPayment.get());
                         }
                     } catch(Exception e) {
@@ -2026,7 +2066,7 @@ public class AppController implements Initializable {
                 if(silentPaymentAddress != null && DnsPaymentCache.getDnsPayment(silentPaymentAddress) == null) {
                     try {
                         Optional<DnsPayment> optDnsPayment = psbtOutput.getDnsPayment();
-                        if(optDnsPayment.isPresent() && silentPaymentAddress.equals(optDnsPayment.get().bitcoinURI().getSilentPaymentAddress())) {
+                        if(optDnsPayment.isPresent() && silentPaymentAddress.equals(optDnsPayment.get().coinURI().getSilentPaymentAddress())) {
                             DnsPaymentCache.putDnsPayment(silentPaymentAddress, optDnsPayment.get());
                         }
                     } catch(Exception e) {
@@ -2247,11 +2287,11 @@ public class AppController implements Initializable {
     private boolean confirmUnknownScriptOutputs(List<TransactionOutput> unknownScriptOutputs) {
         long totalAmount = unknownScriptOutputs.stream().mapToLong(TransactionOutput::getValue).sum();
         UnitFormat format = Config.get().getUnitFormat() == null ? UnitFormat.DOT : Config.get().getUnitFormat();
-        BitcoinUnit unit = Config.get().getBitcoinUnit();
-        if(unit == null || unit.equals(BitcoinUnit.AUTO)) {
-            unit = totalAmount >= BitcoinUnit.getAutoThreshold() ? BitcoinUnit.BTC : BitcoinUnit.SATOSHIS;
+        CoinUnit unit = Config.get().getCoinUnit();
+        if(unit == null || unit.equals(CoinUnit.AUTO)) {
+            unit = totalAmount >= CoinUnit.getAutoThreshold() ? CoinUnit.GFCN : CoinUnit.TOKENS;
         }
-        String amount = unit.equals(BitcoinUnit.BTC) ? format.formatBtcValue(totalAmount) + " GFCN" : format.formatSatsValue(totalAmount) + " tokens";
+        String amount = unit.equals(CoinUnit.GFCN) ? format.formatCoinValue(totalAmount) + " GFCN" : format.formatTokensValue(totalAmount) + " tokens";
         String outputDesc = unknownScriptOutputs.size() == 1 ? "an output" : unknownScriptOutputs.size() + " outputs";
         Optional<ButtonType> result = AppServices.showWarningDialog("Unknown Script Type",
                 "This transaction contains " + outputDesc + " of a non-standard or unrecognised script type, totalling " + amount + ".\n\n" +
@@ -3309,12 +3349,12 @@ public class AppController implements Initializable {
     }
 
     @Subscribe
-    public void bitcoinUnitChanged(BitcoinUnitChangedEvent event) {
-        Optional<Toggle> selectedToggle = bitcoinUnit.getToggles().stream().filter(toggle -> event.getBitcoinUnit().equals(toggle.getUserData())).findFirst();
-        selectedToggle.ifPresent(toggle -> bitcoinUnit.selectToggle(toggle));
-        bitcoinUnit.getToggles().forEach(toggle -> {
+    public void coinUnitChanged(CoinUnitChangedEvent event) {
+        Optional<Toggle> selectedToggle = coinUnit.getToggles().stream().filter(toggle -> event.getCoinUnit().equals(toggle.getUserData())).findFirst();
+        selectedToggle.ifPresent(toggle -> coinUnit.selectToggle(toggle));
+        coinUnit.getToggles().forEach(toggle -> {
             RadioMenuItem menuItem = (RadioMenuItem)toggle;
-            if(List.of(BitcoinUnit.AUTO, BitcoinUnit.SATOSHIS).contains(event.getBitcoinUnit()) && BitcoinUnit.BTC.equals(toggle.getUserData()) || (event.getBitcoinUnit() == BitcoinUnit.BTC && BitcoinUnit.SATOSHIS.equals(toggle.getUserData()))) {
+            if(List.of(CoinUnit.AUTO, CoinUnit.TOKENS).contains(event.getCoinUnit()) && CoinUnit.GFCN.equals(toggle.getUserData()) || (event.getCoinUnit() == CoinUnit.GFCN && CoinUnit.TOKENS.equals(toggle.getUserData()))) {
                 menuItem.setAccelerator(new KeyCodeCombination(KeyCode.B, KeyCombination.SHORTCUT_DOWN));
             } else {
                 menuItem.setAccelerator(null);

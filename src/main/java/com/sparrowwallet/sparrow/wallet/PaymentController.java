@@ -2,7 +2,7 @@ package com.sparrowwallet.sparrow.wallet;
 
 import com.google.common.base.Throwables;
 import com.google.common.eventbus.Subscribe;
-import com.sparrowwallet.drongo.BitcoinUnit;
+import com.sparrowwallet.drongo.CoinUnit;
 import com.sparrowwallet.drongo.KeyPurpose;
 import com.sparrowwallet.drongo.address.Address;
 import com.sparrowwallet.drongo.address.InvalidAddressException;
@@ -17,7 +17,7 @@ import com.sparrowwallet.drongo.protocol.Transaction;
 import com.sparrowwallet.drongo.protocol.TransactionOutput;
 import com.sparrowwallet.drongo.silentpayments.SilentPayment;
 import com.sparrowwallet.drongo.silentpayments.SilentPaymentAddress;
-import com.sparrowwallet.drongo.uri.BitcoinURI;
+import com.sparrowwallet.drongo.uri.CoinURI;
 import com.sparrowwallet.drongo.wallet.*;
 import com.sparrowwallet.sparrow.*;
 import com.sparrowwallet.sparrow.control.*;
@@ -92,7 +92,7 @@ public class PaymentController extends WalletFormController implements Initializ
     private TextField amount;
 
     @FXML
-    private ComboBox<BitcoinUnit> amountUnit;
+    private ComboBox<CoinUnit> amountUnit;
 
     @FXML
     private FiatLabel fiatAmount;
@@ -151,7 +151,7 @@ public class PaymentController extends WalletFormController implements Initializ
 
     private final ObjectProperty<DnsPayment> dnsPaymentProperty = new SimpleObjectProperty<>();
 
-    private final ObjectProperty<BitcoinURI> payjoinURIProperty = new SimpleObjectProperty<>();
+    private final ObjectProperty<CoinURI> payjoinURIProperty = new SimpleObjectProperty<>();
 
     private static final Wallet payNymWallet = new Wallet() {
         @Override
@@ -193,8 +193,8 @@ public class PaymentController extends WalletFormController implements Initializ
             }
 
             try {
-                BitcoinURI bitcoinURI = new BitcoinURI(newValue);
-                Platform.runLater(() -> updateFromURI(bitcoinURI));
+                CoinURI coinURI = new CoinURI(newValue);
+                Platform.runLater(() -> updateFromURI(coinURI));
                 return;
             } catch(Exception e) {
                 //ignore, not a URI
@@ -340,7 +340,7 @@ public class PaymentController extends WalletFormController implements Initializ
                 MenuItem copyMenuItem = new MenuItem("Copy URI");
                 copyMenuItem.setOnAction(e -> {
                     ClipboardContent content = new ClipboardContent();
-                    content.putString(dnsPayment.bitcoinURI().toURIString());
+                    content.putString(dnsPayment.coinURI().toURIString());
                     Clipboard.getSystemClipboard().setContent(content);
                 });
                 address.setContextMenu(address.getCustomContextMenu(List.of(copyMenuItem)));
@@ -378,7 +378,7 @@ public class PaymentController extends WalletFormController implements Initializ
         amount.setTextFormatter(new CoinTextFormatter(Config.get().getUnitFormat()));
         amount.textProperty().addListener(amountListener);
 
-        amountUnit.getSelectionModel().select(BitcoinUnit.BTC.equals(sendController.getBitcoinUnit(Config.get().getBitcoinUnit())) ? 0 : 1);
+        amountUnit.getSelectionModel().select(CoinUnit.GFCN.equals(sendController.getCoinUnit(Config.get().getCoinUnit())) ? 0 : 1);
         amountUnit.valueProperty().addListener((observable, oldValue, newValue) -> {
             Long value = getRecipientValueSats(oldValue);
             if(value != null) {
@@ -433,7 +433,7 @@ public class PaymentController extends WalletFormController implements Initializ
 
     public void setDnsPayment(DnsPayment dnsPayment) {
         if(dnsPayment.hasAddress()) {
-            Address resolved = dnsPayment.bitcoinURI().getAddress();
+            Address resolved = dnsPayment.coinURI().getAddress();
             if(resolved.getScriptType().isParkedOnThisChain()) {
                 AppServices.showWarningDialog("Taproot is not enabled", ScriptType.TAPROOT_NOT_ENABLED_MESSAGE);
                 return;
@@ -554,7 +554,7 @@ public class PaymentController extends WalletFormController implements Initializ
 
         DnsPayment dnsPayment = dnsPaymentProperty.get();
         if(dnsPayment != null && dnsPayment.hasAddress()) {
-            Address resolved = dnsPayment.bitcoinURI().getAddress();
+            Address resolved = dnsPayment.coinURI().getAddress();
             resolved.requireSendable();
             return resolved;
         }
@@ -563,9 +563,6 @@ public class PaymentController extends WalletFormController implements Initializ
         if(payNym == null) {
             Address parsed = Address.fromString(address.getText());
             parsed.requireSendable();
-            if(parsed.getScriptType().needsQuantumWarning()) {
-                AppServices.showWarningDialog("secp cheap-out", com.sparrowwallet.drongo.protocol.SecpCheapOut.warnSend());
-            }
             return parsed;
         }
 
@@ -615,15 +612,15 @@ public class PaymentController extends WalletFormController implements Initializ
         return getRecipientValueSats(amountUnit.getSelectionModel().getSelectedItem());
     }
 
-    private Long getRecipientValueSats(BitcoinUnit bitcoinUnit) {
-        return getRecipientValueSats(Config.get().getUnitFormat(), bitcoinUnit);
+    private Long getRecipientValueSats(CoinUnit coinUnit) {
+        return getRecipientValueSats(Config.get().getUnitFormat(), coinUnit);
     }
 
-    private Long getRecipientValueSats(UnitFormat unitFormat, BitcoinUnit bitcoinUnit) {
+    private Long getRecipientValueSats(UnitFormat unitFormat, CoinUnit coinUnit) {
         if(amount.getText() != null && !amount.getText().isEmpty()) {
             UnitFormat format = unitFormat == null ? UnitFormat.DOT : unitFormat;
             double fieldValue = Double.parseDouble(amount.getText().replaceAll(Pattern.quote(format.getGroupingSeparator()), "").replaceAll(",", "."));
-            return bitcoinUnit.getSatsValue(fieldValue);
+            return coinUnit.getTokensValue(fieldValue);
         }
 
         return null;
@@ -677,7 +674,7 @@ public class PaymentController extends WalletFormController implements Initializ
         field.textProperty().addListener(listener);
     }
 
-    public BitcoinURI getPayjoinURI() {
+    public CoinURI getPayjoinURI() {
         return payjoinURIProperty.get();
     }
 
@@ -812,26 +809,26 @@ public class PaymentController extends WalletFormController implements Initializ
         }
     }
 
-    private void updateFromURI(BitcoinURI bitcoinURI) {
-        if(bitcoinURI.getAddress() != null) {
-            address.setText(bitcoinURI.getAddress().toString());
-        } else if(bitcoinURI.getSilentPaymentAddress() != null) {
-            address.setText(bitcoinURI.getSilentPaymentAddress().getAddress());
+    private void updateFromURI(CoinURI coinURI) {
+        if(coinURI.getAddress() != null) {
+            address.setText(coinURI.getAddress().toString());
+        } else if(coinURI.getSilentPaymentAddress() != null) {
+            address.setText(coinURI.getSilentPaymentAddress().getAddress());
         }
-        if(bitcoinURI.getLabel() != null) {
-            label.setText(bitcoinURI.getLabel());
+        if(coinURI.getLabel() != null) {
+            label.setText(coinURI.getLabel());
         }
-        if(bitcoinURI.getAmount() != null) {
-            setRecipientValueSats(bitcoinURI.getAmount());
-            setFiatAmount(AppServices.getFiatCurrencyExchangeRate(), bitcoinURI.getAmount());
+        if(coinURI.getAmount() != null) {
+            setRecipientValueSats(coinURI.getAmount());
+            setFiatAmount(AppServices.getFiatCurrencyExchangeRate(), coinURI.getAmount());
         }
-        setPayjoinURI(bitcoinURI);
+        setPayjoinURI(coinURI);
         sendController.updateTransaction();
     }
 
-    public void setPayjoinURI(BitcoinURI bitcoinURI) {
-        if(bitcoinURI.getAddress() != null && bitcoinURI.getPayjoinUrl() != null) {
-            payjoinURIProperty.set(bitcoinURI);
+    public void setPayjoinURI(CoinURI coinURI) {
+        if(coinURI.getAddress() != null && coinURI.getPayjoinUrl() != null) {
+            payjoinURIProperty.set(coinURI);
         }
     }
 
@@ -915,9 +912,9 @@ public class PaymentController extends WalletFormController implements Initializ
     }
 
     @Subscribe
-    public void bitcoinUnitChanged(BitcoinUnitChangedEvent event) {
-        BitcoinUnit unit = sendController.getBitcoinUnit(event.getBitcoinUnit());
-        amountUnit.getSelectionModel().select(BitcoinUnit.BTC.equals(unit) ? 0 : 1);
+    public void coinUnitChanged(CoinUnitChangedEvent event) {
+        CoinUnit unit = sendController.getCoinUnit(event.getCoinUnit());
+        amountUnit.getSelectionModel().select(CoinUnit.GFCN.equals(unit) ? 0 : 1);
     }
 
     @Subscribe

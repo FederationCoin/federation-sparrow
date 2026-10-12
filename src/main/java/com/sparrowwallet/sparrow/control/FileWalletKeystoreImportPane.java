@@ -52,14 +52,14 @@ public class FileWalletKeystoreImportPane extends FileImportPane {
         this.password = password;
 
         List<PolicyAndScriptType> types = new ArrayList<>();
-        for(PolicyType policyType : List.of(PolicyType.SINGLE_HD, PolicyType.SINGLE_SP)) {
+        for(PolicyType policyType : List.of(PolicyType.SINGLE_MLDSA87, PolicyType.SINGLE_SP)) {
             for(ScriptType scriptType : ScriptType.getAddressableScriptTypes(policyType)) {
                 types.add(new PolicyAndScriptType(policyType, scriptType));
             }
         }
 
         if(wallets != null && !wallets.isEmpty()) {
-            wallets.stream().filter(w -> w.getPolicyType() == null).forEach(w -> w.setPolicyType(PolicyType.SINGLE_HD));
+            wallets.stream().filter(w -> w.getPolicyType() == null).forEach(w -> w.setPolicyType(PolicyType.SINGLE_MLDSA87));
             List<PolicyAndScriptType> walletTypes = wallets.stream().map(w -> new PolicyAndScriptType(w.getPolicyType(), w.getScriptType())).toList();
             types.retainAll(walletTypes);
             if(types.isEmpty()) {
@@ -128,7 +128,7 @@ public class FileWalletKeystoreImportPane extends FileImportPane {
         HBox fieldBox = new HBox(5);
         fieldBox.setAlignment(Pos.CENTER_RIGHT);
         ComboBox<PolicyAndScriptType> comboBox = new ComboBox<>(FXCollections.observableArrayList(types));
-        PolicyAndScriptType defaultType = new PolicyAndScriptType(PolicyType.SINGLE_HD, ScriptType.P2WPKH);
+        PolicyAndScriptType defaultType = new PolicyAndScriptType(PolicyType.SINGLE_MLDSA87, ScriptType.P2WPKH);
         if(types.contains(defaultType)) {
             comboBox.setValue(defaultType);
         }

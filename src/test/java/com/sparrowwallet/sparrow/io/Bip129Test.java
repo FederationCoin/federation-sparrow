@@ -14,7 +14,7 @@ public class Bip129Test extends IoTest {
         Bip129 bip129 = new Bip129();
         Wallet wallet = bip129.importWallet(getInputStream("bsms/multisig-1.bsms"), null);
         Assertions.assertTrue(wallet.isValid());
-        Assertions.assertEquals(PolicyType.MULTI_HD, wallet.getPolicyType());
+        Assertions.assertEquals(PolicyType.MULTI_SEGWIT, wallet.getPolicyType());
         Assertions.assertEquals(ScriptType.P2WSH, wallet.getScriptType());
         Assertions.assertEquals(2, wallet.getDefaultPolicy().getNumSignaturesRequired());
         Assertions.assertEquals(2, wallet.getKeystores().size());

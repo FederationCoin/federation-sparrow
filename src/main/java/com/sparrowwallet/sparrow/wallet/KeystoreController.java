@@ -384,7 +384,7 @@ public class KeystoreController extends WalletFormController implements Initiali
     private void updateType(boolean showExport) {
         type.setText(getTypeLabel(keystore));
         type.setGraphic(getTypeIcon(keystore));
-        exportButton.setVisible(showExport && getWalletForm().getWallet().getPolicyType() == PolicyType.MULTI_HD);
+        exportButton.setVisible(showExport && getWalletForm().getWallet().getPolicyType() == PolicyType.MULTI_MLDSA87);
         viewSeedButton.setVisible(keystore.getSource() == KeystoreSource.SW_SEED && keystore.hasSeed());
         viewKeyButton.setVisible(keystore.getSource() == KeystoreSource.SW_SEED && keystore.hasMasterPrivateExtendedKey());
         cardServiceButtons.setVisible(keystore.getWalletModel().isCard());
@@ -807,7 +807,7 @@ public class KeystoreController extends WalletFormController implements Initiali
             if(event.getType().equals(SettingsChangedEvent.Type.KEYSTORE_LABEL) || event.getType().equals(SettingsChangedEvent.Type.KEYSTORE_FINGERPRINT) ||
                     event.getType().equals(SettingsChangedEvent.Type.KEYSTORE_DERIVATION) || event.getType().equals(SettingsChangedEvent.Type.KEYSTORE_XPUB)) {
                 if(keystore.getSource() == KeystoreSource.SW_WATCH) {
-                    exportButton.setVisible(keystore.isValid() && getWalletForm().getWallet().getPolicyType() == PolicyType.MULTI_HD);
+                    exportButton.setVisible(keystore.isValid() && getWalletForm().getWallet().getPolicyType() == PolicyType.MULTI_MLDSA87);
                 }
             }
         }

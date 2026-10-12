@@ -629,13 +629,13 @@ public class UnifiedSigHashPolicyTest {
                 "vault cruise pistol trigger pilot scan hidden major fringe course fiber quiz"};
 
         Wallet wallet = new Wallet();
-        wallet.setPolicyType(PolicyType.MULTI_HD);
+        wallet.setPolicyType(PolicyType.MULTI_MLDSA87);
         wallet.setScriptType(ScriptType.P2WSH);
         for(String mnemonic : mnemonics) {
             DeterministicSeed seed = new DeterministicSeed(mnemonic, "", 0, DeterministicSeed.Type.BIP39);
-            wallet.getKeystores().add(Keystore.fromSeed(seed, PolicyType.MULTI_HD, ScriptType.P2WSH.getDefaultDerivation()));
+            wallet.getKeystores().add(Keystore.fromSeed(seed, PolicyType.MULTI_MLDSA87, ScriptType.P2WSH.getDefaultDerivation()));
         }
-        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_HD, ScriptType.P2WSH, wallet.getKeystores(), 2));
+        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_MLDSA87, ScriptType.P2WSH, wallet.getKeystores(), 2));
         wallet.getNode(KeyPurpose.RECEIVE);
 
         WalletNode receiveNode = wallet.getNode(KeyPurpose.RECEIVE).getChildren().iterator().next();
@@ -691,13 +691,13 @@ public class UnifiedSigHashPolicyTest {
                 "vault cruise pistol trigger pilot scan hidden major fringe course fiber quiz"};
 
         Wallet wallet = new Wallet();
-        wallet.setPolicyType(PolicyType.MULTI_HD);
+        wallet.setPolicyType(PolicyType.MULTI_MLDSA87);
         wallet.setScriptType(ScriptType.P2WSH);
         for(String mnemonic : mnemonics) {
             DeterministicSeed seed = new DeterministicSeed(mnemonic, "", 0, DeterministicSeed.Type.BIP39);
-            wallet.getKeystores().add(Keystore.fromSeed(seed, PolicyType.MULTI_HD, ScriptType.P2WSH.getDefaultDerivation()));
+            wallet.getKeystores().add(Keystore.fromSeed(seed, PolicyType.MULTI_MLDSA87, ScriptType.P2WSH.getDefaultDerivation()));
         }
-        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_HD, ScriptType.P2WSH, wallet.getKeystores(), 2));
+        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_MLDSA87, ScriptType.P2WSH, wallet.getKeystores(), 2));
         wallet.getNode(KeyPurpose.RECEIVE);
 
         //The third signer contributes its key to the script but cannot sign, which is the lagging cosigner
@@ -806,10 +806,10 @@ public class UnifiedSigHashPolicyTest {
         DeterministicSeed seed = new DeterministicSeed(
                 "absent essay fox snake vast pumpkin height crouch silent bulb excuse razor", "", 0, DeterministicSeed.Type.BIP39);
         Wallet wallet = new Wallet();
-        wallet.setPolicyType(PolicyType.SINGLE_HD);
+        wallet.setPolicyType(PolicyType.SINGLE_MLDSA87);
         wallet.setScriptType(ScriptType.P2WPKH);
-        wallet.getKeystores().add(Keystore.fromSeed(seed, PolicyType.SINGLE_HD, ScriptType.P2WPKH.getDefaultDerivation()));
-        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.SINGLE_HD, ScriptType.P2WPKH, wallet.getKeystores(), 1));
+        wallet.getKeystores().add(Keystore.fromSeed(seed, PolicyType.SINGLE_MLDSA87, ScriptType.P2WPKH.getDefaultDerivation()));
+        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.SINGLE_MLDSA87, ScriptType.P2WPKH, wallet.getKeystores(), 1));
         wallet.getNode(KeyPurpose.RECEIVE);
 
         WalletNode receiveNode = wallet.getNode(KeyPurpose.RECEIVE).getChildren().iterator().next();
@@ -1010,11 +1010,11 @@ public class UnifiedSigHashPolicyTest {
     public void testADeclarationTheSignerIgnoredIsNotReportedAsProtection() throws Exception {
         String mnemonic = "absent essay fox snake vast pumpkin height crouch silent bulb excuse razor";
         Wallet wallet = new Wallet();
-        wallet.setPolicyType(PolicyType.SINGLE_HD);
+        wallet.setPolicyType(PolicyType.SINGLE_MLDSA87);
         wallet.setScriptType(ScriptType.P2WPKH);
         DeterministicSeed seed = new DeterministicSeed(mnemonic, "", 0, DeterministicSeed.Type.BIP39);
-        wallet.getKeystores().add(Keystore.fromSeed(seed, PolicyType.SINGLE_HD, ScriptType.P2WPKH.getDefaultDerivation()));
-        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.SINGLE_HD, ScriptType.P2WPKH, wallet.getKeystores(), 1));
+        wallet.getKeystores().add(Keystore.fromSeed(seed, PolicyType.SINGLE_MLDSA87, ScriptType.P2WPKH.getDefaultDerivation()));
+        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.SINGLE_MLDSA87, ScriptType.P2WPKH, wallet.getKeystores(), 1));
         wallet.getNode(KeyPurpose.RECEIVE);
 
         WalletNode receiveNode = wallet.getNode(KeyPurpose.RECEIVE).getChildren().iterator().next();
@@ -1048,13 +1048,13 @@ public class UnifiedSigHashPolicyTest {
                 "sample vibrant sound quantum ripple hidden pluck raven mirror ocean fabric noodle"};
 
         Wallet wallet = new Wallet();
-        wallet.setPolicyType(PolicyType.MULTI_HD);
+        wallet.setPolicyType(PolicyType.MULTI_MLDSA87);
         wallet.setScriptType(ScriptType.P2WSH);
         for(String mnemonic : mnemonics) {
             DeterministicSeed seed = new DeterministicSeed(mnemonic, "", 0, DeterministicSeed.Type.BIP39);
-            wallet.getKeystores().add(Keystore.fromSeed(seed, PolicyType.MULTI_HD, ScriptType.P2WSH.getDefaultDerivation()));
+            wallet.getKeystores().add(Keystore.fromSeed(seed, PolicyType.MULTI_MLDSA87, ScriptType.P2WSH.getDefaultDerivation()));
         }
-        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_HD, ScriptType.P2WSH, wallet.getKeystores(), 2));
+        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_MLDSA87, ScriptType.P2WSH, wallet.getKeystores(), 2));
         wallet.getNode(KeyPurpose.RECEIVE);
 
         WalletNode receiveNode = wallet.getNode(KeyPurpose.RECEIVE).getChildren().iterator().next();
@@ -1132,13 +1132,13 @@ public class UnifiedSigHashPolicyTest {
                 "sample vibrant sound quantum ripple hidden pluck raven mirror ocean fabric noodle"};
 
         Wallet wallet = new Wallet();
-        wallet.setPolicyType(PolicyType.MULTI_HD);
+        wallet.setPolicyType(PolicyType.MULTI_MLDSA87);
         wallet.setScriptType(ScriptType.P2WSH);
         for(String mnemonic : mnemonics) {
             DeterministicSeed seed = new DeterministicSeed(mnemonic, "", 0, DeterministicSeed.Type.BIP39);
-            wallet.getKeystores().add(Keystore.fromSeed(seed, PolicyType.MULTI_HD, ScriptType.P2WSH.getDefaultDerivation()));
+            wallet.getKeystores().add(Keystore.fromSeed(seed, PolicyType.MULTI_MLDSA87, ScriptType.P2WSH.getDefaultDerivation()));
         }
-        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_HD, ScriptType.P2WSH, wallet.getKeystores(), 2));
+        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_MLDSA87, ScriptType.P2WSH, wallet.getKeystores(), 2));
         wallet.getNode(KeyPurpose.RECEIVE);
 
         WalletNode receiveNode = wallet.getNode(KeyPurpose.RECEIVE).getChildren().iterator().next();
@@ -1182,20 +1182,20 @@ public class UnifiedSigHashPolicyTest {
      */
     private Wallet multisigWith(int threshold, KeystoreSource... sources) {
         Wallet wallet = new Wallet();
-        wallet.setPolicyType(PolicyType.MULTI_HD);
+        wallet.setPolicyType(PolicyType.MULTI_MLDSA87);
         wallet.setScriptType(ScriptType.P2WSH);
         for(KeystoreSource source : sources) {
             Keystore keystore = new Keystore();
             keystore.setSource(source);
             wallet.getKeystores().add(keystore);
         }
-        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_HD, ScriptType.P2WSH, wallet.getKeystores(), threshold));
+        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_MLDSA87, ScriptType.P2WSH, wallet.getKeystores(), threshold));
         return wallet;
     }
 
     private Wallet walletWith(KeystoreSource... sources) {
         Wallet wallet = new Wallet();
-        wallet.setPolicyType(PolicyType.SINGLE_HD);
+        wallet.setPolicyType(PolicyType.SINGLE_MLDSA87);
         wallet.setScriptType(ScriptType.P2WPKH);
         for(KeystoreSource source : sources) {
             Keystore keystore = new Keystore();
@@ -1321,7 +1321,7 @@ public class UnifiedSigHashPolicyTest {
 
     private PSBT twoInputPsbt() {
         ECKey key = ECKey.fromPrivate(Utils.hexToBytes("11".repeat(32)));
-        Script spk = ScriptType.P2WPKH.getOutputScript(PolicyType.SINGLE_HD, key);
+        Script spk = ScriptType.P2WPKH.getOutputScript(PolicyType.SINGLE_MLDSA87, key);
 
         Transaction transaction = new Transaction();
         transaction.setVersion(2);
