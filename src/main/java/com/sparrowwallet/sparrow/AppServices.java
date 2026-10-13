@@ -1720,7 +1720,7 @@ public class AppServices {
     public static Double getMinimumFeeRate() {
         Optional<Double> optMinFeeRate = getTargetBlockFeeRates().values().stream().min(Double::compareTo);
         Double minRate = optMinFeeRate.orElse(getFallbackFeeRate());
-        return Math.max(minRate, Transaction.DUST_RELAY_TX_FEE);
+        return Math.max(minRate, Math.max(Transaction.DUST_RELAY_TX_FEE, com.sparrowwallet.drongo.protocol.SettlementFee.minimumRateTokensPerVb()));
     }
 
     public static List<Double> getLongFeeRatesRange() {
@@ -1842,13 +1842,6 @@ public class AppServices {
     }
 
     private boolean changePublicServer(List<PolicyType> policyTypes) {
-        Config config = Config.get();
-        List<Server> otherServers = PublicElectrumServer.getServers().stream().filter(pes -> pes.supportsAllPolicyTypes(policyTypes))
-                .map(PublicElectrumServer::getServer).filter(server -> !server.equals(config.getPublicElectrumServer())).collect(Collectors.toList());
-        if(!otherServers.isEmpty()) {
-            config.setPublicElectrumServer(otherServers.get(ThreadLocalRandom.current().nextInt(otherServers.size())));
-            return true;
-        }
         return false;
     }
 

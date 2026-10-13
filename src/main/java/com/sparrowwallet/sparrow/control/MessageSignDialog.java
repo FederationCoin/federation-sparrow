@@ -254,15 +254,12 @@ public class MessageSignDialog extends Dialog<ButtonBar.ButtonData> {
                 if(valid) {
                     try {
                         Address address = getAddress();
-                        setFormatFromScriptType(address.getScriptType());
+                        updateFormatRow();
                         if(wallet != null) {
                             setWalletNodeFromAddress(wallet, address);
-                            if(walletNode != null) {
-                                setFormatFromScriptType(walletNode.getWallet().getScriptType());
-                            }
                         }
                     } catch(InvalidAddressException e) {
-                        //can't happen
+                        log.warn("Address became invalid after validation", e);
                     }
                 }
             });
@@ -297,11 +294,8 @@ public class MessageSignDialog extends Dialog<ButtonBar.ButtonData> {
                 message.requestFocus();
             }
 
-            if(wallet != null && walletNode != null) {
-                setFormatFromScriptType(walletNode.getWallet().getScriptType());
-            } else {
-                formatGroup.selectToggle(formatElectrum);
-            }
+            formatGroup.selectToggle(formatElectrum);
+            updateFormatRow();
         });
     }
 
@@ -372,9 +366,7 @@ public class MessageSignDialog extends Dialog<ButtonBar.ButtonData> {
         try {
             Address address = getAddress();
             ScriptType scriptType = address.getScriptType();
-            return scriptType.isOfferedForNewWallets() || scriptType == ScriptType.P2WPKH || scriptType == ScriptType.P2WSH
-                    || scriptType == ScriptType.MLDSA87_SINGLE || scriptType == ScriptType.MLDSA_SINGLE
-                    || scriptType == ScriptType.P2SH || scriptType == ScriptType.P2SH_P2WPKH;
+            return scriptType.isOfferedForNewWallets();
         } catch (InvalidAddressException e) {
             return false;
         }
@@ -382,17 +374,6 @@ public class MessageSignDialog extends Dialog<ButtonBar.ButtonData> {
 
     private void setWalletNodeFromAddress(Wallet wallet, Address address) {
         walletNode = wallet.getWalletAddresses().get(address);
-    }
-
-    private void setFormatFromScriptType(ScriptType scriptType) {
-        formatElectrum.setDisable(scriptType == ScriptType.P2TR);
-        formatTrezor.setDisable(scriptType == ScriptType.P2TR || scriptType == ScriptType.P2PKH);
-        formatBip322.setDisable(scriptType != ScriptType.P2WPKH && scriptType != ScriptType.P2TR);
-        if(scriptType == ScriptType.P2TR) {
-            formatGroup.selectToggle(formatBip322);
-        } else if(formatGroup.getSelectedToggle() == null || scriptType == ScriptType.P2PKH || (scriptType != ScriptType.P2WPKH && formatBip322.isSelected())) {
-            formatGroup.selectToggle(formatElectrum);
-        }
     }
 
     private boolean isBip322() {
@@ -496,24 +477,10 @@ public class MessageSignDialog extends Dialog<ButtonBar.ButtonData> {
             boolean show = MessageSignStrategy.forAddress(provided).showsFormatRow();
             formatElectrum.getParent().setVisible(show);
             formatElectrum.getParent().setManaged(show);
-        } catch(InvalidAddressException e) {
+        } catch(InvalidAddressException | IllegalArgumentException e) {
             formatElectrum.getParent().setVisible(false);
             formatElectrum.getParent().setManaged(false);
         }
-    }
-
-    private boolean verifyMessage(ECKey signedMessageKey) throws InvalidAddressException, SignatureException {
-        Address providedAddress = getAddress();
-        ScriptType scriptType = providedAddress.getScriptType();
-        if(scriptType == ScriptType.P2SH) {
-            scriptType = ScriptType.P2SH_P2WPKH;
-        }
-        if(!ScriptType.getScriptTypesForPolicyType(PolicyType.SINGLE_MLDSA87).contains(scriptType)) {
-            throw new IllegalArgumentException("Only single signature P2PKH, P2SH-P2WPKH or P2WPKH addresses can verify messages.");
-        }
-
-        Address signedMessageAddress = scriptType.getAddress(PolicyType.SINGLE_MLDSA87, signedMessageKey);
-        return providedAddress.equals(signedMessageAddress);
     }
 
     private void showQr() {

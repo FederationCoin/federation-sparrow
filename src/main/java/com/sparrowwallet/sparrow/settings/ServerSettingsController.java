@@ -773,7 +773,9 @@ public class ServerSettingsController extends SettingsDetailController {
     @NotNull
     private ChangeListener<PublicElectrumServer> getPublicElectrumServerListener(Config config) {
         return (observable, oldValue, newValue) -> {
-            config.setPublicElectrumServer(newValue.getServer());
+            if(newValue != null) {
+                config.setPublicElectrumServer(newValue.getServer());
+            }
         };
     }
 

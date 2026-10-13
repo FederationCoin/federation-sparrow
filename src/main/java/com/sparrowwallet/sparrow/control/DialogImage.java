@@ -44,25 +44,13 @@ public class DialogImage extends StackPane {
     }
 
     protected void refresh(Type type) {
-        if(type == Type.SPARROW) {
-            ImageView raster = loadRaster("/image/sparrow.png");
-            if(raster != null) {
-                getChildren().clear();
-                getChildren().add(raster);
-            }
+        if(type == null) {
             return;
         }
-
-        SVGImage svgImage;
-        if(Config.get().getTheme() == Theme.DARK) {
-            svgImage = loadSVGImage("/image/dialog/" + type.name().toLowerCase(Locale.ROOT) + "-invert.svg");
-        } else {
-            svgImage = loadSVGImage("/image/dialog/" + type.name().toLowerCase(Locale.ROOT) + ".svg");
-        }
-
-        if(svgImage != null) {
+        javafx.scene.Node graphic = type.graphic(this, Config.get().getTheme() == Theme.DARK);
+        if(graphic != null) {
             getChildren().clear();
-            getChildren().add(svgImage);
+            getChildren().add(graphic);
         }
     }
 
@@ -78,7 +66,7 @@ public class DialogImage extends StackPane {
         this.typeProperty.set(type);
     }
 
-    private ImageView loadRaster(String imageName) {
+    ImageView loadRaster(String imageName) {
         try {
             URL url = AppServices.class.getResource(imageName);
             if(url != null) {
@@ -96,7 +84,7 @@ public class DialogImage extends StackPane {
         return null;
     }
 
-    private SVGImage loadSVGImage(String imageName) {
+    SVGImage loadSVGImage(String imageName) {
         try {
             URL url = AppServices.class.getResource(imageName);
             if(url != null) {
@@ -110,6 +98,17 @@ public class DialogImage extends StackPane {
     }
 
     public enum Type {
-        SPARROW, SEED, PAYNYM, BORDERWALLETS, USERADD, WHIRLPOOL;
+        SPARROW {
+            @Override
+            javafx.scene.Node graphic(DialogImage owner, boolean dark) {
+                return owner.loadRaster("/image/sparrow.png");
+            }
+        },
+        SEED, PAYNYM, BORDERWALLETS, USERADD, WHIRLPOOL;
+
+        javafx.scene.Node graphic(DialogImage owner, boolean dark) {
+            String suffix = dark ? "-invert.svg" : ".svg";
+            return owner.loadSVGImage("/image/dialog/" + name().toLowerCase(Locale.ROOT) + suffix);
+        }
     }
 }

@@ -40,7 +40,7 @@ public class WatchOnlyDialog extends NewWalletDialog {
         TerminalSize screenSize = SparrowTerminal.get().getScreen().getTerminalSize();
         int descriptorWidth = Math.min(Math.max(20, screenSize.getColumns() - 20), 120);
 
-        mainPanel.addComponent(new Label("Output descriptor or xpub"));
+        mainPanel.addComponent(new Label("Output descriptor or extended public key"));
         mainPanel.addComponent(new EmptySpace(TerminalSize.ZERO));
 
         descriptor = new TextBox(new TerminalSize(descriptorWidth, 10));
@@ -67,11 +67,13 @@ public class WatchOnlyDialog extends NewWalletDialog {
             try {
                 OutputDescriptor.getOutputDescriptor(line);
                 importWallet.setEnabled(true);
-            } catch(Exception e1) {
+            } catch(IllegalArgumentException e1) {
+                log.warn("Watch-only text is not an output descriptor", e1);
                 try {
                     ExtendedKey.fromDescriptor(line);
                     importWallet.setEnabled(true);
-                } catch(Exception e2) {
+                } catch(IllegalArgumentException e2) {
+                    log.warn("Watch-only text is not an extended public key", e2);
                     importWallet.setEnabled(false);
                 }
             }
@@ -101,7 +103,12 @@ public class WatchOnlyDialog extends NewWalletDialog {
                 throw new ImportException("An extended private key cannot be used to create a watch only wallet. Enter an extended public key, or an output descriptor if the private key is intended to be imported.");
             }
 
-            return getWalletFromXpub(extendedKey, ExtendedKey.Header.fromExtendedKey(text));
+            try {
+                return getWalletFromXpub(extendedKey, ExtendedKey.Header.fromExtendedKey(text));
+            } catch(IllegalArgumentException e) {
+                log.warn("Watch-only xpub has no offered script type", e);
+                throw new ImportException(e.getMessage(), e);
+            }
         }
 
         try {
@@ -113,39 +120,34 @@ public class WatchOnlyDialog extends NewWalletDialog {
     }
 
     private List<Wallet> getWalletFromXpub(ExtendedKey xpub, ExtendedKey.Header header) {
-        ScriptType headerScript = header.getDefaultScriptType();
-        PolicyType policy = headerScript.getAllowedPolicyTypes().stream().filter(PolicyType::isSingleKey).findFirst()
-                .orElse(PolicyType.SINGLE_SEGWIT);
-        Set<ScriptType> scriptTypes = new LinkedHashSet<>();
-        if(policy == PolicyType.SINGLE_SEGWIT) {
-            scriptTypes.add(ScriptType.P2WPKH);
-        }
-        if(headerScript.isAllowed(policy)) {
-            scriptTypes.add(headerScript);
-        }
-        if(scriptTypes.isEmpty()) {
-            scriptTypes.add(policy.getDefaultScriptType());
-        }
-
         List<Wallet> wallets = new ArrayList<>();
-        for(ScriptType scriptType : scriptTypes) {
-            Wallet wallet = new Wallet(walletName);
-            wallet.setPolicyType(policy);
-            wallet.setScriptType(scriptType);
-
-            Keystore keystore = new Keystore();
-            keystore.setSource(KeystoreSource.SW_WATCH);
-            keystore.setWalletModel(WalletModel.SPARROW);
-            keystore.setKeyDerivation(new KeyDerivation(KeyDerivation.DEFAULT_WATCH_ONLY_FINGERPRINT, scriptType.getDefaultDerivationPath()));
-            keystore.setExtendedPublicKey(xpub);
-            wallet.makeLabelsUnique(keystore);
-            wallet.getKeystores().add(keystore);
-
-            wallet.setDefaultPolicy(Policy.getPolicy(wallet.getPolicyType(), wallet.getScriptType(), wallet.getKeystores(), 1));
-            wallets.add(wallet);
+        for(PolicyType policy : header.getDefaultScriptType().getAllowedPolicyTypes()) {
+            if(!policy.isOfferedForNewWallets()) {
+                continue;
+            }
+            for(ScriptType scriptType : ScriptType.getAddressableScriptTypes(policy)) {
+                wallets.add(walletFromXpub(xpub, policy, scriptType));
+            }
         }
-
+        if(wallets.isEmpty()) {
+            throw new IllegalArgumentException("No offered script type for this key");
+        }
         return wallets;
+    }
+
+    private Wallet walletFromXpub(ExtendedKey xpub, PolicyType policy, ScriptType scriptType) {
+        Wallet wallet = new Wallet(walletName);
+        wallet.setPolicyType(policy);
+        wallet.setScriptType(scriptType);
+        Keystore keystore = new Keystore();
+        keystore.setSource(KeystoreSource.SW_WATCH);
+        keystore.setWalletModel(WalletModel.SPARROW);
+        keystore.setKeyDerivation(new KeyDerivation(KeyDerivation.DEFAULT_WATCH_ONLY_FINGERPRINT, scriptType.getDefaultDerivationPath()));
+        keystore.setExtendedPublicKey(xpub);
+        wallet.makeLabelsUnique(keystore);
+        wallet.getKeystores().add(keystore);
+        wallet.setDefaultPolicy(Policy.getPolicy(wallet.getPolicyType(), wallet.getScriptType(), wallet.getKeystores(), 1));
+        return wallet;
     }
 
     private List<Wallet> getWalletFromOutputDescriptor(String text) {

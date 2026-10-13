@@ -645,22 +645,11 @@ public class QRScanDialog extends Dialog<QRScanDialog.Result> {
                 expressions.remove(expressions.size() - 1);
             }
 
-            if(List.of(ScriptExpression.PUBLIC_KEY_HASH).equals(expressions)) {
-                return ScriptType.P2PKH;
-            } else if(List.of(ScriptExpression.SCRIPT_HASH, ScriptExpression.WITNESS_PUBLIC_KEY_HASH).equals(expressions)) {
-                return ScriptType.P2SH_P2WPKH;
-            } else if(List.of(ScriptExpression.WITNESS_PUBLIC_KEY_HASH).equals(expressions)) {
-                return ScriptType.P2WPKH;
-            } else if(List.of(ScriptExpression.SCRIPT_HASH).equals(expressions)) {
-                return ScriptType.P2SH;
-            } else if(List.of(ScriptExpression.SCRIPT_HASH, ScriptExpression.WITNESS_SCRIPT_HASH).equals(expressions)) {
-                return ScriptType.P2SH_P2WSH;
-            } else if(List.of(ScriptExpression.WITNESS_SCRIPT_HASH).equals(expressions)) {
-                return ScriptType.P2WSH;
-            } else if(List.of(ScriptExpression.TAPROOT).equals(expressions)) {
-                return ScriptType.P2TR;
+            for(QrScript qrScript : QrScript.kinds()) {
+                if(qrScript.expressions().equals(expressions)) {
+                    return qrScript.scriptType();
+                }
             }
-
             throw new IllegalArgumentException("Unknown script of " + expressions);
         }
 
@@ -1008,6 +997,14 @@ public class QRScanDialog extends Dialog<QRScanDialog.Result> {
 
         public WebcamDependencyException(String message, Throwable cause) {
             super(message, cause);
+        }
+    }
+
+    private record QrScript(List<ScriptExpression> expressions, ScriptType scriptType) {
+        static List<QrScript> kinds() {
+            return List.of(
+                    new QrScript(List.of(ScriptExpression.WITNESS_PUBLIC_KEY_HASH), ScriptType.P2WPKH)
+            );
         }
     }
 

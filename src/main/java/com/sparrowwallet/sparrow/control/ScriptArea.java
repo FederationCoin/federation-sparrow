@@ -8,8 +8,6 @@ import org.controlsfx.control.decoration.Decorator;
 import org.controlsfx.control.decoration.GraphicDecoration;
 import org.fxmisc.richtext.CodeArea;
 
-import static com.sparrowwallet.drongo.protocol.ScriptType.*;
-
 public class ScriptArea extends CodeArea {
     private Script script;
 
@@ -24,35 +22,15 @@ public class ScriptArea extends CodeArea {
             setContextMenu(contextMenu);
         }
 
-        if(P2PKH.isScriptType(script)) {
-            append(script.getChunks().get(0).toString(), "script-opcode");
-            append(" ", "");
-            append(script.getChunks().get(1).toString(), "script-opcode");
-            append(" ", "");
-            append("<pkh>", "script-hash");
-            append(" ", "");
-            append(script.getChunks().get(3).toString(), "script-opcode");
-            append(" ", "");
-            append(script.getChunks().get(4).toString(), "script-opcode");
-        } else if(P2SH.isScriptType(script)) {
-            append(script.getChunks().get(0).toString(), "script-opcode");
-            append(" ", "");
-            append("<sh>", "script-hash");
-            append(" ", "");
-            append(script.getChunks().get(2).toString(), "script-opcode");
-        } else if(P2WPKH.isScriptType(script)) {
-            append(script.getChunks().get(0).toString(), "script-opcode");
-            append(" ", "");
-            append("<wpkh>", "script-hash");
-        } else if(MLDSA87_SINGLE.isScriptType(script) || MLDSA_SINGLE.isScriptType(script)
-                || MLDSA87_MULTI.isScriptType(script) || MLDSA_MULTI.isScriptType(script)) {
-            append(script.getChunks().get(0).toString(), "script-opcode");
-            append(" ", "");
-            append("<dilithium>", "script-hash");
-        } else if(P2WSH.isScriptType(script)) {
-            append(script.getChunks().get(0).toString(), "script-opcode");
-            append(" ", "");
-            append("<wsh>", "script-hash");
+        ScriptDisplay matched = null;
+        for(ScriptDisplay display : ScriptDisplay.kinds()) {
+            if(display.matches(script)) {
+                matched = display;
+                break;
+            }
+        }
+        if(matched != null) {
+            matched.append(this, script);
         } else {
             int signatureCount = 1;
             int pubKeyCount = 1;

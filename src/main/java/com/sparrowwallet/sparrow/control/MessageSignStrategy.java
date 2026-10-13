@@ -15,7 +15,8 @@ public interface MessageSignStrategy {
         return switch(address.getScriptType()) {
             case MLDSA87_SINGLE, MLDSA87_MULTI -> new MlDsa87MessageSign();
             case MLDSA_SINGLE, MLDSA_MULTI -> new MlDsa44MessageSign();
-            default -> new SegwitMessageSign();
+            case P2WPKH, P2SH_P2WPKH -> new SegwitMessageSign();
+            default -> throw new IllegalArgumentException("Message signing is not available for this address.");
         };
     }
 }

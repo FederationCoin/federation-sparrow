@@ -899,7 +899,7 @@ public class SendController extends WalletFormController implements Initializabl
             minRate = Math.min(userFeeRate, minRate);
         }
         // Consensus floor is floor(vsize / 12) sats (~1/12 sat/vB). Paying more is valid.
-        return Math.max(minRate, Math.max(Transaction.DUST_RELAY_TX_FEE, 1.0 / SettlementFee.VSIZE_DIVISOR));
+        return Math.max(minRate, Math.max(Transaction.DUST_RELAY_TX_FEE, SettlementFee.minimumRateTokensPerVb()));
     }
 
     private Map<Date, Set<MempoolRateSize>> getMempoolHistogram() {
@@ -907,7 +907,7 @@ public class SendController extends WalletFormController implements Initializabl
     }
 
     public boolean isInsufficientFeeRate() {
-        return walletTransactionProperty.get() != null && walletTransactionProperty.get().getFeeRate() < Math.max(AppServices.getMinimumRelayFeeRate(), 1.0 / 12.0);
+        return walletTransactionProperty.get() != null && walletTransactionProperty.get().getFeeRate() < Math.max(AppServices.getMinimumRelayFeeRate(), SettlementFee.minimumRateTokensPerVb());
     }
 
     private void setFeeRate(Double feeRateAmt) {

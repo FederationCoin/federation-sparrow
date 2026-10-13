@@ -46,9 +46,9 @@ public class SweptKeyOptInTest {
         Assertions.assertEquals(0, AppServices.liftableSignatureCount(psbt));
     }
 
-    /** Left alone before activation, so a sweep signs exactly as it did where the fork is not live. */
+    /** The PSBT did not declare a hash type. Dilithium still signs UNIFIED as the kind default. */
     @Test
-    public void testASweptKeySignsTheOldWayWhereTheChainHasNot() throws Exception {
+    public void testASweptKeySignsUnifiedWhenThePsbtDidNotDeclare() throws Exception {
         Network.set(Network.MAINNET);
         ECKey privKey = ECKey.fromPrivate(new java.math.BigInteger(1, com.sparrowwallet.drongo.Utils.hexToBytes("a1b2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d4e5f60718293a4b5c6d7e8f90")), true);
         PSBT psbt = sweepPsbtFor(privKey, false);
@@ -57,9 +57,11 @@ public class SweptKeyOptInTest {
         Assertions.assertNull(psbtInput.getSigHash(), "nothing declared, which signs the default");
         Assertions.assertTrue(psbtInput.sign(ScriptType.P2WPKH.getOutputKey(PolicyType.SINGLE_MLDSA87, privKey)));
 
-        Assertions.assertTrue(psbt.getPsbtInputs().getFirst()
-                .getVerifiedSignatures(java.util.List.of(ScriptType.P2WPKH.getOutputKey(PolicyType.SINGLE_MLDSA87, privKey)))
-                .stream().noneMatch(s -> (s.sighashFlags & SigHash.UNIFIED_FLAG) != 0), "no signature opted in");
+        java.util.List<com.sparrowwallet.drongo.protocol.TransactionSignature> verified =
+                psbtInput.getVerifiedSignatures(java.util.List.of(ScriptType.P2WPKH.getOutputKey(PolicyType.SINGLE_MLDSA87, privKey)));
+        Assertions.assertEquals(1, verified.size(), "the key signed");
+        Assertions.assertTrue(verified.stream().allMatch(s -> (s.sighashFlags & SigHash.UNIFIED_FLAG) != 0),
+                "Dilithium default is UNIFIED");
         psbt.verifySignatures();
     }
 

@@ -14,8 +14,8 @@ public final class SegwitMessageSign implements MessageSignStrategy {
         Keystore keystore = wallet.getKeystores().getFirst();
         ECKey privKey = keystore.getKey(walletNode);
         ScriptType scriptType = walletNode.getAddress().getScriptType();
-        if(format == MessageSignFormat.BIP322 || scriptType == ScriptType.P2TR) {
-            return Bip322.signMessageBip322(scriptType == ScriptType.P2TR ? ScriptType.P2TR : ScriptType.P2WPKH, message, privKey);
+        if(format == MessageSignFormat.BIP322) {
+            return Bip322.signMessageBip322(ScriptType.P2WPKH, message, privKey);
         }
         return privKey.signMessage(message, scriptType);
     }
@@ -26,8 +26,8 @@ public final class SegwitMessageSign implements MessageSignStrategy {
         if(scriptType == ScriptType.P2SH) {
             scriptType = ScriptType.P2SH_P2WPKH;
         }
-        if(format == MessageSignFormat.BIP322 || scriptType == ScriptType.P2TR) {
-            return Bip322.verifyMessageBip322(scriptType == ScriptType.P2TR ? ScriptType.P2TR : ScriptType.P2WPKH, address, message, signature);
+        if(format == MessageSignFormat.BIP322) {
+            return Bip322.verifyMessageBip322(ScriptType.P2WPKH, address, message, signature);
         }
         ECKey signedKey = ECKey.signedMessageToKey(message, signature, format == MessageSignFormat.ELECTRUM);
         signedKey.verifyMessage(message, signature);
