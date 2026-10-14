@@ -1,6 +1,7 @@
 package com.sparrowwallet.sparrow.control;
 
 import com.sparrowwallet.drongo.Network;
+import com.sparrowwallet.drongo.address.MlDsa44Address;
 import com.sparrowwallet.drongo.address.MlDsa87Address;
 import com.sparrowwallet.drongo.address.P2WPKHAddress;
 import com.sparrowwallet.drongo.crypto.MlDsa87;
@@ -31,6 +32,8 @@ public class MessageSignStrategyTest {
     public void offeredKindsHaveAStrategy() {
         Assertions.assertInstanceOf(MlDsa87MessageSign.class,
                 MessageSignStrategy.forAddress(new MlDsa87Address(new byte[32])));
+        Assertions.assertInstanceOf(MlDsa44MessageSign.class,
+                MessageSignStrategy.forAddress(new MlDsa44Address(new byte[32])));
         Assertions.assertInstanceOf(SegwitMessageSign.class,
                 MessageSignStrategy.forAddress(new P2WPKHAddress(new byte[20])));
         Assertions.assertFalse(MessageSignStrategy.forAddress(new MlDsa87Address(new byte[32])).showsFormatRow());

@@ -32,26 +32,12 @@
             <Form GridPane.columnIndex="0" GridPane.rowIndex="0">
                 <Fieldset inputGrow="SOMETIMES" text="Settings" styleClass="header">
                     <Field text="Policy Type:">
-                        <ComboBox fx:id="policyType" prefWidth="180">
-                            <items>
-                                <FXCollections fx:factory="observableArrayList">
-                                    <PolicyType fx:constant="SINGLE_MLDSA87" />
-                                    <PolicyType fx:constant="MULTI_MLDSA87" />
-                                </FXCollections>
-                            </items>
-                        </ComboBox>
-                        <HelpLabel helpText="Single-key wallets use one ML-DSA-44 keystore.\nMultisignature wallets require multiple ML-DSA-44 keystores; a threshold of them must sign." />
+                        <ComboBox fx:id="policyType" prefWidth="180" />
+                        <HelpLabel helpText="Single-key or policy wallets. Dilithium 87, Dilithium 44, and native SegWit are offered. P2WSH is not." />
                     </Field>
                     <Field text="Script Type:">
-                        <ComboBox fx:id="scriptType">
-                            <items>
-                                <FXCollections fx:factory="observableArrayList">
-                                    <ScriptType fx:constant="MLDSA_SINGLE" />
-                                    <ScriptType fx:constant="MLDSA_MULTI" />
-                                </FXCollections>
-                            </items>
-                        </ComboBox>
-                        <HelpLabel helpText="FederationCoin wallets use ML-DSA-44 witness v0. Legacy, nested, Taproot, and Silent Payments are not offered on this chain." />
+                        <ComboBox fx:id="scriptType" />
+                        <HelpLabel helpText="Script types follow the selected policy. P2WSH, nested, Taproot, and Silent Payments are not offered." />
                     </Field>
                 </Fieldset>
             </Form>
@@ -82,7 +68,7 @@
                                 <Glyph fontFamily="Font Awesome 5 Free Solid" fontSize="12" icon="CAMERA" />
                             </graphic>
                             <tooltip>
-                                <Tooltip text="Bitcoin output descriptors are not a spend on this chain" />
+                                <Tooltip text="Scan a descriptor QR" />
                             </tooltip>
                         </Button>
                         <Button fx:id="showDescriptorQR" onAction="#showDescriptorQR" visible="false" managed="false">

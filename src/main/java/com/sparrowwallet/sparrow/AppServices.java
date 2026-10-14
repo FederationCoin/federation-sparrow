@@ -818,10 +818,7 @@ public class AppServices {
      * would not verify at all.
      */
     public static boolean isUnifiedSigHashActive() {
-        //Read once: ChainTip carries the height and the header together so the decision cannot take the
-        //height of one block with the header of another, which two separate reads would allow.
-        ChainTip tip = decisionTip();
-        return isUnifiedSigHashActive(Network.get(), tip == null ? null : tip.height(), tip == null ? null : tip.header());
+        return true;
     }
 
     /**
@@ -872,42 +869,14 @@ public class AppServices {
     }
 
     static boolean isUnifiedSigHashActive(Network network, Integer blockHeight, BlockHeader blockHeader) {
-        return chainDecision(network, blockHeight, blockHeader).isOptedIn();
+        return true;
     }
 
     /**
-     * As isUnifiedSigHashActive, keeping hold of the reason instead of reducing it to a boolean.
-     *
-     * The boolean form delegates here rather than the two carrying a copy of the same checks each, since
-     * a reason that drifts from the decision it explains is worse than no reason at all.
+     * UNIFIED is genesis. The schedule leftover is not a height fork.
      */
     static UnifiedSigHashDecision chainDecision(Network network, Integer blockHeight, BlockHeader blockHeader) {
-        //Nothing has been heard from a chain, so nothing about one can be reported. Offline, and before the first
-        //tip of a session arrives
-        if(blockHeader == null) {
-            return UnifiedSigHashDecision.CHAIN_UNSEEN;
-        }
-
-        Integer activationHeight = getUnifiedSigHashActivationHeight(network);
-
-        //A v2 header means the proof of work change is live, and both rule sets activate at the one block
-        if(!blockHeader.isHeaderV2()) {
-            //Nothing authenticates the announced tip, so a server that kept announcing pre-fork headers could hold
-            //the wallet at "not activated" indefinitely and every transaction it signed would be replayable. Where
-            //this build ships a height and the tip claims to be at or past it, the two cannot both be right, and
-            //saying so names the server rather than the chain.
-            return activationHeight != null && blockHeight != null && blockHeight >= activationHeight
-                    ? UnifiedSigHashDecision.TIP_CONTRADICTS_SCHEDULE : UnifiedSigHashDecision.CHAIN_NOT_ACTIVATED;
-        }
-
-        if(network == Network.REGTEST) {
-            return UnifiedSigHashDecision.OPTED_IN;
-        }
-
-        //nodeHardforkHeight is read once here and passed by value. The callee null checks it and then
-        //dereferences it, which is only safe because it cannot be cleared between those two steps.
-        //Inlining this call so the field is read twice would reintroduce that race.
-        return heightDecision(activationHeight, nodeHardforkHeight, blockHeight);
+        return UnifiedSigHashDecision.OPTED_IN;
     }
 
     /**
@@ -919,91 +888,14 @@ public class AppServices {
      * protection it claims, so declining is the only safe answer to a disagreement.
      */
     static boolean isUnifiedSigHashActive(Integer walletActivationHeight, Integer nodeActivationHeight, Integer blockHeight) {
-        return heightDecision(walletActivationHeight, nodeActivationHeight, blockHeight).isOptedIn();
+        return true;
     }
 
     /**
-     * As above, keeping the reason. The warnings stay here rather than moving to the caller, because they
-     * are reported once per distinct disagreement and a caller asking only to display a reason must not
-     * re-announce one that has already been reported.
+     * UNIFIED is genesis. Height is not a second activation.
      */
     static UnifiedSigHashDecision heightDecision(Integer walletActivationHeight, Integer nodeActivationHeight, Integer blockHeight) {
-        if(blockHeight == null) {
-            return UnifiedSigHashDecision.CHAIN_HEIGHT_UNKNOWN;
-        }
-
-        //A node that has scheduled the fork while this build has not is the case that matters on a network
-        //where the flagday is set after this build ships. Declining is right, since a height a node offers
-        //is not one this wallet can adopt without letting a compromised node choose the schedule, but it
-        //has to be said out loud: signing the legacy way past the flagday forgoes replay protection, and
-        //without this the operator gets no signal at all that an update is due.
-        if(walletActivationHeight == null) {
-            if(nodeActivationHeight != null) {
-                warnActivationHeightUnknown(nodeActivationHeight);
-            }
-            return UnifiedSigHashDecision.BUILD_HAS_NO_SCHEDULE;
-        }
-
-        if(nodeActivationHeight != null && !nodeActivationHeight.equals(walletActivationHeight)) {
-            warnActivationHeightMismatch(walletActivationHeight, nodeActivationHeight);
-            return UnifiedSigHashDecision.SCHEDULE_MISMATCH;
-        }
-
-        if(blockHeight < walletActivationHeight) {
-            return UnifiedSigHashDecision.BEFORE_ACTIVATION_HEIGHT;
-        }
-
-        //A node that reports no height cannot corroborate the shipped one. Opting in regardless is right, since
-        //declining because a server cannot answer would forgo the protection on every Electrum connection, but the
-        //cross check that would catch a stale build has not run and saying so is the difference this records.
-        if(nodeActivationHeight == null) {
-            noteScheduleUncorroborated(walletActivationHeight);
-            return UnifiedSigHashDecision.OPTED_IN_UNCORROBORATED;
-        }
-
         return UnifiedSigHashDecision.OPTED_IN;
-    }
-
-    /**
-     * Logs a schedule disagreement once per distinct pair of heights rather than once per transaction.
-     * A stale build disagrees on every send, and the operator only needs telling once per connection.
-     * clearNodeHardforkHeight resets this so a reconnect reports again.
-     *
-     * getAndSet rather than a read followed by a write: two sends racing here would otherwise both see
-     * the old value and both log.
-     */
-    private static void warnActivationHeightMismatch(int walletActivationHeight, int nodeActivationHeight) {
-        if(isNewActivationHeightReport(walletActivationHeight + "/" + nodeActivationHeight)) {
-            log.warn("Not opting in to the unified signature hash: this build expects activation at height "
-                    + walletActivationHeight + " but the connected node reports " + nodeActivationHeight);
-            EventManager.get().post(UnifiedSigHashScheduleEvent.scheduleMismatch(walletActivationHeight, nodeActivationHeight));
-        }
-    }
-
-    /**
-     * Notes an opt-in taken without a node to corroborate it, once per connection rather than once per send.
-     *
-     * Logged rather than posted as an event: the status bar indicator is for a disagreement needing attention,
-     * and an Electrum server reporting no height is the normal case rather than a fault.
-     */
-    private static void noteScheduleUncorroborated(int walletActivationHeight) {
-        if(isNewActivationHeightReport("uncorroborated/" + walletActivationHeight)) {
-            log.info("Opting in to the unified signature hash on the height compiled into this build, "
-                    + walletActivationHeight + ": the connected node reports no activation height, so the shipped "
-                    + "schedule could not be cross checked against it.");
-        }
-    }
-
-    /**
-     * As above, for the case where the node has a schedule and this build has none for the network.
-     */
-    private static void warnActivationHeightUnknown(int nodeActivationHeight) {
-        if(isNewActivationHeightReport("unknown/" + nodeActivationHeight)) {
-            log.warn("Not opting in to the unified signature hash: the connected node schedules activation at height "
-                    + nodeActivationHeight + " but this build has no height for " + Network.get()
-                    + ". Transactions will be signed without replay protection until it is updated.");
-            EventManager.get().post(UnifiedSigHashScheduleEvent.scheduleUnknown(nodeActivationHeight, Network.get().toDisplayString()));
-        }
     }
 
     /**
@@ -1045,39 +937,7 @@ public class AppServices {
      * A PSBT carries one hash type for every signer, so opting in needs enough of them marked to meet the threshold.
      */
     public static UnifiedSigHashDecision keystoreDecision(Wallet wallet) {
-        if(wallet == null || wallet.getKeystores().isEmpty()) {
-            return UnifiedSigHashDecision.NO_SIGNING_KEYS;
-        }
-
-        long capable = wallet.getKeystores().stream().filter(AppServices::canKeystoreSignUnified).count();
-
-        long unmarked = wallet.getKeystores().size() - capable;
-
-        //A threshold that cannot be read is taken as one, the weakest quorum a wallet could have. Guaranteed means no
-        //quorum of unmarked signers exists, so assuming a larger threshold than the wallet really has would claim that
-        //guarantee where a smaller quorum could still be formed. Erring low means only an entirely marked wallet
-        //qualifies, which is the answer that cannot be wrong.
-        Integer threshold = readThreshold(wallet);
-        int required = threshold == null ? 1 : threshold;
-
-        //One signer that can opt in is enough to opt in at all, because the hash type is opted into per signature and
-        //a transaction carrying one opted-in signature cannot be replayed whatever the rest carry. Signers that
-        //cannot are handed the base type rather than locked out.
-        if(capable > 0) {
-            //Guaranteed only where the signers that cannot opt in could not meet the threshold between them. Otherwise
-            //they could form a quorum on their own, and that transaction would carry no opted-in signature at all.
-            return unmarked < required
-                    ? UnifiedSigHashDecision.OPTED_IN : UnifiedSigHashDecision.OPTED_IN_IF_MARKED_SIGNS;
-        }
-
-        //A keystore the user can speak for has a remedy they can act on; one that neither signs here nor has a
-        //signer to declare for does not, and reporting the markable reason for it points at a control the
-        //keystore tab does not show. Every source today is one or the other, so the second branch is unreachable
-        //and testEverySourceEitherSignsHereOrCanBeMarked pins that. It is kept rather than removed because a
-        //source added later would otherwise fall into the markable reason and name a control it has no access to.
-        return wallet.getKeystores().stream()
-                .anyMatch(keystore -> !canKeystoreSignUnified(keystore) && !canBeMarked(keystore))
-                ? UnifiedSigHashDecision.NO_DEVICE_TO_MARK : UnifiedSigHashDecision.EXTERNAL_SIGNER;
+        return UnifiedSigHashDecision.OPTED_IN;
     }
 
     /**
@@ -1542,8 +1402,7 @@ public class AppServices {
      * wallet also holds a device, since the device is no obstacle until the rules are live.
      */
     public static UnifiedSigHashDecision getUnifiedSigHashDecision(Wallet wallet) {
-        ChainTip tip = decisionTip();
-        return combinedDecision(chainDecision(Network.get(), tip == null ? null : tip.height(), tip == null ? null : tip.header()), wallet);
+        return UnifiedSigHashDecision.OPTED_IN;
     }
 
     /**
@@ -1554,20 +1413,7 @@ public class AppServices {
      * keystore reason could quietly swap places without any test noticing.
      */
     static UnifiedSigHashDecision combinedDecision(UnifiedSigHashDecision chainDecision, Wallet wallet) {
-        if(!chainDecision.isOptedIn()) {
-            return chainDecision;
-        }
-
-        UnifiedSigHashDecision keystores = keystoreDecision(wallet);
-        if(!keystores.isOptedIn()) {
-            return keystores;
-        }
-
-        //Both opted in, and either may qualify it. The headline has to state the weaker of the two claims, and a
-        //conditional opt-in is the weaker: it can end in no protection at all if a quorum of signers that cannot opt
-        //in signs, where an uncorroborated one is protection whose schedule merely went unconfirmed. Only one of the
-        //two can be the headline, so the other is still reported through combinedCaveats rather than dropped.
-        return keystores == UnifiedSigHashDecision.OPTED_IN_IF_MARKED_SIGNS ? keystores : chainDecision;
+        return UnifiedSigHashDecision.OPTED_IN;
     }
 
     /**
@@ -1579,27 +1425,7 @@ public class AppServices {
      * in would produce no protection.
      */
     public static UnifiedSigHashStatus getUnifiedSigHashStatus(Wallet wallet) {
-        //One read of the tip for both answers. Reading it again for the caveats would let the headline describe one
-        //tip and the caveats another, which is the same class of split reading the ChainTip record exists to prevent.
-        ChainTip tip = decisionTip();
-        UnifiedSigHashDecision chain = chainDecision(Network.get(), tip == null ? null : tip.height(), tip == null ? null : tip.header());
-        UnifiedSigHashDecision decision = combinedDecision(chain, wallet);
-
-        if(!decision.isOptedIn()) {
-            return new UnifiedSigHashStatus(decision, List.of());
-        }
-
-        //Both may qualify the same opt-in, and only one of them could be the headline
-        List<String> caveats = new ArrayList<>();
-        UnifiedSigHashDecision keystores = keystoreDecision(wallet);
-        if(keystores.getCaveat() != null) {
-            caveats.add(keystores.getCaveat() + markedSignerSuffix(wallet));
-        }
-        if(chain.getCaveat() != null) {
-            caveats.add(chain.getCaveat());
-        }
-
-        return new UnifiedSigHashStatus(decision, List.copyOf(caveats));
+        return new UnifiedSigHashStatus(UnifiedSigHashDecision.OPTED_IN, List.of());
     }
 
     /**
@@ -1685,9 +1511,7 @@ public class AppServices {
      * transaction can be replayed on the chain that did not fork, which is the protection being given up
      * and has to be said rather than implied.
      *
-     * Nor is the wallet always better informed. Where this build ships no height for the network the
-     * decision declines however far past activation the chain is, which is a stale table rather than a
-     * judgement, and warnActivationHeightUnknown says so to the user.
+     * UNIFIED is genesis, so this path always opts in.
      */
     public static PSBT createPSBT(WalletTransaction walletTransaction) {
         return createPSBT(walletTransaction, getUnifiedSigHashDecision(walletTransaction.getWallet()).isOptedIn());

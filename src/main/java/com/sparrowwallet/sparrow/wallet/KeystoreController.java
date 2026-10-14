@@ -171,7 +171,7 @@ public class KeystoreController extends WalletFormController implements Initiali
         cardServiceButtons.managedProperty().bind(cardServiceButtons.visibleProperty());
         scanXpubQR.managedProperty().bind(scanXpubQR.visibleProperty());
         displayXpubQR.managedProperty().bind(displayXpubQR.visibleProperty());
-        displayXpubQR.visibleProperty().bind(scanXpubQR.visibleProperty().not());
+        displayXpubQR.visibleProperty().bind(xpubField.visibleProperty().and(scanXpubQR.visibleProperty().not()));
 
         updateType(keystore.isValid() && !getWalletForm().getWallet().isValid());
 
@@ -384,7 +384,7 @@ public class KeystoreController extends WalletFormController implements Initiali
     private void updateType(boolean showExport) {
         type.setText(getTypeLabel(keystore));
         type.setGraphic(getTypeIcon(keystore));
-        exportButton.setVisible(showExport && getWalletForm().getWallet().getPolicyType() == PolicyType.MULTI_MLDSA87);
+        exportButton.setVisible(showExport && getWalletForm().getWallet().getPolicyType().isHomogeneousMultisig());
         viewSeedButton.setVisible(keystore.getSource() == KeystoreSource.SW_SEED && keystore.hasSeed());
         viewKeyButton.setVisible(keystore.getSource() == KeystoreSource.SW_SEED && keystore.hasMasterPrivateExtendedKey());
         cardServiceButtons.setVisible(keystore.getWalletModel().isCard());
@@ -400,14 +400,17 @@ public class KeystoreController extends WalletFormController implements Initiali
         scanXpubQR.setVisible(editable);
         setEditable(spScan, editable);
 
-        xpubField.setVisible(getWalletForm().getWallet().getPolicyType() != PolicyType.SINGLE_SP);
+        boolean showXpub = getWalletForm().getWallet().getPolicyType() != PolicyType.SINGLE_SP
+                && (getWalletForm().getWallet().getScriptType() == null || !getWalletForm().getWallet().getScriptType().isDilithium());
+        xpubField.setVisible(showXpub);
+        scanXpubQR.setVisible(editable && showXpub);
 
         //Shown wherever the signing happens somewhere this wallet cannot see, which is a device or a watch only
         //keystore alike: in both the wallet is choosing what to declare in a PSBT it hands out, and only the owner
         //knows what will sign it. A software seed and a payment code sign from a key this wallet holds, so there is
         //nothing to declare for those. Refreshed here rather than at setup so that replacing the keystore with
         //another source shows the right thing
-        unifiedSigHashField.setVisible(AppServices.canBeMarked(keystore));
+        unifiedSigHashField.setVisible(false);
         //Phrased as the owner's confirmation, because that is what it is. The wallet cannot detect this, and a
         //control reading "Supported by this device" states it as a fact the wallet established.
         unifiedSigHash.setText(keystore.getSource().isHardware()
