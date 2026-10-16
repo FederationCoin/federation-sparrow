@@ -76,6 +76,7 @@ public enum FeeRatesSource {
         public Map<Integer, Double> getBlockTargetFeeRates(Map<Integer, Double> defaultblockTargetFeeRates) {
             Map<Integer, Double> blockTargetFeeRates = new LinkedHashMap<>();
             for(Integer blockTarget : defaultblockTargetFeeRates.keySet()) {
+                // Display rate only. Consensus floor is SettlementFee.minimumTokens on getRequiredFeeAmount.
                 blockTargetFeeRates.put(blockTarget, com.sparrowwallet.drongo.protocol.SettlementFee.minimumRateTokensPerVb());
             }
 
