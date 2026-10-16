@@ -50,8 +50,9 @@ public class CaravanMultisig implements WalletImport, WalletExport {
 
             Wallet wallet = new Wallet();
             wallet.setName(cf.name);
-            wallet.setPolicyType(PolicyType.MULTI_HD);
             ScriptType scriptType = ScriptType.valueOf(cf.addressType.replace('-', '_'));
+            PolicyType policyType = PolicyType.forScript(scriptType, true);
+            wallet.setPolicyType(policyType);
 
             for(ExtPublicKey extKey : cf.extendedPublicKeys) {
                 Keystore keystore = new Keystore(extKey.name.length() > Keystore.MAX_LABEL_LENGTH ? extKey.name.substring(0, Keystore.MAX_LABEL_LENGTH) : extKey.name);
@@ -85,7 +86,7 @@ public class CaravanMultisig implements WalletImport, WalletExport {
             }
 
             wallet.setScriptType(scriptType);
-            wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_HD, scriptType, wallet.getKeystores(), cf.quorum.requiredSigners));
+            wallet.setDefaultPolicy(Policy.getPolicy(policyType, scriptType, wallet.getKeystores(), cf.quorum.requiredSigners));
 
             try {
                 wallet.checkWallet();
@@ -110,8 +111,8 @@ public class CaravanMultisig implements WalletImport, WalletExport {
             throw new ExportException("Cannot export an incomplete wallet");
         }
 
-        if(!wallet.getPolicyType().equals(PolicyType.MULTI_HD)) {
-            throw new ExportException(getName() + " import requires a multisig wallet");
+        if(!wallet.getPolicyType().isHomogeneousMultisig() || !wallet.getPolicyType().isSegwit()) {
+            throw new ExportException(getName() + " import requires a SegWit multisig wallet");
         }
 
         try {

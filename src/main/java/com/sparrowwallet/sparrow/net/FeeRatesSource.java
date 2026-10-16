@@ -71,12 +71,13 @@ public enum FeeRatesSource {
             return network == Network.MAINNET || network == Network.TESTNET || network == Network.TESTNET4 || network == Network.SIGNET;
         }
     },
-    MINIMUM("Minimum (1 token/vB)", false) {
+    MINIMUM("Minimum (1 token / 12 vB)", false) {
         @Override
         public Map<Integer, Double> getBlockTargetFeeRates(Map<Integer, Double> defaultblockTargetFeeRates) {
             Map<Integer, Double> blockTargetFeeRates = new LinkedHashMap<>();
             for(Integer blockTarget : defaultblockTargetFeeRates.keySet()) {
-                blockTargetFeeRates.put(blockTarget, 1.0);
+                // Display rate only. Consensus floor is SettlementFee.minimumTokens on getRequiredFeeAmount.
+                blockTargetFeeRates.put(blockTarget, com.sparrowwallet.drongo.protocol.SettlementFee.minimumRateTokensPerVb());
             }
 
             return blockTargetFeeRates;

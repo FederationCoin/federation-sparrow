@@ -112,17 +112,17 @@ public class DbPersistenceTest {
             byte[] entropy = new byte[16];
             java.util.Arrays.fill(entropy, (byte)0x21);
             DeterministicSeed seed = new DeterministicSeed(entropy, "", 0L);
-            Keystore fromSeed = Keystore.fromSeed(seed, PolicyType.SINGLE_HD, ScriptType.MLDSA_SINGLE.getDefaultDerivation());
+            Keystore fromSeed = Keystore.fromSeed(seed, PolicyType.SINGLE_MLDSA87, ScriptType.MLDSA87_SINGLE.getDefaultDerivation());
             Keystore keystore = new Keystore("Keystore 1");
             keystore.setSource(KeystoreSource.SW_WATCH);
             keystore.setWalletModel(WalletModel.SPARROW);
             keystore.setKeyDerivation(fromSeed.getKeyDerivation());
             keystore.setExtendedPublicKey(fromSeed.getExtendedPublicKey());
             Wallet wallet = new Wallet(walletName);
-            wallet.setPolicyType(PolicyType.SINGLE_HD);
-            wallet.setScriptType(ScriptType.MLDSA_SINGLE);
+            wallet.setPolicyType(PolicyType.SINGLE_MLDSA87);
+            wallet.setScriptType(ScriptType.MLDSA87_SINGLE);
             wallet.getKeystores().add(keystore);
-            wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.SINGLE_HD, ScriptType.MLDSA_SINGLE, wallet.getKeystores(), 1));
+            wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.SINGLE_MLDSA87, ScriptType.MLDSA87_SINGLE, wallet.getKeystores(), 1));
             return wallet;
         } catch(Exception e) {
             throw new RuntimeException(e);

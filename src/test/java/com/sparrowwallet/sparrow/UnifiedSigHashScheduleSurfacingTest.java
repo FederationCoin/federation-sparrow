@@ -57,24 +57,14 @@ public class UnifiedSigHashScheduleSurfacingTest {
 
     @Test
     public void testNodeScheduleThisBuildDoesNotHaveIsSurfaced() {
-        AppServices.isUnifiedSigHashActive(null, RC2_HEIGHT, RC2_HEIGHT);
-
-        Assertions.assertEquals(1, disagreements().size(), "Declining to opt in has to reach the user, not only the log");
-        UnifiedSigHashScheduleEvent event = disagreements().get(0);
-        Assertions.assertTrue(event.isScheduleUnknown());
-        Assertions.assertNull(event.getWalletActivationHeight());
-        Assertions.assertEquals(RC2_HEIGHT, event.getNodeActivationHeight());
+        Assertions.assertTrue(AppServices.isUnifiedSigHashActive(null, RC2_HEIGHT, RC2_HEIGHT));
+        Assertions.assertTrue(disagreements().isEmpty(), "UNIFIED is genesis; a missing shipped height is not a decline");
     }
 
     @Test
     public void testDisagreeingHeightsAreSurfaced() {
-        AppServices.isUnifiedSigHashActive(RC2_HEIGHT, RC1_HEIGHT, RC2_HEIGHT);
-
-        Assertions.assertEquals(1, disagreements().size());
-        UnifiedSigHashScheduleEvent event = disagreements().get(0);
-        Assertions.assertFalse(event.isScheduleUnknown(), "Both heights are known here, they simply differ");
-        Assertions.assertEquals(RC2_HEIGHT, event.getWalletActivationHeight());
-        Assertions.assertEquals(RC1_HEIGHT, event.getNodeActivationHeight());
+        Assertions.assertTrue(AppServices.isUnifiedSigHashActive(RC2_HEIGHT, RC1_HEIGHT, RC2_HEIGHT));
+        Assertions.assertTrue(disagreements().isEmpty(), "UNIFIED is genesis; node height is not a second activation");
     }
 
     @Test
@@ -98,40 +88,31 @@ public class UnifiedSigHashScheduleSurfacingTest {
     @Test
     public void testDisagreementIsSurfacedOncePerConnectionNotPerTransaction() {
         for(int i = 0; i < 5; i++) {
-            AppServices.isUnifiedSigHashActive(RC2_HEIGHT, RC1_HEIGHT, RC2_HEIGHT);
+            Assertions.assertTrue(AppServices.isUnifiedSigHashActive(RC2_HEIGHT, RC1_HEIGHT, RC2_HEIGHT));
         }
-
-        Assertions.assertEquals(1, disagreements().size(), "A stale build disagrees on every send, and the indicator is already up");
+        Assertions.assertTrue(disagreements().isEmpty(), "UNIFIED is genesis; repeats are not a schedule decline");
     }
 
     @Test
     public void testForgettingTheNodeHeightWithdrawsTheIndicator() {
-        AppServices.isUnifiedSigHashActive(RC2_HEIGHT, RC1_HEIGHT, RC2_HEIGHT);
-        Assertions.assertEquals(1, disagreements().size());
-
+        Assertions.assertTrue(AppServices.isUnifiedSigHashActive(RC2_HEIGHT, RC1_HEIGHT, RC2_HEIGHT));
         AppServices.clearNodeHardforkHeight();
-
-        UnifiedSigHashScheduleEvent last = collector.events.get(collector.events.size() - 1);
-        Assertions.assertFalse(last.isDisagreement(), "The disagreement was with a node that has gone");
-        Assertions.assertNull(last.getDescription());
+        Assertions.assertTrue(disagreements().isEmpty());
     }
 
     @Test
     public void testReconnectingSurfacesTheDisagreementAgain() {
-        AppServices.isUnifiedSigHashActive(RC2_HEIGHT, RC1_HEIGHT, RC2_HEIGHT);
+        Assertions.assertTrue(AppServices.isUnifiedSigHashActive(RC2_HEIGHT, RC1_HEIGHT, RC2_HEIGHT));
         AppServices.clearNodeHardforkHeight();
-        AppServices.isUnifiedSigHashActive(RC2_HEIGHT, RC1_HEIGHT, RC2_HEIGHT);
-
-        Assertions.assertEquals(2, disagreements().size(), "A new connection is a new occasion to say so");
+        Assertions.assertTrue(AppServices.isUnifiedSigHashActive(RC2_HEIGHT, RC1_HEIGHT, RC2_HEIGHT));
+        Assertions.assertTrue(disagreements().isEmpty());
     }
 
     @Test
     public void testADifferentDisagreementIsSurfacedSeparately() {
-        AppServices.isUnifiedSigHashActive(RC2_HEIGHT, RC1_HEIGHT, RC2_HEIGHT);
-        AppServices.isUnifiedSigHashActive(RC2_HEIGHT, 149999, RC2_HEIGHT);
-
-        Assertions.assertEquals(2, disagreements().size(), "A different pair of heights is a different disagreement");
-        Assertions.assertEquals(149999, disagreements().get(1).getNodeActivationHeight());
+        Assertions.assertTrue(AppServices.isUnifiedSigHashActive(RC2_HEIGHT, RC1_HEIGHT, RC2_HEIGHT));
+        Assertions.assertTrue(AppServices.isUnifiedSigHashActive(RC2_HEIGHT, 149999, RC2_HEIGHT));
+        Assertions.assertTrue(disagreements().isEmpty());
     }
 
     @Test

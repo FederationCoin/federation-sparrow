@@ -36,7 +36,7 @@ public class TrezorUnifiedSigHashHarness {
     /** A watch only single sig wallet over a device's account, marked or not as the owner would mark it. */
     private static Wallet deviceWallet(String xpub, String fingerprint, boolean marked) throws Exception {
         Wallet wallet = new Wallet();
-        wallet.setPolicyType(PolicyType.SINGLE_HD);
+        wallet.setPolicyType(PolicyType.SINGLE_MLDSA87);
         wallet.setScriptType(ScriptType.P2WPKH);
 
         Keystore keystore = new Keystore("Trezor");
@@ -47,7 +47,7 @@ public class TrezorUnifiedSigHashHarness {
         keystore.setUnifiedSigHashSupported(marked);
         wallet.getKeystores().add(keystore);
 
-        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.SINGLE_HD, ScriptType.P2WPKH, wallet.getKeystores(), null));
+        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.SINGLE_MLDSA87, ScriptType.P2WPKH, wallet.getKeystores(), null));
         wallet.getNode(KeyPurpose.RECEIVE);
         return wallet;
     }
@@ -67,12 +67,12 @@ public class TrezorUnifiedSigHashHarness {
 
     private static Wallet quorumWallet(String xpub, String fingerprint) throws Exception {
         Wallet wallet = new Wallet();
-        wallet.setPolicyType(PolicyType.MULTI_HD);
+        wallet.setPolicyType(PolicyType.MULTI_MLDSA87);
         wallet.setScriptType(ScriptType.P2WSH);
 
         for(String mnemonic : COSIGNERS) {
             DeterministicSeed seed = new DeterministicSeed(mnemonic, "", 0, DeterministicSeed.Type.BIP39);
-            wallet.getKeystores().add(Keystore.fromSeed(seed, PolicyType.MULTI_HD, ScriptType.P2WSH.getDefaultDerivation()));
+            wallet.getKeystores().add(Keystore.fromSeed(seed, PolicyType.MULTI_MLDSA87, ScriptType.P2WSH.getDefaultDerivation()));
         }
 
         Keystore device = new Keystore("Trezor");
@@ -83,7 +83,7 @@ public class TrezorUnifiedSigHashHarness {
         device.setUnifiedSigHashSupported(false);
         wallet.getKeystores().add(device);
 
-        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_HD, ScriptType.P2WSH, wallet.getKeystores(), 2));
+        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_MLDSA87, ScriptType.P2WSH, wallet.getKeystores(), 2));
         wallet.getNode(KeyPurpose.RECEIVE);
         return wallet;
     }

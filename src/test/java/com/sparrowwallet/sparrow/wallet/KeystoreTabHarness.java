@@ -43,7 +43,7 @@ public class KeystoreTabHarness {
             try {
                 Wallet wallet = new Wallet();
                 wallet.setName("Harness");
-                wallet.setPolicyType(PolicyType.SINGLE_HD);
+                wallet.setPolicyType(PolicyType.SINGLE_MLDSA87);
                 wallet.setScriptType(ScriptType.P2WPKH);
 
                 //Built from a seed so the keystore carries a real xpub, then stripped: initializeView only shows
@@ -51,13 +51,13 @@ public class KeystoreTabHarness {
                 DeterministicSeed seed = new DeterministicSeed(
                         "absent essay fox snake vast pumpkin height crouch silent bulb excuse razor",
                         "", 0, DeterministicSeed.Type.BIP39);
-                Keystore keystore = Keystore.fromSeed(seed, PolicyType.SINGLE_HD, ScriptType.P2WPKH.getDefaultDerivation());
+                Keystore keystore = Keystore.fromSeed(seed, PolicyType.SINGLE_MLDSA87, ScriptType.P2WPKH.getDefaultDerivation());
                 keystore.setLabel("Keystore 1");
                 keystore.setSeed(null);
                 keystore.setSource(source);
                 keystore.setWalletModel(source == KeystoreSource.SW_WATCH ? WalletModel.SPARROW : WalletModel.SEEDSIGNER);
                 wallet.getKeystores().add(keystore);
-                wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.SINGLE_HD, ScriptType.P2WPKH, wallet.getKeystores(), 1));
+                wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.SINGLE_MLDSA87, ScriptType.P2WPKH, wallet.getKeystores(), 1));
 
                 File file = File.createTempFile("keystore-harness", ".mv.db");
                 file.deleteOnExit();

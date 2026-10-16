@@ -23,7 +23,7 @@ public class TxEntry implements Comparable<TxEntry> {
         this.height = height;
         this.index = index;
         this.tx_hash = tx_hash;
-        this.fee = btcFee > 0.0 ? (long)(btcFee * Transaction.SATOSHIS_PER_BITCOIN) : null;
+        this.fee = btcFee > 0.0 ? (long)(btcFee * Transaction.TOKENS_PER_COIN) : null;
     }
 
     @Override

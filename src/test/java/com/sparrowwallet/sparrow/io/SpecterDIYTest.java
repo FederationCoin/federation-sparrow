@@ -22,7 +22,7 @@ public class SpecterDIYTest extends IoTest {
     public void testImport() throws ImportException {
         Network.set(Network.TESTNET);
         SpecterDIY specterDIY = new SpecterDIY();
-        Keystore keystore = specterDIY.getKeystore(PolicyType.SINGLE_HD, ScriptType.P2WPKH, getInputStream("specter-diy-keystore.txt"), null);
+        Keystore keystore = specterDIY.getKeystore(PolicyType.SINGLE_MLDSA87, ScriptType.P2WPKH, getInputStream("specter-diy-keystore.txt"), null);
 
         Assertions.assertEquals("Specter DIY", keystore.getLabel());
         Assertions.assertEquals("m/84'/1'/0'", keystore.getKeyDerivation().getDerivationPath());

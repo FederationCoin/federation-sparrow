@@ -3,10 +3,13 @@ package com.sparrowwallet.sparrow.io;
 import com.sparrowwallet.drongo.crypto.ChildNumber;
 import com.sparrowwallet.drongo.policy.PolicyType;
 import com.sparrowwallet.drongo.wallet.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
 public class Bip39 implements KeystoreMnemonicImport {
+    private static final Logger log = LoggerFactory.getLogger(Bip39.class);
     @Override
     public String getName() {
         return "Mnemonic Words (BIP39)";
@@ -36,6 +39,7 @@ public class Bip39 implements KeystoreMnemonicImport {
                 if(ex instanceof ImportException && ex.getCause() instanceof MnemonicException.MnemonicTypeException) {
                     throw (ImportException)ex;
                 }
+                log.warn("Mnemonic is not Electrum either", ex);
             }
 
             throw new ImportException(e);

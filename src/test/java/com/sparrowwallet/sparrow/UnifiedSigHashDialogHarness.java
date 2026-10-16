@@ -25,7 +25,7 @@ public class UnifiedSigHashDialogHarness {
             GlyphFontRegistry.register(new FontAwesome5Brands());
 
             Wallet wallet = new Wallet();
-            wallet.setPolicyType(PolicyType.MULTI_HD);
+            wallet.setPolicyType(PolicyType.MULTI_MLDSA87);
             wallet.setScriptType(ScriptType.P2WSH);
             String[] labels = {"Coldcard Mk4", "SeedSigner", "Jade (old firmware)"};
             WalletModel[] models = {WalletModel.COLDCARD, WalletModel.SEEDSIGNER, WalletModel.JADE};
@@ -37,7 +37,7 @@ public class UnifiedSigHashDialogHarness {
                 keystore.setUnifiedSigHashSupported(i < 1);
                 wallet.getKeystores().add(keystore);
             }
-            wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_HD, ScriptType.P2WSH, wallet.getKeystores(), 2));
+            wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_MLDSA87, ScriptType.P2WSH, wallet.getKeystores(), 2));
 
             try {
                 UnifiedSigHashKeystoreDialog dialog = new UnifiedSigHashKeystoreDialog(wallet);

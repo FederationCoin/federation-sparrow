@@ -1,7 +1,7 @@
 package com.sparrowwallet.sparrow.control;
 
 import com.google.common.collect.Lists;
-import com.sparrowwallet.drongo.BitcoinUnit;
+import com.sparrowwallet.drongo.CoinUnit;
 import com.sparrowwallet.drongo.wallet.Wallet;
 import com.sparrowwallet.sparrow.UnitFormat;
 import com.sparrowwallet.sparrow.io.Config;
@@ -36,7 +36,7 @@ public class BalanceChart extends LineChart<Number, Number> {
         getData().add(balanceSeries);
         update(walletTransactionsEntry);
 
-        setUnitFormat(walletTransactionsEntry.getWallet(), Config.get().getUnitFormat(), Config.get().getBitcoinUnit());
+        setUnitFormat(walletTransactionsEntry.getWallet(), Config.get().getUnitFormat(), Config.get().getCoinUnit());
     }
 
     public void update(WalletTransactionsEntry walletTransactionsEntry) {
@@ -116,12 +116,12 @@ public class BalanceChart extends LineChart<Number, Number> {
         }
     }
 
-    public void setUnitFormat(Wallet wallet, UnitFormat format, BitcoinUnit unit) {
+    public void setUnitFormat(Wallet wallet, UnitFormat format, CoinUnit unit) {
         if(format == null) {
             format = UnitFormat.DOT;
         }
 
-        if(unit == null || unit.equals(BitcoinUnit.AUTO)) {
+        if(unit == null || unit.equals(CoinUnit.AUTO)) {
             unit = wallet.getAutoUnit();
         }
 

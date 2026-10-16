@@ -37,7 +37,7 @@ public class TapScriptSignedTest {
     public static PSBT declaredUnifiedPsbt() {
         ECKey key = ECKey.fromPrivate(Utils.hexToBytes(PRIVATE_KEY));
         //Taproot, because a script path signature belongs to a taproot input and is ignored anywhere else
-        Script spk = ScriptType.P2TR.getOutputScript(PolicyType.SINGLE_HD, key);
+        Script spk = ScriptType.P2TR.getOutputScript(PolicyType.SINGLE_MLDSA87, key);
 
         Transaction transaction = new Transaction();
         transaction.setVersion(2);
@@ -107,7 +107,7 @@ public class TapScriptSignedTest {
     @Test
     public void a_script_path_signature_counts_as_something_present_and_unchecked() throws Exception {
         int[] counts = AppServices.signatureOptInCounts(signedByScriptPath(SigHash.ALL.byteValue()),
-                java.util.List.of(ECKey.fromPublicOnly(ScriptType.P2TR.getOutputKey(PolicyType.SINGLE_HD,
+                java.util.List.of(ECKey.fromPublicOnly(ScriptType.P2TR.getOutputKey(PolicyType.SINGLE_MLDSA87,
                         ECKey.fromPrivate(Utils.hexToBytes(PRIVATE_KEY))))));
 
         Assertions.assertEquals(0, counts[0], "nothing was verified, so nothing may be reported as opting in");
@@ -124,7 +124,7 @@ public class TapScriptSignedTest {
     public void one_whose_last_byte_claims_the_opt_in_is_still_not_counted() throws Exception {
         int[] counts = AppServices.signatureOptInCounts(
                 signedByScriptPath((byte)(SigHash.UNIFIED_FLAG | SigHash.ALL.byteValue())),
-                java.util.List.of(ECKey.fromPublicOnly(ScriptType.P2TR.getOutputKey(PolicyType.SINGLE_HD,
+                java.util.List.of(ECKey.fromPublicOnly(ScriptType.P2TR.getOutputKey(PolicyType.SINGLE_MLDSA87,
                         ECKey.fromPrivate(Utils.hexToBytes(PRIVATE_KEY))))));
 
         Assertions.assertEquals(0, counts[0], "a byte in an unverified signature is not evidence of anything");
@@ -160,9 +160,9 @@ public class TapScriptSignedTest {
     @Test
     public void an_unreadable_signature_beside_a_readable_one_still_holds_the_answer_open() throws Exception {
         ECKey key = ECKey.fromPrivate(Utils.hexToBytes(PRIVATE_KEY));
-        ECKey outputKey = ScriptType.P2WPKH.getOutputKey(PolicyType.SINGLE_HD, key);
-        Script spk = ScriptType.P2WPKH.getOutputScript(PolicyType.SINGLE_HD, key);
-        Script taprootSpk = ScriptType.P2TR.getOutputScript(PolicyType.SINGLE_HD, key);
+        ECKey outputKey = ScriptType.P2WPKH.getOutputKey(PolicyType.SINGLE_MLDSA87, key);
+        Script spk = ScriptType.P2WPKH.getOutputScript(PolicyType.SINGLE_MLDSA87, key);
+        Script taprootSpk = ScriptType.P2TR.getOutputScript(PolicyType.SINGLE_MLDSA87, key);
 
         Transaction transaction = new Transaction();
         transaction.setVersion(2);

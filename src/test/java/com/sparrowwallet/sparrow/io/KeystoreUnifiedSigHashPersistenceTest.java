@@ -196,11 +196,11 @@ public class KeystoreUnifiedSigHashPersistenceTest {
      */
     private Wallet markedWallet() {
         Wallet wallet = new Wallet("Marked");
-        wallet.setPolicyType(PolicyType.MULTI_HD);
+        wallet.setPolicyType(PolicyType.MULTI_MLDSA87);
         wallet.setScriptType(ScriptType.P2WSH);
         wallet.getKeystores().add(hardwareKeystore("Marked device", XPUBS[0], "00000001", true));
         wallet.getKeystores().add(hardwareKeystore("Unmarked device", XPUBS[1], "00000002", false));
-        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_HD, ScriptType.P2WSH, wallet.getKeystores(), 2));
+        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_MLDSA87, ScriptType.P2WSH, wallet.getKeystores(), 2));
 
         return wallet;
     }

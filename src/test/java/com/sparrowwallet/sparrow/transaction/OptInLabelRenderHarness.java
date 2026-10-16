@@ -40,12 +40,12 @@ import java.util.concurrent.CountDownLatch;
 public class OptInLabelRenderHarness {
     private static Wallet wallet() throws Exception {
         Wallet wallet = new Wallet();
-        wallet.setPolicyType(PolicyType.SINGLE_HD);
+        wallet.setPolicyType(PolicyType.SINGLE_MLDSA87);
         wallet.setScriptType(ScriptType.P2WPKH);
         DeterministicSeed seed = new DeterministicSeed(
                 "absent essay fox snake vast pumpkin height crouch silent bulb excuse razor", "", 0, DeterministicSeed.Type.BIP39);
-        wallet.getKeystores().add(Keystore.fromSeed(seed, PolicyType.SINGLE_HD, ScriptType.P2WPKH.getDefaultDerivation()));
-        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.SINGLE_HD, ScriptType.P2WPKH, wallet.getKeystores(), null));
+        wallet.getKeystores().add(Keystore.fromSeed(seed, PolicyType.SINGLE_MLDSA87, ScriptType.P2WPKH.getDefaultDerivation()));
+        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.SINGLE_MLDSA87, ScriptType.P2WPKH, wallet.getKeystores(), null));
         wallet.getNode(KeyPurpose.RECEIVE);
         return wallet;
     }
@@ -58,7 +58,7 @@ public class OptInLabelRenderHarness {
      */
     private static Wallet partiallyMarkedMultisig() throws Exception {
         Wallet wallet = new Wallet();
-        wallet.setPolicyType(PolicyType.MULTI_HD);
+        wallet.setPolicyType(PolicyType.MULTI_MLDSA87);
         wallet.setScriptType(ScriptType.P2WSH);
 
         String[] words = {
@@ -67,7 +67,7 @@ public class OptInLabelRenderHarness {
                 "quantum lens tag pencil kingdom obey noise pigeon oyster shoulder ordinary tilt"};
         for(int i = 0; i < words.length; i++) {
             Keystore keystore = Keystore.fromSeed(new DeterministicSeed(words[i], "", 0, DeterministicSeed.Type.BIP39),
-                    PolicyType.MULTI_HD, ScriptType.P2WSH.getDefaultDerivation());
+                    PolicyType.MULTI_MLDSA87, ScriptType.P2WSH.getDefaultDerivation());
             //A device rather than a seed this wallet holds: only then is its support the user's to state, and only
             //then can a signer be unmarked
             keystore.setSource(com.sparrowwallet.drongo.wallet.KeystoreSource.HW_USB);
@@ -76,7 +76,7 @@ public class OptInLabelRenderHarness {
             wallet.getKeystores().add(keystore);
         }
 
-        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_HD, ScriptType.P2WSH, wallet.getKeystores(), 2));
+        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_MLDSA87, ScriptType.P2WSH, wallet.getKeystores(), 2));
         wallet.getNode(KeyPurpose.RECEIVE);
         return wallet;
     }
@@ -288,12 +288,12 @@ public class OptInLabelRenderHarness {
                 //A wallet that holds none of these keys. Nothing can be vouched for, so nothing may be reported as
                 //checked, however confident the file's own declaration is.
                 Wallet stranger = new Wallet();
-                stranger.setPolicyType(PolicyType.SINGLE_HD);
+                stranger.setPolicyType(PolicyType.SINGLE_MLDSA87);
                 stranger.setScriptType(ScriptType.P2WPKH);
                 stranger.getKeystores().add(Keystore.fromSeed(new DeterministicSeed(
                         "sell arrive brand fluid cousin twin trap bar hen fine bicycle rack", "", 0,
-                        DeterministicSeed.Type.BIP39), PolicyType.SINGLE_HD, ScriptType.P2WPKH.getDefaultDerivation()));
-                stranger.setDefaultPolicy(Policy.getPolicy(PolicyType.SINGLE_HD, ScriptType.P2WPKH,
+                        DeterministicSeed.Type.BIP39), PolicyType.SINGLE_MLDSA87, ScriptType.P2WPKH.getDefaultDerivation()));
+                stranger.setDefaultPolicy(Policy.getPolicy(PolicyType.SINGLE_MLDSA87, ScriptType.P2WPKH,
                         stranger.getKeystores(), null));
                 stranger.getNode(KeyPurpose.RECEIVE);
                 render("opted-in, but the open wallet holds none of these keys", signedPsbt(wallet(), SigHash.UNIFIED_ALL), stranger);

@@ -51,7 +51,8 @@ public class AddressesController extends WalletFormController implements Initial
         changeTable.initialize(getWalletForm().getNodeEntry(KeyPurpose.CHANGE));
 
         showPayNymAddresses.managedProperty().bind(showPayNymAddresses.visibleProperty());
-        showPayNymAddresses.setVisible(false);
+        showPayNymAddresses.setVisible(com.sparrowwallet.sparrow.paynym.PayNym.supportedOnThisChain()
+                && getWalletForm().getWallet().getChildWallets().stream().anyMatch(Wallet::isBip47));
     }
 
     @Subscribe
@@ -89,8 +90,8 @@ public class AddressesController extends WalletFormController implements Initial
 
     @Subscribe
     public void unitFormatChanged(UnitFormatChangedEvent event) {
-        receiveTable.setUnitFormat(getWalletForm().getWallet(), event.getUnitFormat(), event.getBitcoinUnit());
-        changeTable.setUnitFormat(getWalletForm().getWallet(), event.getUnitFormat(), event.getBitcoinUnit());
+        receiveTable.setUnitFormat(getWalletForm().getWallet(), event.getUnitFormat(), event.getCoinUnit());
+        changeTable.setUnitFormat(getWalletForm().getWallet(), event.getUnitFormat(), event.getCoinUnit());
     }
 
     @Subscribe
@@ -122,7 +123,8 @@ public class AddressesController extends WalletFormController implements Initial
     @Subscribe
     public void childWalletsAdded(ChildWalletsAddedEvent event) {
         if(event.getWallet().equals(getWalletForm().getWallet())) {
-            showPayNymAddresses.setVisible(false);
+            showPayNymAddresses.setVisible(com.sparrowwallet.sparrow.paynym.PayNym.supportedOnThisChain()
+                    && getWalletForm().getWallet().getChildWallets().stream().anyMatch(Wallet::isBip47));
         }
     }
 

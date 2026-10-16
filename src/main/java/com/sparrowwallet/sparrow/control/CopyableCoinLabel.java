@@ -1,6 +1,6 @@
 package com.sparrowwallet.sparrow.control;
 
-import com.sparrowwallet.drongo.BitcoinUnit;
+import com.sparrowwallet.drongo.CoinUnit;
 import com.sparrowwallet.sparrow.UnitFormat;
 import com.sparrowwallet.sparrow.io.Config;
 import javafx.beans.property.LongProperty;
@@ -17,7 +17,7 @@ public class CopyableCoinLabel extends CopyableLabel {
     private final Tooltip tooltip;
     private final CoinContextMenu contextMenu;
 
-    private BitcoinUnit bitcoinUnit;
+    private CoinUnit coinUnit;
 
     public CopyableCoinLabel() {
         this("Unknown");
@@ -25,24 +25,24 @@ public class CopyableCoinLabel extends CopyableLabel {
 
     public CopyableCoinLabel(String text) {
         super(text);
-        valueProperty().addListener((observable, oldValue, newValue) -> setValueAsText((Long)newValue, Config.get().getUnitFormat(), Config.get().getBitcoinUnit()));
+        valueProperty().addListener((observable, oldValue, newValue) -> setValueAsText((Long)newValue, Config.get().getUnitFormat(), Config.get().getCoinUnit()));
 
         setOnMouseClicked(event -> {
             if(!event.getButton().equals(MouseButton.PRIMARY)) {
                 return;
             }
 
-            if(bitcoinUnit == null) {
-                bitcoinUnit = Config.get().getBitcoinUnit();
+            if(coinUnit == null) {
+                coinUnit = Config.get().getCoinUnit();
             }
 
-            if(bitcoinUnit == BitcoinUnit.SATOSHIS) {
-                bitcoinUnit = BitcoinUnit.BTC;
+            if(coinUnit == CoinUnit.TOKENS) {
+                coinUnit = CoinUnit.GFCN;
             } else {
-                bitcoinUnit = BitcoinUnit.SATOSHIS;
+                coinUnit = CoinUnit.TOKENS;
             }
 
-            refresh(Config.get().getUnitFormat(), bitcoinUnit);
+            refresh(Config.get().getUnitFormat(), coinUnit);
         });
 
         tooltip = new Tooltip();
@@ -62,14 +62,14 @@ public class CopyableCoinLabel extends CopyableLabel {
     }
 
     public void refresh() {
-        refresh(Config.get().getUnitFormat(), Config.get().getBitcoinUnit());
+        refresh(Config.get().getUnitFormat(), Config.get().getCoinUnit());
     }
 
-    public void refresh(UnitFormat unitFormat, BitcoinUnit bitcoinUnit) {
-        setValueAsText(getValue(), unitFormat, bitcoinUnit);
+    public void refresh(UnitFormat unitFormat, CoinUnit coinUnit) {
+        setValueAsText(getValue(), unitFormat, coinUnit);
     }
 
-    private void setValueAsText(Long value, UnitFormat unitFormat, BitcoinUnit bitcoinUnit) {
+    private void setValueAsText(Long value, UnitFormat unitFormat, CoinUnit coinUnit) {
         if(Config.get().isHideAmounts()) {
             setText(CoinLabel.HIDDEN_AMOUNT_TEXT);
             setTooltip(null);
@@ -84,9 +84,9 @@ public class CopyableCoinLabel extends CopyableLabel {
             unitFormat = UnitFormat.DOT;
         }
 
-        this.bitcoinUnit = CoinAmountText.resolve(value, bitcoinUnit);
-        tooltip.setText(CoinAmountText.tooltip(value, bitcoinUnit, unitFormat));
-        setText(CoinAmountText.display(value, bitcoinUnit, unitFormat));
+        this.coinUnit = CoinAmountText.resolve(value, coinUnit);
+        tooltip.setText(CoinAmountText.tooltip(value, coinUnit, unitFormat));
+        setText(CoinAmountText.display(value, coinUnit, unitFormat));
     }
 
     private class CoinContextMenu extends ContextMenu {
@@ -104,7 +104,7 @@ public class CopyableCoinLabel extends CopyableLabel {
                 hide();
                 ClipboardContent content = new ClipboardContent();
                 UnitFormat format = Config.get().getUnitFormat() == null ? UnitFormat.DOT : Config.get().getUnitFormat();
-                content.putString(format.formatBtcValue(getValue()));
+                content.putString(format.formatCoinValue(getValue()));
                 Clipboard.getSystemClipboard().setContent(content);
             });
 

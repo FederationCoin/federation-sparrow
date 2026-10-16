@@ -72,17 +72,21 @@ public class Bip39Dialog extends NewWalletDialog {
         buttonPanel.setLayoutData(GridLayout.createLayoutData(GridLayout.Alignment.END, GridLayout.Alignment.CENTER,false,false)).addTo(mainPanel);
         setComponent(mainPanel);
 
-        for(PolicyType policyType : List.of(PolicyType.SINGLE_HD, PolicyType.MULTI_HD)) {
-            for(ScriptType scriptType : ScriptType.getAddressableScriptTypes(policyType)) {
-                this.scriptType.addItem(new PolicyAndScriptType(policyType, scriptType));
+        for(PolicyType policyType : PolicyType.values()) {
+            if(!policyType.isOfferedForNewWallets()) {
+                continue;
+            }
+            for(ScriptType offeredScript : ScriptType.getAddressableScriptTypes(policyType)) {
+                this.scriptType.addItem(new PolicyAndScriptType(policyType, offeredScript));
             }
         }
-        scriptType.setSelectedItem(new PolicyAndScriptType(PolicyType.SINGLE_HD, ScriptType.MLDSA87_SINGLE));
+        scriptType.setSelectedItem(new PolicyAndScriptType(PolicyType.SINGLE_MLDSA87, ScriptType.MLDSA87_SINGLE));
 
         seedWords.setTextChangeListener((newText, changedByUserInteraction) -> {
             try {
                 String[] words = newText.split("[ \n]");
-                importer.getKeystore(PolicyType.SINGLE_HD, scriptType.getSelectedItem().scriptType().getDefaultDerivation(), Arrays.asList(words), passphrase.getText());
+                PolicyAndScriptType selected = scriptType.getSelectedItem();
+                importer.getKeystore(selected.policyType(), selected.scriptType().getDefaultDerivation(), Arrays.asList(words), passphrase.getText());
                 createWallet.setEnabled(true);
             } catch(ImportException e) {
                 createWallet.setEnabled(false);
@@ -188,7 +192,7 @@ public class Bip39Dialog extends NewWalletDialog {
         Keystore keystore = importer.getKeystore(type.policyType(), wallet.getScriptType().getDefaultDerivation(), getWords(), passphrase.getText());
         wallet.getKeystores().add(keystore);
         wallet.setDefaultPolicy(Policy.getPolicy(type.policyType(), wallet.getScriptType(), wallet.getKeystores(), 1));
-        if(type.policyType() == PolicyType.SINGLE_SP) {
+        if(type.policyType().isSilentPayment()) {
             wallet.setBirthDate(new Date());
         }
         return List.of(wallet);
@@ -197,7 +201,7 @@ public class Bip39Dialog extends NewWalletDialog {
     private record PolicyAndScriptType(PolicyType policyType, ScriptType scriptType) {
         @Override
         public String toString() {
-            return scriptType.getDescription() + (policyType == PolicyType.SINGLE_SP ? " SP" : " HD");
+            return policyType.getName() + " / " + scriptType.getDescription();
         }
     }
 

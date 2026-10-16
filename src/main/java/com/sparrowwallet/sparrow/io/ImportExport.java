@@ -8,4 +8,9 @@ public interface ImportExport {
     default boolean isDeprecated() {
         return false;
     }
+
+    /** False for hardware until a manufacturer supports this chain. Software imports stay offered. */
+    default boolean supports() {
+        return getWalletModel().supportsThisChain();
+    }
 }

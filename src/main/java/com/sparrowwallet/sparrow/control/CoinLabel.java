@@ -1,6 +1,6 @@
 package com.sparrowwallet.sparrow.control;
 
-import com.sparrowwallet.drongo.BitcoinUnit;
+import com.sparrowwallet.drongo.CoinUnit;
 import com.sparrowwallet.sparrow.UnitFormat;
 import com.sparrowwallet.sparrow.io.Config;
 import javafx.beans.property.LongProperty;
@@ -25,7 +25,7 @@ public class CoinLabel extends Label {
 
     public CoinLabel(String text) {
         super(text);
-        valueProperty().addListener((observable, oldValue, newValue) -> setValueAsText((Long)newValue, Config.get().getBitcoinUnit()));
+        valueProperty().addListener((observable, oldValue, newValue) -> setValueAsText((Long)newValue, Config.get().getCoinUnit()));
         tooltip = new Tooltip();
         contextMenu = new CoinContextMenu();
     }
@@ -43,14 +43,14 @@ public class CoinLabel extends Label {
     }
 
     public void refresh() {
-        refresh(Config.get().getBitcoinUnit());
+        refresh(Config.get().getCoinUnit());
     }
 
-    public void refresh(BitcoinUnit bitcoinUnit) {
-        setValueAsText(getValue(), bitcoinUnit);
+    public void refresh(CoinUnit coinUnit) {
+        setValueAsText(getValue(), coinUnit);
     }
 
-    private void setValueAsText(Long value, BitcoinUnit bitcoinUnit) {
+    private void setValueAsText(Long value, CoinUnit coinUnit) {
         if(Config.get().isHideAmounts()) {
             setText(HIDDEN_AMOUNT_TEXT);
             setTooltip(null);
@@ -62,8 +62,8 @@ public class CoinLabel extends Label {
         setContextMenu(contextMenu);
 
         UnitFormat format = Config.get().getUnitFormat() == null ? UnitFormat.DOT : Config.get().getUnitFormat();
-        tooltip.setText(CoinAmountText.tooltip(value, bitcoinUnit, format));
-        setText(CoinAmountText.display(value, bitcoinUnit, format));
+        tooltip.setText(CoinAmountText.tooltip(value, coinUnit, format));
+        setText(CoinAmountText.display(value, coinUnit, format));
     }
 
     private class CoinContextMenu extends ContextMenu {
@@ -81,7 +81,7 @@ public class CoinLabel extends Label {
                 hide();
                 ClipboardContent content = new ClipboardContent();
                 UnitFormat format = Config.get().getUnitFormat() == null ? UnitFormat.DOT : Config.get().getUnitFormat();
-                content.putString(format.formatBtcValue(getValue()));
+                content.putString(format.formatCoinValue(getValue()));
                 Clipboard.getSystemClipboard().setContent(content);
             });
 

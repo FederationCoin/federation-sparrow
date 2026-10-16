@@ -66,8 +66,29 @@ public class KeystoreImportDialog extends Dialog<Keystore> {
     }
 
     public static List<KeystoreSource> getSupportedSources() {
-        // Hardware and airgapped devices are not a spend on this chain.
-        return List.of(KeystoreSource.SW_SEED);
+        List<KeystoreSource> sources = new java.util.ArrayList<>();
+        boolean anyUsb = false;
+        boolean anyAirgap = false;
+        for(WalletModel model : WalletModel.values()) {
+            if(!model.supportsThisChain()) {
+                continue;
+            }
+            if(model.hasUsb()) {
+                anyUsb = true;
+            }
+            if(model.isAirgapped()) {
+                anyAirgap = true;
+            }
+        }
+        if(anyUsb) {
+            sources.add(KeystoreSource.HW_USB);
+        }
+        if(anyAirgap) {
+            sources.add(KeystoreSource.HW_AIRGAPPED);
+        }
+        sources.add(KeystoreSource.SW_WATCH);
+        sources.add(KeystoreSource.SW_SEED);
+        return sources;
     }
 
     private Keystore getWatchOnlyKeystore() {

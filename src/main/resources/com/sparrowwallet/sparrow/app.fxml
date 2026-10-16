@@ -6,7 +6,7 @@
 <?import javafx.scene.text.Text?>
 <?import javafx.scene.shape.Rectangle?>
 <?import com.sparrowwallet.sparrow.control.UnlabeledToggleSwitch?>
-<?import com.sparrowwallet.drongo.BitcoinUnit?>
+<?import com.sparrowwallet.drongo.CoinUnit?>
 <?import com.sparrowwallet.sparrow.UnitFormat?>
 <?import com.sparrowwallet.sparrow.Theme?>
 <?import impl.org.controlsfx.skin.DecorationPane?>
@@ -56,7 +56,7 @@
                     </items>
                 </Menu>
                 <fx:define>
-                    <ToggleGroup fx:id="bitcoinUnit"/>
+                    <ToggleGroup fx:id="coinUnit"/>
                 </fx:define>
                 <fx:define>
                     <ToggleGroup fx:id="unitFormat"/>
@@ -68,19 +68,19 @@
                     <items>
                         <Menu mnemonicParsing="false" text="Bitcoin Unit">
                             <items>
-                                <RadioMenuItem mnemonicParsing="false" text="Auto" toggleGroup="$bitcoinUnit" onAction="#setBitcoinUnit">
+                                <RadioMenuItem mnemonicParsing="false" text="Auto" toggleGroup="$coinUnit" onAction="#setCoinUnit">
                                     <userData>
-                                        <BitcoinUnit fx:constant="AUTO" />
+                                        <CoinUnit fx:constant="AUTO" />
                                     </userData>
                                 </RadioMenuItem>
-                                <RadioMenuItem mnemonicParsing="false" text="GFCN" toggleGroup="$bitcoinUnit" onAction="#setBitcoinUnit">
+                                <RadioMenuItem mnemonicParsing="false" text="GFCN" toggleGroup="$coinUnit" onAction="#setCoinUnit">
                                     <userData>
-                                        <BitcoinUnit fx:constant="BTC" />
+                                        <CoinUnit fx:constant="GFCN" />
                                     </userData>
                                 </RadioMenuItem>
-                                <RadioMenuItem mnemonicParsing="false" text="tokens" toggleGroup="$bitcoinUnit" onAction="#setBitcoinUnit">
+                                <RadioMenuItem mnemonicParsing="false" text="tokens" toggleGroup="$coinUnit" onAction="#setCoinUnit">
                                     <userData>
-                                        <BitcoinUnit fx:constant="SATOSHIS" />
+                                        <CoinUnit fx:constant="TOKENS" />
                                     </userData>
                                 </RadioMenuItem>
                             </items>
@@ -145,9 +145,9 @@
                 <Menu fx:id="toolsMenu" mnemonicParsing="false" text="Tools">
                     <MenuItem mnemonicParsing="false" text="Sign/Verify Message" accelerator="Shortcut+M" onAction="#signVerifyMessage"/>
                     <MenuItem fx:id="sendToMany" mnemonicParsing="false" text="Send To Many" onAction="#sendToMany"/>
-                    <MenuItem fx:id="sweepPrivateKey" mnemonicParsing="false" text="Sweep Private Key" onAction="#sweepPrivateKey" visible="false"/>
+                    <MenuItem fx:id="sweepPrivateKey" mnemonicParsing="false" text="Sweep Private Key" onAction="#sweepPrivateKey"/>
                     <SeparatorMenuItem />
-                    <MenuItem fx:id="showPayNym" mnemonicParsing="false" text="Show PayNym" onAction="#showPayNym" visible="false"/>
+                    <MenuItem fx:id="showPayNym" mnemonicParsing="false" text="Show PayNym" onAction="#showPayNym"/>
                     <SeparatorMenuItem />
                     <Menu fx:id="switchServer" text="Switch Server"/>
                     <MenuItem mnemonicParsing="false" text="Verify Download" onAction="#verifyDownload" />

@@ -1,7 +1,7 @@
 package com.sparrowwallet.sparrow.control;
 
 import com.csvreader.CsvWriter;
-import com.sparrowwallet.drongo.BitcoinUnit;
+import com.sparrowwallet.drongo.CoinUnit;
 import com.sparrowwallet.drongo.KeyPurpose;
 import com.sparrowwallet.drongo.Utils;
 import com.sparrowwallet.drongo.address.Address;
@@ -363,7 +363,7 @@ public class SearchWalletDialog extends Dialog<Entry> {
 
     private String getCoinValue(Long value) {
         UnitFormat format = Config.get().getUnitFormat() == null ? UnitFormat.DOT : Config.get().getUnitFormat();
-        return BitcoinUnit.BTC.equals(results.getBitcoinUnit()) ? format.tableFormatBtcValue(value) : String.format(Locale.ENGLISH, "%d", value);
+        return CoinUnit.GFCN.equals(results.getCoinUnit()) ? format.tableFormatCoinValue(value) : String.format(Locale.ENGLISH, "%d", value);
     }
 
     private static class SearchWalletEntry extends Entry {

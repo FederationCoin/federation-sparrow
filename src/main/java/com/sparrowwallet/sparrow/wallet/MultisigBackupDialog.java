@@ -30,10 +30,8 @@ public class MultisigBackupDialog extends Dialog<String> {
         setTitle("Backup Multisig Wallet?");
 
         DialogPane dialogPane = new MultisigBackupDialogPane();
-        dialogPane.setHeaderText("To restore this multisig wallet, you need at least " + wallet.getDefaultPolicy().getNumSignaturesRequired() + " seeds and the policy (threshold, count, and sorted key hashes). " +
-                "Backup the seeds plus this policy, or this Sparrow wallet file.\n\n" +
-                "The policy below is not a Bitcoin output descriptor. " +
-                "Alternatively, use the Export button to export the Sparrow wallet file.");
+        dialogPane.setHeaderText("To restore this wallet, you need at least " + wallet.getDefaultPolicy().getNumSignaturesRequired() + " seeds and the policy (threshold, count, and sorted key hashes). " +
+                "Backup the seeds plus this policy, or this Sparrow wallet file.");
         setDialogPane(dialogPane);
 
         dialogPane.getStyleClass().addAll("alert", "warning");

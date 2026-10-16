@@ -21,7 +21,7 @@ public class ColdcardMultisigTest extends IoTest {
     public void importKeystore1() throws ImportException {
         Network.set(Network.TESTNET);
         ColdcardMultisig ccMultisig = new ColdcardMultisig();
-        Keystore keystore = ccMultisig.getKeystore(PolicyType.MULTI_HD, ScriptType.P2SH_P2WSH, getInputStream("cc-multisig-keystore-1.json"), null);
+        Keystore keystore = ccMultisig.getKeystore(PolicyType.MULTI_SEGWIT, ScriptType.P2SH_P2WSH, getInputStream("cc-multisig-keystore-1.json"), null);
         Assertions.assertEquals("Coldcard", keystore.getLabel());
         Assertions.assertEquals("m/48'/1'/0'/1'", keystore.getKeyDerivation().getDerivationPath());
         Assertions.assertEquals("0f056943", keystore.getKeyDerivation().getMasterFingerprint());
@@ -32,14 +32,14 @@ public class ColdcardMultisigTest extends IoTest {
     @Test
     public void importKeystore1IncorrectScriptType() throws ImportException {
         ColdcardMultisig ccMultisig = new ColdcardMultisig();
-        Assertions.assertThrows(ImportException.class, () -> ccMultisig.getKeystore(PolicyType.MULTI_HD, ScriptType.P2SH_P2WPKH, getInputStream("cc-multisig-keystore-1.json"), null));
+        Assertions.assertThrows(ImportException.class, () -> ccMultisig.getKeystore(PolicyType.MULTI_SEGWIT, ScriptType.P2SH_P2WPKH, getInputStream("cc-multisig-keystore-1.json"), null));
     }
 
     @Test
     public void importKeystore2() throws ImportException {
         Network.set(Network.TESTNET);
         ColdcardMultisig ccMultisig = new ColdcardMultisig();
-        Keystore keystore = ccMultisig.getKeystore(PolicyType.MULTI_HD, ScriptType.P2SH, getInputStream("cc-multisig-keystore-2.json"), null);
+        Keystore keystore = ccMultisig.getKeystore(PolicyType.MULTI_SEGWIT, ScriptType.P2SH, getInputStream("cc-multisig-keystore-2.json"), null);
         Assertions.assertEquals("Coldcard", keystore.getLabel());
         Assertions.assertEquals("m/45'", keystore.getKeyDerivation().getDerivationPath());
         Assertions.assertEquals("6ba6cfd0", keystore.getKeyDerivation().getMasterFingerprint());
@@ -51,7 +51,7 @@ public class ColdcardMultisigTest extends IoTest {
     public void importKeystore2b() throws ImportException {
         Network.set(Network.TESTNET);
         ColdcardMultisig ccMultisig = new ColdcardMultisig();
-        Keystore keystore = ccMultisig.getKeystore(PolicyType.MULTI_HD, ScriptType.P2WSH, getInputStream("cc-multisig-keystore-2.json"), null);
+        Keystore keystore = ccMultisig.getKeystore(PolicyType.MULTI_SEGWIT, ScriptType.P2WSH, getInputStream("cc-multisig-keystore-2.json"), null);
         Assertions.assertEquals("Coldcard", keystore.getLabel());
         Assertions.assertEquals("m/48'/1'/0'/2'", keystore.getKeyDerivation().getDerivationPath());
         Assertions.assertEquals("6ba6cfd0", keystore.getKeyDerivation().getMasterFingerprint());
@@ -64,7 +64,7 @@ public class ColdcardMultisigTest extends IoTest {
         ColdcardMultisig ccMultisig = new ColdcardMultisig();
         Wallet wallet = ccMultisig.importWallet(getInputStream("cc-multisig-export-1.txt"), null);
         Assertions.assertEquals("CC-2-of-4", wallet.getName());
-        Assertions.assertEquals(PolicyType.MULTI_HD, wallet.getPolicyType());
+        Assertions.assertEquals(PolicyType.MULTI_SEGWIT, wallet.getPolicyType());
         Assertions.assertEquals(ScriptType.P2WSH, wallet.getScriptType());
         Assertions.assertEquals(2, wallet.getDefaultPolicy().getNumSignaturesRequired());
         Assertions.assertEquals("wsh(sortedmulti(2,coldcard1,coldcard2,coldcard3,coldcard4))", wallet.getDefaultPolicy().getMiniscript().getScript().toLowerCase(Locale.ROOT));
@@ -77,7 +77,7 @@ public class ColdcardMultisigTest extends IoTest {
         ColdcardMultisig ccMultisig = new ColdcardMultisig();
         Wallet wallet = ccMultisig.importWallet(getInputStream("cc-multisig-export-2.txt"), null);
         Assertions.assertEquals("CC-2-of-4", wallet.getName());
-        Assertions.assertEquals(PolicyType.MULTI_HD, wallet.getPolicyType());
+        Assertions.assertEquals(PolicyType.MULTI_SEGWIT, wallet.getPolicyType());
         Assertions.assertEquals(ScriptType.P2SH_P2WSH, wallet.getScriptType());
         Assertions.assertEquals(2, wallet.getDefaultPolicy().getNumSignaturesRequired());
         Assertions.assertEquals("sh(wsh(sortedmulti(2,coldcard1,coldcard2,coldcard3,coldcard4)))", wallet.getDefaultPolicy().getMiniscript().getScript().toLowerCase(Locale.ROOT));
@@ -89,7 +89,7 @@ public class ColdcardMultisigTest extends IoTest {
         ColdcardMultisig ccMultisig = new ColdcardMultisig();
         Wallet wallet = ccMultisig.importWallet(getInputStream("cc-multisig-export-multideriv.txt"), null);
         Assertions.assertEquals("el-CC-3-of-3-sb-2", wallet.getName());
-        Assertions.assertEquals(PolicyType.MULTI_HD, wallet.getPolicyType());
+        Assertions.assertEquals(PolicyType.MULTI_SEGWIT, wallet.getPolicyType());
         Assertions.assertEquals(ScriptType.P2WSH, wallet.getScriptType());
         Assertions.assertEquals(3, wallet.getDefaultPolicy().getNumSignaturesRequired());
         Assertions.assertEquals("wsh(sortedmulti(3,coldcard1,coldcard2,coldcard3))", wallet.getDefaultPolicy().getMiniscript().getScript().toLowerCase(Locale.ROOT));

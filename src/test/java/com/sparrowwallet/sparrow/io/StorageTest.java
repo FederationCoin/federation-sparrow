@@ -27,10 +27,10 @@ public class StorageTest extends IoTest {
         byte[] entropy = new byte[16];
         Arrays.fill(entropy, (byte)0x21);
         DeterministicSeed seed = new DeterministicSeed(entropy, "", 0L);
-        Keystore keystore = Keystore.fromSeed(seed, PolicyType.SINGLE_HD, ScriptType.MLDSA_SINGLE.getDefaultDerivation());
+        Keystore keystore = Keystore.fromSeed(seed, PolicyType.SINGLE_MLDSA87, ScriptType.MLDSA87_SINGLE.getDefaultDerivation());
         Wallet wallet = new Wallet(name);
-        wallet.setPolicyType(PolicyType.SINGLE_HD);
-        wallet.setScriptType(ScriptType.MLDSA_SINGLE);
+        wallet.setPolicyType(PolicyType.SINGLE_MLDSA87);
+        wallet.setScriptType(ScriptType.MLDSA87_SINGLE);
         wallet.getKeystores().add(keystore);
         wallet.setDefaultPolicy(Policy.getPolicy(wallet.getPolicyType(), wallet.getScriptType(), wallet.getKeystores(), 1));
         return wallet;
@@ -45,8 +45,8 @@ public class StorageTest extends IoTest {
         watch.setKeyDerivation(fromSeed.getKeyDerivation());
         watch.setExtendedPublicKey(fromSeed.getExtendedPublicKey());
         Wallet wallet = new Wallet(name);
-        wallet.setPolicyType(PolicyType.SINGLE_HD);
-        wallet.setScriptType(ScriptType.MLDSA_SINGLE);
+        wallet.setPolicyType(PolicyType.SINGLE_MLDSA87);
+        wallet.setScriptType(ScriptType.MLDSA87_SINGLE);
         wallet.getKeystores().add(watch);
         wallet.setDefaultPolicy(Policy.getPolicy(wallet.getPolicyType(), wallet.getScriptType(), wallet.getKeystores(), 1));
         return wallet;
@@ -91,7 +91,7 @@ public class StorageTest extends IoTest {
         try {
             Wallet wallet = storage.loadUnencryptedWallet().getWallet();
             assertValid(wallet);
-            Assertions.assertEquals(ScriptType.MLDSA_SINGLE, wallet.getScriptType());
+            Assertions.assertEquals(ScriptType.MLDSA87_SINGLE, wallet.getScriptType());
         } finally {
             storage.closeAndWait();
         }
@@ -113,8 +113,8 @@ public class StorageTest extends IoTest {
 
             assertValid(wallet);
             Assertions.assertEquals("testd2", wallet.getName());
-            Assertions.assertEquals(PolicyType.SINGLE_HD, wallet.getPolicyType());
-            Assertions.assertEquals(ScriptType.MLDSA_SINGLE, wallet.getScriptType());
+            Assertions.assertEquals(PolicyType.SINGLE_MLDSA87, wallet.getPolicyType());
+            Assertions.assertEquals(ScriptType.MLDSA87_SINGLE, wallet.getScriptType());
             Assertions.assertEquals(1, wallet.getDefaultPolicy().getNumSignaturesRequired());
             Assertions.assertTrue(wallet.getKeystores().get(0).hasSeed());
             Assertions.assertInstanceOf(MlDsaAddress.class, wallet.getFreshNode(KeyPurpose.RECEIVE).getAddress());
@@ -140,7 +140,7 @@ public class StorageTest extends IoTest {
         try {
             Wallet wallet = loaded.loadEncryptedWallet("pass").getWallet();
             assertValid(wallet);
-            Assertions.assertEquals(ScriptType.MLDSA_SINGLE, wallet.getScriptType());
+            Assertions.assertEquals(ScriptType.MLDSA87_SINGLE, wallet.getScriptType());
 
             Path dir = Files.createTempDirectory("sprw-storage-copy");
             dir.toFile().deleteOnExit();
@@ -155,7 +155,7 @@ public class StorageTest extends IoTest {
             try {
                 wallet = temp2Storage.loadEncryptedWallet("pass").getWallet();
                 assertValid(wallet);
-                Assertions.assertEquals(ScriptType.MLDSA_SINGLE, wallet.getScriptType());
+                Assertions.assertEquals(ScriptType.MLDSA87_SINGLE, wallet.getScriptType());
             } finally {
                 temp2Storage.closeAndWait();
             }

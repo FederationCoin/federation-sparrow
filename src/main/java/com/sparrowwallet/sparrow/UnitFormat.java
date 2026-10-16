@@ -8,23 +8,23 @@ import java.util.Locale;
 
 public enum UnitFormat {
     DOT {
-        private final DecimalFormat btcFormat = new DecimalFormat("0", getDecimalFormatSymbols());
-        private final DecimalFormat satsFormat = new DecimalFormat("#,##0", getDecimalFormatSymbols());
-        private final DecimalFormat tableBtcFormat = new DecimalFormat("0.00000000", getDecimalFormatSymbols());
+        private final DecimalFormat coinFormat = new DecimalFormat("0", getDecimalFormatSymbols());
+        private final DecimalFormat tokensFormat = new DecimalFormat("#,##0", getDecimalFormatSymbols());
+        private final DecimalFormat tableCoinFormat = new DecimalFormat("0.00000000", getDecimalFormatSymbols());
         private final DecimalFormat currencyFormat = new DecimalFormat("#,##0.00", getDecimalFormatSymbols());
         private final DecimalFormat tableCurrencyFormat = new DecimalFormat("0.00", getDecimalFormatSymbols());
 
-        public DecimalFormat getBtcFormat() {
-            btcFormat.setMaximumFractionDigits(8);
-            return btcFormat;
+        public DecimalFormat getCoinFormat() {
+            coinFormat.setMaximumFractionDigits(8);
+            return coinFormat;
         }
 
-        public DecimalFormat getSatsFormat() {
-            return satsFormat;
+        public DecimalFormat getTokensFormat() {
+            return tokensFormat;
         }
 
-        public DecimalFormat getTableBtcFormat() {
-            return tableBtcFormat;
+        public DecimalFormat getTableCoinFormat() {
+            return tableCoinFormat;
         }
 
         public DecimalFormat getCurrencyFormat() {
@@ -43,23 +43,23 @@ public enum UnitFormat {
         }
     },
     COMMA {
-        private final DecimalFormat btcFormat = new DecimalFormat("0", getDecimalFormatSymbols());
-        private final DecimalFormat satsFormat = new DecimalFormat("#,##0", getDecimalFormatSymbols());
-        private final DecimalFormat tableBtcFormat = new DecimalFormat("0.00000000", getDecimalFormatSymbols());
+        private final DecimalFormat coinFormat = new DecimalFormat("0", getDecimalFormatSymbols());
+        private final DecimalFormat tokensFormat = new DecimalFormat("#,##0", getDecimalFormatSymbols());
+        private final DecimalFormat tableCoinFormat = new DecimalFormat("0.00000000", getDecimalFormatSymbols());
         private final DecimalFormat currencyFormat = new DecimalFormat("#,##0.00", getDecimalFormatSymbols());
         private final DecimalFormat tableCurrencyFormat = new DecimalFormat("0.00", getDecimalFormatSymbols());
 
-        public DecimalFormat getBtcFormat() {
-            btcFormat.setMaximumFractionDigits(8);
-            return btcFormat;
+        public DecimalFormat getCoinFormat() {
+            coinFormat.setMaximumFractionDigits(8);
+            return coinFormat;
         }
 
-        public DecimalFormat getSatsFormat() {
-            return satsFormat;
+        public DecimalFormat getTokensFormat() {
+            return tokensFormat;
         }
 
-        public DecimalFormat getTableBtcFormat() {
-            return tableBtcFormat;
+        public DecimalFormat getTableCoinFormat() {
+            return tableCoinFormat;
         }
 
         public DecimalFormat getCurrencyFormat() {
@@ -80,26 +80,26 @@ public enum UnitFormat {
 
     public abstract DecimalFormatSymbols getDecimalFormatSymbols();
 
-    public abstract DecimalFormat getBtcFormat();
+    public abstract DecimalFormat getCoinFormat();
 
-    public abstract DecimalFormat getSatsFormat();
+    public abstract DecimalFormat getTokensFormat();
 
-    public abstract DecimalFormat getTableBtcFormat();
+    public abstract DecimalFormat getTableCoinFormat();
 
     public abstract DecimalFormat getCurrencyFormat();
 
     public abstract DecimalFormat getTableCurrencyFormat();
 
-    public String formatBtcValue(Long amount) {
-        return getBtcFormat().format(amount.doubleValue() / Transaction.SATOSHIS_PER_BITCOIN);
+    public String formatCoinValue(Long amount) {
+        return getCoinFormat().format(amount.doubleValue() / Transaction.TOKENS_PER_COIN);
     }
 
-    public String tableFormatBtcValue(Long amount) {
-        return getTableBtcFormat().format(amount.doubleValue() / Transaction.SATOSHIS_PER_BITCOIN);
+    public String tableFormatCoinValue(Long amount) {
+        return getTableCoinFormat().format(amount.doubleValue() / Transaction.TOKENS_PER_COIN);
     }
 
-    public String formatSatsValue(Long amount) {
-        return getSatsFormat().format(amount);
+    public String formatTokensValue(Long amount) {
+        return getTokensFormat().format(amount);
     }
 
     public String formatCurrencyValue(double amount) {

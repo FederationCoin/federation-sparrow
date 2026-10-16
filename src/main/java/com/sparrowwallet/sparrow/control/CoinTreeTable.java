@@ -1,6 +1,6 @@
 package com.sparrowwallet.sparrow.control;
 
-import com.sparrowwallet.drongo.BitcoinUnit;
+import com.sparrowwallet.drongo.CoinUnit;
 import com.sparrowwallet.drongo.policy.PolicyType;
 import com.sparrowwallet.drongo.wallet.SortDirection;
 import com.sparrowwallet.drongo.wallet.TableType;
@@ -38,7 +38,7 @@ import java.util.concurrent.TimeUnit;
 
 public class CoinTreeTable extends TreeTableView<Entry> {
     private TableType tableType;
-    private BitcoinUnit bitcoinUnit;
+    private CoinUnit coinUnit;
     private UnitFormat unitFormat;
     private CurrencyRate currencyRate;
     protected static final double STANDARD_WIDTH = 100.0;
@@ -54,8 +54,8 @@ public class CoinTreeTable extends TreeTableView<Entry> {
         this.tableType = tableType;
     }
 
-    public BitcoinUnit getBitcoinUnit() {
-        return bitcoinUnit;
+    public CoinUnit getCoinUnit() {
+        return coinUnit;
     }
 
     public UnitFormat getUnitFormat() {
@@ -63,26 +63,26 @@ public class CoinTreeTable extends TreeTableView<Entry> {
     }
 
     public void setUnitFormat(Wallet wallet) {
-        setUnitFormat(wallet, Config.get().getUnitFormat(), Config.get().getBitcoinUnit());
+        setUnitFormat(wallet, Config.get().getUnitFormat(), Config.get().getCoinUnit());
     }
 
     public void setUnitFormat(Wallet wallet, UnitFormat format) {
-        setUnitFormat(wallet, format, Config.get().getBitcoinUnit());
+        setUnitFormat(wallet, format, Config.get().getCoinUnit());
     }
 
-    public void setUnitFormat(Wallet wallet, UnitFormat format, BitcoinUnit unit) {
+    public void setUnitFormat(Wallet wallet, UnitFormat format, CoinUnit unit) {
         if(format == null) {
             format = UnitFormat.DOT;
         }
 
-        if(unit == null || unit.equals(BitcoinUnit.AUTO)) {
+        if(unit == null || unit.equals(CoinUnit.AUTO)) {
             unit = wallet.getAutoUnit();
         }
 
         boolean changed = (unitFormat != format);
-        changed |= (bitcoinUnit != unit);
+        changed |= (coinUnit != unit);
         this.unitFormat = format;
-        this.bitcoinUnit = unit;
+        this.coinUnit = unit;
 
         if(changed && !getChildren().isEmpty()) {
             refresh();

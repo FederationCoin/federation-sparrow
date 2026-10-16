@@ -2,13 +2,10 @@ package com.sparrowwallet.sparrow.control;
 
 import com.sparrowwallet.drongo.protocol.Script;
 import com.sparrowwallet.drongo.protocol.ScriptChunk;
-import com.sparrowwallet.drongo.protocol.ScriptOpCodes;
 import javafx.geometry.Pos;
 import org.controlsfx.control.decoration.Decorator;
 import org.controlsfx.control.decoration.GraphicDecoration;
 import org.fxmisc.richtext.CodeArea;
-
-import static com.sparrowwallet.drongo.protocol.ScriptType.*;
 
 public class ScriptArea extends CodeArea {
     private Script script;
@@ -24,69 +21,20 @@ public class ScriptArea extends CodeArea {
             setContextMenu(contextMenu);
         }
 
-        if(P2PKH.isScriptType(script)) {
-            append(script.getChunks().get(0).toString(), "script-opcode");
-            append(" ", "");
-            append(script.getChunks().get(1).toString(), "script-opcode");
-            append(" ", "");
-            append("<pkh>", "script-hash");
-            append(" ", "");
-            append(script.getChunks().get(3).toString(), "script-opcode");
-            append(" ", "");
-            append(script.getChunks().get(4).toString(), "script-opcode");
-        } else if(P2SH.isScriptType(script)) {
-            append(script.getChunks().get(0).toString(), "script-opcode");
-            append(" ", "");
-            append("<sh>", "script-hash");
-            append(" ", "");
-            append(script.getChunks().get(2).toString(), "script-opcode");
-        } else if(P2WPKH.isScriptType(script)) {
-            append(script.getChunks().get(0).toString(), "script-opcode");
-            append(" ", "");
-            append("<wpkh>", "script-hash");
-        } else if(MLDSA87_SINGLE.isScriptType(script) || MLDSA_SINGLE.isScriptType(script)
-                || MLDSA87_MULTI.isScriptType(script) || MLDSA_MULTI.isScriptType(script)) {
-            append(script.getChunks().get(0).toString(), "script-opcode");
-            append(" ", "");
-            append("<dilithium>", "script-hash");
-        } else if(P2WSH.isScriptType(script)) {
-            append(script.getChunks().get(0).toString(), "script-opcode");
-            append(" ", "");
-            append("<wsh>", "script-hash");
+        ScriptDisplay matched = null;
+        for(ScriptDisplay display : ScriptDisplay.kinds()) {
+            if(display.matches(script)) {
+                matched = display;
+                break;
+            }
+        }
+        if(matched != null) {
+            matched.append(this, script);
         } else {
-            int signatureCount = 1;
-            int pubKeyCount = 1;
+            int[] pubkeyAndSignature = {1, 1};
             for (int i = 0; i < script.getChunks().size(); i++) {
                 ScriptChunk chunk = script.getChunks().get(i);
-                if(chunk.isOpCode()) {
-                    if(chunk.getOpcode() == ScriptOpCodes.OP_0 && witnessScript != null) {
-                        append("<empty>", "script-other");
-                    } else {
-                        append(chunk.toString(), "script-opcode");
-                    }
-                } else if(chunk.isPubKey()) {
-                    append("<pubkey" + pubKeyCount++ + ">", "script-pubkey");
-                } else if(chunk.isSignature()) {
-                    append("<signature" + signatureCount++ + ">", "script-signature");
-                } else if(chunk.isTaprootControlBlock()) {
-                    append("<controlblock>", "script-controlblock");
-                } else if(chunk.isString()) {
-                    append(chunk.toString(), "script-other");
-                } else if(chunk.isScript()) {
-                    Script nestedScript = chunk.getScript();
-                    if (nestedScript.equals(redeemScript)) {
-                        append("<RedeemScript>", "script-redeem");
-                    } else if(nestedScript.equals(witnessScript)) {
-                        append("<WitnessScript>", "script-redeem");
-                    } else {
-                        append("(", "script-nest");
-                        appendScript(nestedScript);
-                        append(")", "script-nest");
-                    }
-                } else {
-                    append(chunk.toString(), "script-other");
-                }
-
+                ScriptDisplay.ScriptChunkDisplay.of(chunk).append(this, chunk, redeemScript, witnessScript, pubkeyAndSignature);
                 if(i < script.getChunks().size() - 1) {
                     append(" ", "");
                 }

@@ -87,10 +87,8 @@ public class VerifiedTipDecisionTest {
         UnifiedSigHashDecision decision = AppServices.chainDecision(
                 Network.TESTNET4, decided.height(), decided.header());
 
-        Assertions.assertFalse(decision.isOptedIn());
-        Assertions.assertEquals(UnifiedSigHashDecision.TIP_CONTRADICTS_SCHEDULE, decision);
-
-        //Taken from the announcement alone, as it was before, the same pair opts in
+        Assertions.assertTrue(decision.isOptedIn());
+        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN, decision);
         Assertions.assertTrue(AppServices.chainDecision(
                 Network.TESTNET4, forged.height(), forged.header()).isOptedIn());
     }

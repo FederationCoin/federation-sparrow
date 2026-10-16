@@ -240,13 +240,13 @@ public class MixedWitnessCombineTest {
                 "sample vibrant sound quantum ripple hidden pluck raven mirror ocean fabric noodle"};
 
         Wallet wallet = new Wallet();
-        wallet.setPolicyType(PolicyType.MULTI_HD);
+        wallet.setPolicyType(PolicyType.MULTI_MLDSA87);
         wallet.setScriptType(ScriptType.P2WSH);
         for(String mnemonic : mnemonics) {
             DeterministicSeed seed = new DeterministicSeed(mnemonic, "", 0, DeterministicSeed.Type.BIP39);
-            wallet.getKeystores().add(Keystore.fromSeed(seed, PolicyType.MULTI_HD, ScriptType.P2WSH.getDefaultDerivation()));
+            wallet.getKeystores().add(Keystore.fromSeed(seed, PolicyType.MULTI_MLDSA87, ScriptType.P2WSH.getDefaultDerivation()));
         }
-        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_HD, ScriptType.P2WSH, wallet.getKeystores(), 2));
+        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_MLDSA87, ScriptType.P2WSH, wallet.getKeystores(), 2));
         wallet.getNode(KeyPurpose.RECEIVE);
 
         return wallet;

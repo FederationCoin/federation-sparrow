@@ -8,7 +8,7 @@ public class VsizeFeerate implements Comparable<VsizeFeerate> {
 
     public VsizeFeerate(int vsize, double fee) {
         this.vsize = vsize;
-        double feeRate = fee / vsize * Transaction.SATOSHIS_PER_BITCOIN;
+        double feeRate = fee / vsize * Transaction.TOKENS_PER_COIN;
         //Round down to 0.1 sats/vb precision
         this.feerate = (float) (Math.floor(10 * feeRate) / 10);
     }

@@ -43,12 +43,12 @@ public class TrustedKeysTest {
     public void setUp() throws Exception {
         Network.set(Network.MAINNET);
         wallet = new Wallet();
-        wallet.setPolicyType(PolicyType.SINGLE_HD);
+        wallet.setPolicyType(PolicyType.SINGLE_SEGWIT);
         wallet.setScriptType(ScriptType.P2WPKH);
         DeterministicSeed seed = new DeterministicSeed(
                 "absent essay fox snake vast pumpkin height crouch silent bulb excuse razor", "", 0, DeterministicSeed.Type.BIP39);
-        wallet.getKeystores().add(Keystore.fromSeed(seed, PolicyType.SINGLE_HD, ScriptType.P2WPKH.getDefaultDerivation()));
-        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.SINGLE_HD, ScriptType.P2WPKH, wallet.getKeystores(), null));
+        wallet.getKeystores().add(Keystore.fromSeed(seed, PolicyType.SINGLE_SEGWIT, ScriptType.P2WPKH.getDefaultDerivation()));
+        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.SINGLE_SEGWIT, ScriptType.P2WPKH, wallet.getKeystores(), null));
         wallet.getNode(KeyPurpose.RECEIVE);
         receiveNode = wallet.getNode(KeyPurpose.RECEIVE).getChildren().iterator().next();
     }
@@ -117,12 +117,12 @@ public class TrustedKeysTest {
     @Test
     public void a_taproot_wallet_vouches_for_the_output_key() throws Exception {
         Wallet taproot = new Wallet();
-        taproot.setPolicyType(PolicyType.SINGLE_HD);
+        taproot.setPolicyType(PolicyType.SINGLE_SP);
         taproot.setScriptType(ScriptType.P2TR);
         DeterministicSeed seed = new DeterministicSeed(
                 "absent essay fox snake vast pumpkin height crouch silent bulb excuse razor", "", 0, DeterministicSeed.Type.BIP39);
-        taproot.getKeystores().add(Keystore.fromSeed(seed, PolicyType.SINGLE_HD, ScriptType.P2TR.getDefaultDerivation()));
-        taproot.setDefaultPolicy(Policy.getPolicy(PolicyType.SINGLE_HD, ScriptType.P2TR, taproot.getKeystores(), null));
+        taproot.getKeystores().add(Keystore.fromSeed(seed, PolicyType.SINGLE_SP, ScriptType.P2TR.getDefaultDerivation()));
+        taproot.setDefaultPolicy(Policy.getPolicy(PolicyType.SINGLE_SP, ScriptType.P2TR, taproot.getKeystores(), null));
         taproot.getNode(KeyPurpose.RECEIVE);
         WalletNode node = taproot.getNode(KeyPurpose.RECEIVE).getChildren().iterator().next();
         Script script = taproot.getOutputScript(node);
@@ -151,13 +151,13 @@ public class TrustedKeysTest {
                 "vault cruise pistol trigger pilot scan hidden major fringe course fiber quiz"};
 
         Wallet quorum = new Wallet();
-        quorum.setPolicyType(PolicyType.MULTI_HD);
+        quorum.setPolicyType(PolicyType.MULTI_SEGWIT);
         quorum.setScriptType(ScriptType.P2WSH);
         for(String mnemonic : mnemonics) {
             DeterministicSeed seed = new DeterministicSeed(mnemonic, "", 0, DeterministicSeed.Type.BIP39);
-            quorum.getKeystores().add(Keystore.fromSeed(seed, PolicyType.MULTI_HD, ScriptType.P2WSH.getDefaultDerivation()));
+            quorum.getKeystores().add(Keystore.fromSeed(seed, PolicyType.MULTI_SEGWIT, ScriptType.P2WSH.getDefaultDerivation()));
         }
-        quorum.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_HD, ScriptType.P2WSH, quorum.getKeystores(), 2));
+        quorum.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_SEGWIT, ScriptType.P2WSH, quorum.getKeystores(), 2));
         quorum.getNode(KeyPurpose.RECEIVE);
         WalletNode node = quorum.getNode(KeyPurpose.RECEIVE).getChildren().iterator().next();
         Script script = quorum.getOutputScript(node);

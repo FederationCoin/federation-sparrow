@@ -38,8 +38,8 @@ public class SignatureOptInCountTest {
     }
 
     private PSBT signed(byte sigHashType) {
-        ECKey outputKey = ScriptType.P2WPKH.getOutputKey(PolicyType.SINGLE_HD, key());
-        Script spk = ScriptType.P2WPKH.getOutputScript(PolicyType.SINGLE_HD, key());
+        ECKey outputKey = ScriptType.P2WPKH.getOutputKey(PolicyType.SINGLE_MLDSA87, key());
+        Script spk = ScriptType.P2WPKH.getOutputScript(PolicyType.SINGLE_MLDSA87, key());
 
         Transaction transaction = new Transaction();
         transaction.setVersion(2);
@@ -58,7 +58,7 @@ public class SignatureOptInCountTest {
     /** A 65 byte push ending in a byte that reads as an opt-in, which a taproot control block is half the time. */
     /** What a caller vouches for here: the one key this fixture signs with. */
     private List<ECKey> trusted() {
-        return List.of(ECKey.fromPublicOnly(ScriptType.P2WPKH.getOutputKey(PolicyType.SINGLE_HD, key())));
+        return List.of(ECKey.fromPublicOnly(ScriptType.P2WPKH.getOutputKey(PolicyType.SINGLE_MLDSA87, key())));
     }
 
     private byte[] junk() {
@@ -70,7 +70,7 @@ public class SignatureOptInCountTest {
 
     private void finaliseWith(PSBT psbt, byte[]... extraPushes) {
         PSBTInput psbtInput = psbt.getPsbtInputs().get(0);
-        ECKey outputKey = ScriptType.P2WPKH.getOutputKey(PolicyType.SINGLE_HD, key());
+        ECKey outputKey = ScriptType.P2WPKH.getOutputKey(PolicyType.SINGLE_MLDSA87, key());
         TransactionSignature signature = psbtInput.getPartialSignature(ECKey.fromPublicOnly(outputKey));
 
         List<byte[]> pushes = new ArrayList<>();
@@ -148,8 +148,8 @@ public class SignatureOptInCountTest {
 
     /** A transaction of many inputs, each signed for real by the one key this fixture vouches for. */
     private PSBT manyInputs(int inputs, byte sigHashType) {
-        ECKey outputKey = ScriptType.P2WPKH.getOutputKey(PolicyType.SINGLE_HD, key());
-        Script spk = ScriptType.P2WPKH.getOutputScript(PolicyType.SINGLE_HD, key());
+        ECKey outputKey = ScriptType.P2WPKH.getOutputKey(PolicyType.SINGLE_MLDSA87, key());
+        Script spk = ScriptType.P2WPKH.getOutputScript(PolicyType.SINGLE_MLDSA87, key());
 
         Transaction transaction = new Transaction();
         transaction.setVersion(2);
@@ -202,8 +202,8 @@ public class SignatureOptInCountTest {
         int crafted = 8;
         int pushesEach = 1152;
 
-        ECKey outputKey = ScriptType.P2WPKH.getOutputKey(PolicyType.SINGLE_HD, key());
-        Script spk = ScriptType.P2WPKH.getOutputScript(PolicyType.SINGLE_HD, key());
+        ECKey outputKey = ScriptType.P2WPKH.getOutputKey(PolicyType.SINGLE_MLDSA87, key());
+        Script spk = ScriptType.P2WPKH.getOutputScript(PolicyType.SINGLE_MLDSA87, key());
 
         Transaction transaction = new Transaction();
         transaction.setVersion(2);
@@ -251,7 +251,7 @@ public class SignatureOptInCountTest {
     public void a_public_key_beside_a_signature_does_not_make_the_answer_unknowable() {
         PSBT psbt = signed(SigHash.ALL.byteValue());
         PSBTInput psbtInput = psbt.getPsbtInputs().get(0);
-        ECKey outputKey = ScriptType.P2WPKH.getOutputKey(PolicyType.SINGLE_HD, key());
+        ECKey outputKey = ScriptType.P2WPKH.getOutputKey(PolicyType.SINGLE_MLDSA87, key());
         TransactionSignature signature = psbtInput.getPartialSignature(ECKey.fromPublicOnly(outputKey));
 
         //An uncompressed key, which is what a legacy input pushes beside its signature
@@ -295,8 +295,8 @@ public class SignatureOptInCountTest {
      */
     @Test
     public void an_input_the_budget_skipped_is_still_counted_as_present() {
-        ECKey outputKey = ScriptType.P2WPKH.getOutputKey(PolicyType.SINGLE_HD, key());
-        Script spk = ScriptType.P2WPKH.getOutputScript(PolicyType.SINGLE_HD, key());
+        ECKey outputKey = ScriptType.P2WPKH.getOutputKey(PolicyType.SINGLE_MLDSA87, key());
+        Script spk = ScriptType.P2WPKH.getOutputScript(PolicyType.SINGLE_MLDSA87, key());
 
         Transaction transaction = new Transaction();
         transaction.setVersion(2);
@@ -387,8 +387,8 @@ public class SignatureOptInCountTest {
     @Test
     public void a_quorum_signed_consolidation_is_checked_to_the_end() {
         int inputs = 200;
-        ECKey outputKey = ScriptType.P2WPKH.getOutputKey(PolicyType.SINGLE_HD, key());
-        Script spk = ScriptType.P2WPKH.getOutputScript(PolicyType.SINGLE_HD, key());
+        ECKey outputKey = ScriptType.P2WPKH.getOutputKey(PolicyType.SINGLE_MLDSA87, key());
+        Script spk = ScriptType.P2WPKH.getOutputScript(PolicyType.SINGLE_MLDSA87, key());
 
         Transaction transaction = new Transaction();
         transaction.setVersion(2);
@@ -479,7 +479,7 @@ public class SignatureOptInCountTest {
     public void the_liftable_warning_does_not_walk_a_transaction_without_end() {
         int inputs = 100;
         int pushesEach = 1000;
-        Script spk = ScriptType.P2WPKH.getOutputScript(PolicyType.SINGLE_HD, key());
+        Script spk = ScriptType.P2WPKH.getOutputScript(PolicyType.SINGLE_MLDSA87, key());
 
         Transaction transaction = new Transaction();
         transaction.setVersion(2);
@@ -528,7 +528,7 @@ public class SignatureOptInCountTest {
     public void an_input_of_more_pushes_than_a_spend_needs_is_not_parsed() {
         int inputs = 2;
         int tinyPushes = 2000;
-        Script spk = ScriptType.P2WPKH.getOutputScript(PolicyType.SINGLE_HD, key());
+        Script spk = ScriptType.P2WPKH.getOutputScript(PolicyType.SINGLE_MLDSA87, key());
 
         Transaction transaction = new Transaction();
         transaction.setVersion(2);
@@ -587,17 +587,17 @@ public class SignatureOptInCountTest {
         int signaturesEach = 512;
 
         com.sparrowwallet.drongo.wallet.Wallet wallet = new com.sparrowwallet.drongo.wallet.Wallet();
-        wallet.setPolicyType(PolicyType.SINGLE_HD);
+        wallet.setPolicyType(PolicyType.SINGLE_MLDSA87);
         wallet.setScriptType(ScriptType.P2WPKH);
         wallet.getKeystores().add(com.sparrowwallet.drongo.wallet.Keystore.fromSeed(new com.sparrowwallet.drongo.wallet.DeterministicSeed(
                 "absent essay fox snake vast pumpkin height crouch silent bulb excuse razor", "", 0,
-                com.sparrowwallet.drongo.wallet.DeterministicSeed.Type.BIP39), PolicyType.SINGLE_HD, ScriptType.P2WPKH.getDefaultDerivation()));
-        wallet.setDefaultPolicy(com.sparrowwallet.drongo.policy.Policy.getPolicy(PolicyType.SINGLE_HD, ScriptType.P2WPKH, wallet.getKeystores(), null));
+                com.sparrowwallet.drongo.wallet.DeterministicSeed.Type.BIP39), PolicyType.SINGLE_MLDSA87, ScriptType.P2WPKH.getDefaultDerivation()));
+        wallet.setDefaultPolicy(com.sparrowwallet.drongo.policy.Policy.getPolicy(PolicyType.SINGLE_MLDSA87, ScriptType.P2WPKH, wallet.getKeystores(), null));
         wallet.getNode(com.sparrowwallet.drongo.KeyPurpose.RECEIVE);
 
         com.sparrowwallet.drongo.wallet.WalletNode node = wallet.getNode(com.sparrowwallet.drongo.KeyPurpose.RECEIVE).getChildren().iterator().next();
         Script ours = wallet.getOutputScript(node);
-        Script theirs = ScriptType.P2WPKH.getOutputScript(PolicyType.SINGLE_HD,
+        Script theirs = ScriptType.P2WPKH.getOutputScript(PolicyType.SINGLE_MLDSA87,
                 ECKey.fromPrivate(Utils.hexToBytes("99".repeat(32))));
 
         Transaction transaction = new Transaction();
@@ -650,7 +650,7 @@ public class SignatureOptInCountTest {
      */
     @Test
     public void a_scriptsig_that_does_not_parse_is_counted_rather_than_thrown() {
-        Script spk = ScriptType.P2WPKH.getOutputScript(PolicyType.SINGLE_HD, key());
+        Script spk = ScriptType.P2WPKH.getOutputScript(PolicyType.SINGLE_MLDSA87, key());
 
         Transaction transaction = new Transaction();
         transaction.setVersion(2);

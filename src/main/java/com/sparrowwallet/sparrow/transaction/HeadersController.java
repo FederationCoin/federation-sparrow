@@ -9,7 +9,7 @@ import com.sparrowwallet.drongo.protocol.*;
 import com.sparrowwallet.drongo.psbt.*;
 import com.sparrowwallet.drongo.silentpayments.SilentPayment;
 import com.sparrowwallet.drongo.silentpayments.SilentPaymentAddress;
-import com.sparrowwallet.drongo.uri.BitcoinURI;
+import com.sparrowwallet.drongo.uri.CoinURI;
 import com.sparrowwallet.drongo.wallet.*;
 import com.sparrowwallet.hummingbird.UR;
 import com.sparrowwallet.hummingbird.registry.CryptoPSBT;
@@ -264,7 +264,7 @@ public class HeadersController extends TransactionFormController implements Init
 
     private ElectrumServer.TransactionMempoolService transactionMempoolService;
 
-    private BitcoinURI payjoinURI;
+    private CoinURI payjoinURI;
 
     private final Map<Integer, String> outputIndexLabels = new TreeMap<>();
 
@@ -506,7 +506,7 @@ public class HeadersController extends TransactionFormController implements Init
         saveFinalButton.visibleProperty().bind(broadcastButton.visibleProperty().not());
         broadcastButton.visibleProperty().bind(AppServices.onlineProperty());
 
-        boolean isPayjoinOriginalTx = payjoinURI != null && headersForm.getPsbt() != null && headersForm.getPsbt().getPsbtInputs().stream().noneMatch(PSBTInput::isFinalized);
+        boolean isPayjoinOriginalTx = Payjoin.supportedOnThisChain() && payjoinURI != null && headersForm.getPsbt() != null && headersForm.getPsbt().getPsbtInputs().stream().noneMatch(PSBTInput::isFinalized);
         payjoinButton.managedProperty().bind(payjoinButton.visibleProperty());
         payjoinButton.visibleProperty().set(isPayjoinOriginalTx);
         broadcastButton.setDefaultButton(!isPayjoinOriginalTx);
@@ -931,7 +931,7 @@ public class HeadersController extends TransactionFormController implements Init
         }
 
         if(headersForm.getWalletTransaction() != null && headersForm.getWalletTransaction().getWallet() != null
-                && headersForm.getWalletTransaction().getWallet().getPolicyType() == PolicyType.MULTI_HD
+                && headersForm.getWalletTransaction().getWallet().getPolicyType() == PolicyType.MULTI_MLDSA87
                 && headersForm.getWalletTransaction().getWallet().getDefaultPolicy().getNumSignaturesRequired() < headersForm.getWalletTransaction().getWallet().getKeystores().size()) {
             signedByField.setVisible(true);
             Wallet wallet = headersForm.getWalletTransaction().getWallet();
@@ -1014,7 +1014,7 @@ public class HeadersController extends TransactionFormController implements Init
         }
     }
 
-    private BitcoinURI getPayjoinURI() {
+    private CoinURI getPayjoinURI() {
         return AppServices.getPayjoinURI(headersForm.getPsbt());
     }
 
@@ -1478,7 +1478,7 @@ public class HeadersController extends TransactionFormController implements Init
 
     private void signFromSeed(DeterministicSeed seed) {
         try {
-            String masterFingerprint = Keystore.fromSeed(seed, PolicyType.SINGLE_HD, ScriptType.P2PKH.getDefaultDerivation()).getKeyDerivation().getMasterFingerprint();
+            String masterFingerprint = Keystore.fromSeed(seed, PolicyType.SINGLE_MLDSA87, ScriptType.P2PKH.getDefaultDerivation()).getKeyDerivation().getMasterFingerprint();
             Wallet walletCopy = headersForm.getSigningWallet().copy();
             OptionalInt optIndex = IntStream.range(0, walletCopy.getKeystores().size())
                     .filter(i -> walletCopy.getKeystores().get(i).getKeyDerivation().getMasterFingerprint().equals(masterFingerprint)).findFirst();
@@ -1801,12 +1801,12 @@ public class HeadersController extends TransactionFormController implements Init
                 Matcher feeMatcher = RBF_INSUFFICIENT_FEE.matcher(failMessage);
                 Matcher feeRateMatcher = RBF_INSUFFICIENT_FEE_RATE.matcher(failMessage);
                 if(feeMatcher.matches() && fee.getValue() > 0) {
-                    long currentAdditionalFee = (long)(Double.parseDouble(feeMatcher.group(1)) * Transaction.SATOSHIS_PER_BITCOIN);
-                    long requiredAdditionalFee = (long)(Double.parseDouble(feeMatcher.group(2)) * Transaction.SATOSHIS_PER_BITCOIN);
+                    long currentAdditionalFee = (long)(Double.parseDouble(feeMatcher.group(1)) * Transaction.TOKENS_PER_COIN);
+                    long requiredAdditionalFee = (long)(Double.parseDouble(feeMatcher.group(2)) * Transaction.TOKENS_PER_COIN);
                     long requiredFee = fee.getValue() - currentAdditionalFee + requiredAdditionalFee;
                     AppServices.showErrorDialog("Error broadcasting transaction", "The fee for the replacement transaction was insufficient. Increase the fee to at least " + requiredFee + " tokens to try again.");
                 } else if(feeRateMatcher.matches()) {
-                    double requiredFeeRate = Double.parseDouble(feeRateMatcher.group(2)) * Transaction.SATOSHIS_PER_BITCOIN / 1000;
+                    double requiredFeeRate = Double.parseDouble(feeRateMatcher.group(2)) * Transaction.TOKENS_PER_COIN / 1000;
                     AppServices.showErrorDialog("Error broadcasting transaction", "The fee rate for the replacement transaction was insufficient. Increase the fee rate to at least " + format.getCurrencyFormat().format(requiredFeeRate) + " token/vB to try again.");
                 } else {
                     AppServices.showErrorDialog("Error broadcasting transaction", "The fee for the replacement transaction was insufficient. Increase the fee to try again.");
@@ -1866,7 +1866,10 @@ public class HeadersController extends TransactionFormController implements Init
     }
 
     public void getPayjoinTransaction(ActionEvent event) {
-        BitcoinURI currentPayjoinURI = getPayjoinURI();
+        if(!Payjoin.supportedOnThisChain()) {
+            return;
+        }
+        CoinURI currentPayjoinURI = getPayjoinURI();
         if(currentPayjoinURI == null) {
             throw new IllegalStateException("No valid Payjoin URI");
         }
@@ -2030,7 +2033,7 @@ public class HeadersController extends TransactionFormController implements Init
     @Subscribe
     public void unitFormatChanged(UnitFormatChangedEvent event) {
         transactionDiagram.update(transactionDiagram.getWalletTransaction());
-        fee.refresh(event.getUnitFormat(), event.getBitcoinUnit());
+        fee.refresh(event.getUnitFormat(), event.getCoinUnit());
     }
 
     @Subscribe

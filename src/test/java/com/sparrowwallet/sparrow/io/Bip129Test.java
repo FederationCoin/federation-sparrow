@@ -14,7 +14,7 @@ public class Bip129Test extends IoTest {
         Bip129 bip129 = new Bip129();
         Wallet wallet = bip129.importWallet(getInputStream("bsms/multisig-1.bsms"), null);
         Assertions.assertTrue(wallet.isValid());
-        Assertions.assertEquals(PolicyType.MULTI_HD, wallet.getPolicyType());
+        Assertions.assertEquals(PolicyType.MULTI_SEGWIT, wallet.getPolicyType());
         Assertions.assertEquals(ScriptType.P2WSH, wallet.getScriptType());
         Assertions.assertEquals(2, wallet.getDefaultPolicy().getNumSignaturesRequired());
         Assertions.assertEquals(2, wallet.getKeystores().size());
@@ -83,14 +83,12 @@ public class Bip129Test extends IoTest {
         Assertions.assertEquals(2, wallet.getDefaultPolicy().getNumSignaturesRequired());
     }
 
-    //As above for P2SH-P2WSH, where the keys sit at a child number that is otherwise mistaken for a chain index
+    //P2SH-P2WSH records publish a base58 first address. This chain does not use base58 addresses.
     @Test
-    public void importWalletNoPathRestrictionsNestedSegwit() throws ImportException {
+    public void importWalletNoPathRestrictionsNestedSegwit() {
         Bip129 bip129 = new Bip129();
-        Wallet wallet = bip129.importWallet(getInputStream("bsms/multisig-10.bsms"), null);
-        Assertions.assertTrue(wallet.isValid());
-        Assertions.assertEquals(ScriptType.P2SH_P2WSH, wallet.getScriptType());
-        Assertions.assertEquals(3, wallet.getKeystores().size());
+        ImportException e = Assertions.assertThrows(ImportException.class, () -> bip129.importWallet(getInputStream("bsms/multisig-10.bsms"), null));
+        Assertions.assertTrue(e.getCause().getMessage().contains("does not use base58 addresses"));
     }
 
     //A descriptor fixed to a non-standard chain is rejected even though its first address matches, as that address is not in the wallet derived here

@@ -123,6 +123,7 @@ public class SettingsController extends WalletFormController implements Initiali
 
         policyType.setButtonCell(new PolicyTypeButtonCell());
         policyType.setCellFactory(_ -> new PolicyTypeListCell());
+        policyType.setItems(FXCollections.observableArrayList(PolicyType.offeredForNewWallets()));
         policyType.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, policyType) -> {
             walletForm.getWallet().setPolicyType(policyType);
 
@@ -133,8 +134,8 @@ public class SettingsController extends WalletFormController implements Initiali
             }
             initialising = false;
 
-            multisigFieldset.setVisible(policyType.equals(PolicyType.MULTI_HD));
-            if(policyType.equals(PolicyType.MULTI_HD)) {
+            multisigFieldset.setVisible(policyType.isHomogeneousMultisig());
+            if(policyType.isHomogeneousMultisig()) {
                 totalKeystores.bind(multisigControl.highValueProperty());
             } else {
                 totalKeystores.set(1);
@@ -169,7 +170,7 @@ public class SettingsController extends WalletFormController implements Initiali
                             return;
                         } else if(optType.get() == ButtonType.YES) {
                             clearKeystoreTabs();
-                            if(walletForm.getWallet().getPolicyType() == PolicyType.MULTI_HD) {
+                            if(walletForm.getWallet().getPolicyType().isHomogeneousMultisig()) {
                                 totalKeystores.bind(multisigControl.highValueProperty());
                             } else {
                                 totalKeystores.set(1);
@@ -200,7 +201,7 @@ public class SettingsController extends WalletFormController implements Initiali
         });
         multisigControl.highValueProperty().addListener((observable, oldValue, newValue) -> {
             ScriptType walletScriptType = walletForm.getWallet().getScriptType();
-            int maxCosigners = walletScriptType == null ? PolicyType.MULTI_HD.getDefaultScriptType().getMaxCosigners() : walletScriptType.getMaxCosigners();
+            int maxCosigners = walletScriptType == null ? walletForm.getWallet().getPolicyType().getDefaultScriptType().getMaxCosigners() : walletScriptType.getMaxCosigners();
             if(newValue.doubleValue() == multisigControl.getMax() && newValue.doubleValue() < maxCosigners) {
                 multisigControl.setMax(newValue.doubleValue() + 1.0);
             }
@@ -237,7 +238,7 @@ public class SettingsController extends WalletFormController implements Initiali
                 keystoreTabs.getTabs().remove(keystoreTabs.getTabs().size() - 1);
             }
 
-            if(walletForm.getWallet().getPolicyType().equals(PolicyType.MULTI_HD)) {
+            if(walletForm.getWallet().getPolicyType().isHomogeneousMultisig()) {
                 EventManager.get().post(new SettingsChangedEvent(walletForm.getWallet(), SettingsChangedEvent.Type.MULTISIG_TOTAL));
             }
         });
@@ -247,7 +248,7 @@ public class SettingsController extends WalletFormController implements Initiali
         scanDescriptorQR.prefHeightProperty().bind(descriptor.prefHeightProperty());
         showDescriptorQR.managedProperty().bind(showDescriptorQR.visibleProperty());
         showDescriptorQR.prefHeightProperty().bind(descriptor.prefHeightProperty());
-        showDescriptorQR.setVisible(false);
+        showDescriptorQR.setVisible(walletForm.getWallet().isValid());
         editDescriptor.managedProperty().bind(editDescriptor.visibleProperty());
         showDescriptor.managedProperty().bind(showDescriptor.visibleProperty());
         showDescriptor.visibleProperty().bind(editDescriptor.visibleProperty().not());
@@ -270,13 +271,13 @@ public class SettingsController extends WalletFormController implements Initiali
             revert.setDisable(true);
             apply.setDisable(true);
             boolean addressChange = ((SettingsWalletForm)walletForm).isAddressChange();
-            if(walletForm.getWallet().getPolicyType() == PolicyType.SINGLE_SP && walletForm.getWallet().getBirthDate() == null && walletForm.getStorage().getEncryptionPubKey() == null) {
+            if(walletForm.getWallet().getPolicyType().isSilentPayment() && walletForm.getWallet().getBirthDate() == null && walletForm.getStorage().getEncryptionPubKey() == null) {
                 walletForm.getWallet().setBirthDate(new Date());
             }
             saveWallet(false, false);
 
             Wallet wallet = walletForm.getWallet();
-            if(wallet.getPolicyType() == PolicyType.MULTI_HD && wallet.getDefaultPolicy().getNumSignaturesRequired() < wallet.getKeystores().size() && addressChange) {
+            if(wallet.getPolicyType().isHomogeneousMultisig() && wallet.getDefaultPolicy().getNumSignaturesRequired() < wallet.getKeystores().size() && addressChange) {
                 String policy = wallet.getMlDsaPolicyBackup();
                 MultisigBackupDialog dialog = new MultisigBackupDialog(wallet, policy, null);
                 dialog.initOwner(apply.getScene().getWindow());
@@ -295,7 +296,7 @@ public class SettingsController extends WalletFormController implements Initiali
 
     private void setFieldsFromWallet(Wallet wallet) {
         if(wallet.getPolicyType() == null) {
-            wallet.setPolicyType(PolicyType.SINGLE_HD);
+            wallet.setPolicyType(PolicyType.SINGLE_MLDSA87);
             wallet.setScriptType(ScriptType.MLDSA87_SINGLE);
             Keystore keystore = new Keystore("Keystore 1");
             keystore.setSource(KeystoreSource.SW_WATCH);
@@ -304,10 +305,10 @@ public class SettingsController extends WalletFormController implements Initiali
             wallet.setDefaultPolicy(Policy.getPolicy(wallet.getPolicyType(), wallet.getScriptType(), wallet.getKeystores(), 1));
         }
 
-        if(wallet.getPolicyType().equals(PolicyType.SINGLE_HD) || wallet.getPolicyType().equals(PolicyType.SINGLE_SP)) {
+        if(wallet.getPolicyType().isSingleKey() || wallet.getPolicyType().equals(PolicyType.SINGLE_SP)) {
             totalKeystores.setValue(1);
-        } else if(wallet.getPolicyType().equals(PolicyType.MULTI_HD)) {
-            int maxCosigners = wallet.getScriptType() == null ? PolicyType.MULTI_HD.getDefaultScriptType().getMaxCosigners() : wallet.getScriptType().getMaxCosigners();
+        } else if(wallet.getPolicyType().isHomogeneousMultisig()) {
+            int maxCosigners = wallet.getScriptType() == null ? wallet.getPolicyType().getDefaultScriptType().getMaxCosigners() : wallet.getScriptType().getMaxCosigners();
             multisigControl.setMax(Math.max(Math.min(maxCosigners, multisigControl.getMax()), wallet.getKeystores().size()));
             multisigControl.highValueProperty().set(wallet.getKeystores().size());
             multisigControl.lowValueProperty().set(wallet.getDefaultPolicy().getNumSignaturesRequired());
@@ -328,7 +329,8 @@ public class SettingsController extends WalletFormController implements Initiali
             scriptType.getSelectionModel().select(walletForm.getWallet().getScriptType());
         }
 
-        scanDescriptorQR.setVisible(false);
+        boolean hideXpub = wallet.getScriptType() != null && wallet.getScriptType().isDilithium();
+        scanDescriptorQR.setVisible(!walletForm.getWallet().isValid());
         export.setDisable(!walletForm.getWallet().isValid());
         addAccount.setDisable(!walletForm.getWallet().isValid() || walletForm.getWallet().getScriptType() == ScriptType.P2SH);
         revert.setDisable(true);
@@ -396,6 +398,21 @@ public class SettingsController extends WalletFormController implements Initiali
             return;
         }
 
+        if(walletForm.getWallet().getPolicyType().accept(new com.sparrowwallet.drongo.policy.PolicyVisitor<Boolean>() {
+            @Override public Boolean visitSingleMldsa87() { return true; }
+            @Override public Boolean visitMultiMldsa87() { return true; }
+            @Override public Boolean visitSingleMldsa44() { return true; }
+            @Override public Boolean visitMultiMldsa44() { return true; }
+            @Override public Boolean visitSingleSegwit() { return false; }
+            @Override public Boolean visitMultiSegwit() { return false; }
+            @Override public Boolean visitSingleSp() { return false; }
+        })) {
+            QRDisplayDialog qrDisplayDialog = new QRDisplayDialog(walletForm.getWallet().getMlDsaPolicyBackup());
+            qrDisplayDialog.initOwner(showDescriptorQR.getScene().getWindow());
+            qrDisplayDialog.showAndWait();
+            return;
+        }
+
         OutputDescriptor outputDescriptor = OutputDescriptor.getOutputDescriptor(walletForm.getWallet(), KeyPurpose.DEFAULT_PURPOSES, null);
         RegistryItem registryItem = getUROutputDescriptor(walletForm.getWallet());
         if(registryItem == null) {
@@ -416,12 +433,16 @@ public class SettingsController extends WalletFormController implements Initiali
     public static RegistryItem getUROutputDescriptor(Wallet wallet) {
         List<ScriptExpression> scriptExpressions = getScriptExpressions(wallet.getScriptType());
 
+        if(wallet.getScriptType() != null && wallet.getScriptType().isDilithium()) {
+            return null;
+        }
+
         RegistryItem registryItem = null;
-        if(wallet.getPolicyType() == PolicyType.SINGLE_HD) {
+        if(wallet.getPolicyType().isSingleKey() && !wallet.getPolicyType().isSilentPayment()) {
             Keystore keystore = wallet.getKeystores().getFirst();
             KeyDerivation keyDerivation = keystore.getKeyDerivation();
             registryItem = new CryptoOutput(scriptExpressions, getCryptoHDKey(keyDerivation.getMasterFingerprint(), keyDerivation.getDerivation(), keystore.getExtendedPublicKey(), keystore.getLabel()));
-        } else if(wallet.getPolicyType() == PolicyType.MULTI_HD) {
+        } else if(wallet.getPolicyType().isHomogeneousMultisig()) {
             WalletNode firstReceive = new WalletNode(wallet, KeyPurpose.RECEIVE, 0);
             Utils.LexicographicByteArrayComparator lexicographicByteArrayComparator = new Utils.LexicographicByteArrayComparator();
             List<CryptoHDKey> cryptoHDKeys = wallet.getKeystores().stream().sorted((keystore1, keystore2) -> {
@@ -491,7 +512,7 @@ public class SettingsController extends WalletFormController implements Initiali
         dialog.initOwner(editDescriptor.getScene().getWindow());
         dialog.setTitle("Edit wallet output descriptor");
         dialog.getDialogPane().setHeaderText("The wallet configuration is specified in the output descriptor.\nChanges to the output descriptor will modify the wallet configuration." +
-                (walletForm.getWallet().getPolicyType() == PolicyType.MULTI_HD ? "\nKey expressions are shown in canonical order." : ""));
+                (walletForm.getWallet().getPolicyType().isHomogeneousMultisig() ? "\nKey expressions are shown in canonical order." : ""));
         Optional<String> text = dialog.showAndWait();
         if(text.isPresent() && !text.get().isEmpty() && !text.get().equals(outputDescriptorString)) {
             if(LEGACY_MULTI_PATTERN.matcher(text.get()).find()) {
@@ -641,7 +662,7 @@ public class SettingsController extends WalletFormController implements Initiali
         TextAreaDialog dialog = new TextAreaDialog(policy, false);
         dialog.initOwner(showDescriptor.getScene().getWindow());
         dialog.setTitle("Show wallet policy");
-        dialog.getDialogPane().setHeaderText("Backup the seeds plus this policy. This is not a Bitcoin output descriptor.");
+        dialog.getDialogPane().setHeaderText("Backup the seeds plus this policy.");
         dialog.showAndWait();
     }
 
@@ -767,7 +788,7 @@ public class SettingsController extends WalletFormController implements Initiali
                 }
             }
         } else {
-            if(discoverAccounts && masterWallet.getPolicyType() == PolicyType.SINGLE_HD && masterWallet.getKeystores().stream().allMatch(ks -> ks.getSource() == KeystoreSource.HW_USB)) {
+            if(discoverAccounts && masterWallet.getPolicyType().isSingleKey() && !masterWallet.getPolicyType().isSilentPayment() && masterWallet.getKeystores().stream().allMatch(ks -> ks.getSource() == KeystoreSource.HW_USB)) {
                 String fingerprint = masterWallet.getKeystores().get(0).getKeyDerivation().getMasterFingerprint();
                 DeviceKeystoreDiscoverDialog deviceKeystoreDiscoverDialog = new DeviceKeystoreDiscoverDialog(List.of(fingerprint), masterWallet, standardAccounts);
                 deviceKeystoreDiscoverDialog.initOwner(addAccount.getScene().getWindow());
@@ -870,9 +891,9 @@ public class SettingsController extends WalletFormController implements Initiali
     public void update(SettingsChangedEvent event) {
         Wallet wallet = event.getWallet();
         if(walletForm.getWallet().equals(wallet)) {
-            if(wallet.getPolicyType() == PolicyType.SINGLE_HD || wallet.getPolicyType() == PolicyType.SINGLE_SP) {
+            if(wallet.getPolicyType() != null && wallet.getPolicyType().isSingleKey()) {
                 wallet.setDefaultPolicy(Policy.getPolicy(wallet.getPolicyType(), wallet.getScriptType(), wallet.getKeystores(), 1));
-            } else if(wallet.getPolicyType() == PolicyType.MULTI_HD) {
+            } else if(wallet.getPolicyType() != null && wallet.getPolicyType().isHomogeneousMultisig()) {
                 wallet.setDefaultPolicy(Policy.getPolicy(wallet.getPolicyType(), wallet.getScriptType(), wallet.getKeystores(), (int)multisigControl.getLowValue()));
             }
 
@@ -884,7 +905,8 @@ public class SettingsController extends WalletFormController implements Initiali
             apply.setDisable(!wallet.isValid());
             export.setDisable(true);
             addAccount.setDisable(true);
-            scanDescriptorQR.setVisible(false);
+            boolean hideXpub = wallet.getScriptType() != null && wallet.getScriptType().isDilithium();
+            scanDescriptorQR.setVisible(!walletForm.getWallet().isValid());
         }
     }
 
@@ -893,7 +915,8 @@ public class SettingsController extends WalletFormController implements Initiali
         if(event.getWalletId().equals(walletForm.getWalletId())) {
             export.setDisable(!event.getWallet().isValid());
             addAccount.setDisable(!event.getWallet().isValid() || event.getWallet().getScriptType() == ScriptType.P2SH);
-            scanDescriptorQR.setVisible(false);
+            boolean hideXpub = event.getWallet().getScriptType() != null && event.getWallet().getScriptType().isDilithium();
+            scanDescriptorQR.setVisible(!walletForm.getWallet().isValid());
         }
     }
 

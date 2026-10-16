@@ -11,7 +11,7 @@
 <?import tornadofx.control.Field?>
 <?import javafx.collections.FXCollections?>
 <?import com.sparrowwallet.sparrow.control.FiatLabel?>
-<?import com.sparrowwallet.drongo.BitcoinUnit?>
+<?import com.sparrowwallet.drongo.CoinUnit?>
 <?import org.controlsfx.glyphfont.Glyph?>
 <?import javafx.geometry.Insets?>
 <?import com.sparrowwallet.sparrow.control.ComboBoxTextField?>
@@ -52,8 +52,8 @@
                 <ComboBox fx:id="amountUnit" styleClass="amount-unit">
                     <items>
                         <FXCollections fx:factory="observableArrayList">
-                            <BitcoinUnit fx:constant="BTC" />
-                            <BitcoinUnit fx:constant="SATOSHIS" />
+                            <CoinUnit fx:constant="GFCN" />
+                            <CoinUnit fx:constant="TOKENS" />
                         </FXCollections>
                     </items>
                 </ComboBox>

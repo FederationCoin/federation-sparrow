@@ -187,10 +187,10 @@ public class TransactionsController extends WalletFormController implements Init
 
     @Subscribe
     public void unitFormatChanged(UnitFormatChangedEvent event) {
-        transactionsTable.setUnitFormat(getWalletForm().getWallet(), event.getUnitFormat(), event.getBitcoinUnit());
-        balanceChart.setUnitFormat(getWalletForm().getWallet(), event.getUnitFormat(), event.getBitcoinUnit());
-        balance.refresh(event.getUnitFormat(), event.getBitcoinUnit());
-        mempoolBalance.refresh(event.getUnitFormat(), event.getBitcoinUnit());
+        transactionsTable.setUnitFormat(getWalletForm().getWallet(), event.getUnitFormat(), event.getCoinUnit());
+        balanceChart.setUnitFormat(getWalletForm().getWallet(), event.getUnitFormat(), event.getCoinUnit());
+        balance.refresh(event.getUnitFormat(), event.getCoinUnit());
+        mempoolBalance.refresh(event.getUnitFormat(), event.getCoinUnit());
         fiatBalance.refresh(event.getUnitFormat());
         fiatMempoolBalance.refresh(event.getUnitFormat());
     }

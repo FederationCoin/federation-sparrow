@@ -1,7 +1,7 @@
 package com.sparrowwallet.sparrow.transaction;
 
 import com.google.common.eventbus.Subscribe;
-import com.sparrowwallet.drongo.BitcoinUnit;
+import com.sparrowwallet.drongo.CoinUnit;
 import com.sparrowwallet.drongo.address.Address;
 import com.sparrowwallet.drongo.protocol.NonStandardScriptException;
 import com.sparrowwallet.drongo.protocol.TransactionOutput;
@@ -90,9 +90,9 @@ public abstract class TransactionFormController extends BaseController {
         pie.getData().forEach(data -> {
             Tooltip tooltip = new Tooltip();
             double percent = 100.0 * (data.getPieValue() / totalSum);
-            String satsValue = format.formatSatsValue((long)data.getPieValue()) + " tokens";
-            String btcValue = format.formatBtcValue((long)data.getPieValue()) + " GFCN";
-            tooltip.setText(data.getName() + "\n" + (Config.get().getBitcoinUnit() == BitcoinUnit.BTC ? btcValue : satsValue) + " (" + String.format("%.1f", percent) + "%)");
+            String satsValue = format.formatTokensValue((long)data.getPieValue()) + " tokens";
+            String btcValue = format.formatCoinValue((long)data.getPieValue()) + " GFCN";
+            tooltip.setText(data.getName() + "\n" + (Config.get().getCoinUnit() == CoinUnit.GFCN ? btcValue : satsValue) + " (" + String.format("%.1f", percent) + "%)");
             Tooltip.install(data.getNode(), tooltip);
             data.pieValueProperty().addListener((observable, oldValue, newValue) -> tooltip.setText(newValue + "%"));
         });

@@ -1,6 +1,7 @@
 package com.sparrowwallet.sparrow.control;
 
 import com.google.common.eventbus.Subscribe;
+import com.sparrowwallet.drongo.policy.PolicyType;
 import com.sparrowwallet.drongo.wallet.Wallet;
 import com.sparrowwallet.sparrow.AppServices;
 import com.sparrowwallet.sparrow.EventManager;
@@ -42,11 +43,48 @@ public class WalletExportDialog extends Dialog<Wallet> {
         AnchorPane.setLeftAnchor(scrollPane, 0.0);
         AnchorPane.setRightAnchor(scrollPane, 0.0);
 
-        List<WalletExport> exporters = List.of(new Sparrow(), new WalletLabels(allWalletForms), new WalletTransactions(selectedWalletForm));
+        List<WalletExport> sparrowCsv = List.of(new Descriptor(), new Sparrow(), new WalletLabels(allWalletForms), new WalletTransactions(selectedWalletForm));
+        List<WalletExport> exporters = wallet.getPolicyType().accept(new com.sparrowwallet.drongo.policy.PolicyVisitor<List<WalletExport>>() {
+            @Override
+            public List<WalletExport> visitSingleMldsa87() {
+                return sparrowCsv;
+            }
+
+            @Override
+            public List<WalletExport> visitSingleMldsa44() {
+                return sparrowCsv;
+            }
+
+            @Override
+            public List<WalletExport> visitSingleSegwit() {
+                return List.of(new Electrum(), new ElectrumPersonalServer(), new Descriptor(), new SpecterDesktop(), new Sparrow(), new WalletLabels(allWalletForms), new WalletTransactions(selectedWalletForm));
+            }
+
+            @Override
+            public List<WalletExport> visitMultiMldsa87() {
+                return sparrowCsv;
+            }
+
+            @Override
+            public List<WalletExport> visitMultiMldsa44() {
+                return sparrowCsv;
+            }
+
+            @Override
+            public List<WalletExport> visitMultiSegwit() {
+                return List.of(new Bip129(), new CaravanMultisig(), new ColdcardMultisig(), new CoboVaultMultisig(), new Electrum(), new ElectrumPersonalServer(), new KeystoneMultisig(),
+                        new Descriptor(), new JadeMultisig(), new PassportMultisig(), new SpecterDesktop(), new BlueWalletMultisig(), new SpecterDIY(), new Sparrow(), new WalletLabels(allWalletForms), new WalletTransactions(selectedWalletForm));
+            }
+
+            @Override
+            public List<WalletExport> visitSingleSp() {
+                return sparrowCsv;
+            }
+        });
 
         Accordion exportAccordion = new Accordion();
         for(WalletExport exporter : exporters) {
-            if(exporter.getWalletModel().isProductImport() && (!exporter.isDeprecated() || Config.get().isShowDeprecatedImportExport())) {
+            if(!exporter.isDeprecated() || Config.get().isShowDeprecatedImportExport()) {
                 FileWalletExportPane exportPane = new FileWalletExportPane(wallet, exporter);
                 exportAccordion.getPanes().add(exportPane);
             }

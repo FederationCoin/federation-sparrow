@@ -211,7 +211,7 @@ public class OutputController extends TransactionFormController implements Initi
 
     @Subscribe
     public void unitFormatChanged(UnitFormatChangedEvent event) {
-        value.refresh(event.getUnitFormat(), event.getBitcoinUnit());
+        value.refresh(event.getUnitFormat(), event.getCoinUnit());
     }
 
     @Subscribe

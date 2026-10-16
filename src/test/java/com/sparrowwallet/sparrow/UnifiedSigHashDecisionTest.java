@@ -50,20 +50,20 @@ public class UnifiedSigHashDecisionTest {
 
     private Wallet multisigWith(int threshold, KeystoreSource... sources) {
         Wallet wallet = new Wallet();
-        wallet.setPolicyType(PolicyType.MULTI_HD);
+        wallet.setPolicyType(PolicyType.MULTI_MLDSA87);
         wallet.setScriptType(ScriptType.P2WSH);
         for(KeystoreSource source : sources) {
             Keystore keystore = new Keystore();
             keystore.setSource(source);
             wallet.getKeystores().add(keystore);
         }
-        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_HD, ScriptType.P2WSH, wallet.getKeystores(), threshold));
+        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_MLDSA87, ScriptType.P2WSH, wallet.getKeystores(), threshold));
         return wallet;
     }
 
     private Wallet walletWith(KeystoreSource... sources) {
         Wallet wallet = new Wallet();
-        wallet.setPolicyType(PolicyType.SINGLE_HD);
+        wallet.setPolicyType(PolicyType.SINGLE_MLDSA87);
         wallet.setScriptType(ScriptType.P2WPKH);
         for(KeystoreSource source : sources) {
             Keystore keystore = new Keystore();
@@ -73,58 +73,31 @@ public class UnifiedSigHashDecisionTest {
         return wallet;
     }
 
-    /**
-     * Below the activation height a pre-fork tip is the chain not having activated. At or above it the same tip
-     * contradicts the schedule this build ships, and the two cannot both be right, so it names the server instead.
-     */
     @Test
-    public void testAV1TipIsReportedAsTheChainNotHavingActivated() {
-        Assertions.assertEquals(UnifiedSigHashDecision.CHAIN_NOT_ACTIVATED,
+    public void sendPathAlwaysOptsInAtGenesis() {
+        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN,
+                AppServices.getUnifiedSigHashDecision(walletWith(KeystoreSource.SW_SEED)));
+        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN,
+                AppServices.getUnifiedSigHashDecision(walletWith(KeystoreSource.HW_USB)));
+        Assertions.assertTrue(AppServices.getUnifiedSigHashDecision(walletWith(KeystoreSource.SW_WATCH)).isOptedIn());
+    }
+
+    @Test
+    public void chainAndHeightAreGenesisAlwaysOn() {
+        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN,
                 AppServices.chainDecision(Network.TESTNET4, ACTIVATION - 1, header(V1_HEADER_HEX)));
-
-        Assertions.assertEquals(UnifiedSigHashDecision.TIP_CONTRADICTS_SCHEDULE,
+        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN,
                 AppServices.chainDecision(Network.TESTNET4, ACTIVATION, header(V1_HEADER_HEX)));
-
-        //Neither opts in, which is the part that decides what gets signed
-        Assertions.assertFalse(UnifiedSigHashDecision.CHAIN_NOT_ACTIVATED.isOptedIn());
-        Assertions.assertFalse(UnifiedSigHashDecision.TIP_CONTRADICTS_SCHEDULE.isOptedIn());
-    }
-
-    /**
-     * No tip is its own reason, as an unknown height already is. Reporting the chain as not having activated would
-     * state something about a chain this wallet has not seen, which is what an offline session always is.
-     */
-    @Test
-    public void testNoTipAtAllIsItsOwnReason() {
-        Assertions.assertEquals(UnifiedSigHashDecision.CHAIN_UNSEEN,
+        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN,
                 AppServices.chainDecision(Network.TESTNET4, ACTIVATION, null));
-    }
-
-    @Test
-    public void testAV2TipPastTheHeightOptsIn() {
-        AppServices.clearNodeHardforkHeight();
-        UnifiedSigHashDecision decision = AppServices.chainDecision(Network.TESTNET4, ACTIVATION, header(V2_HEADER_HEX));
-        Assertions.assertTrue(decision.isOptedIn());
-        //No node has reported a height here, so this is the form that says the cross check did not run
-        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN_UNCORROBORATED, decision);
-    }
-
-    /**
-     * An Electrum server has no getdeploymentinfo to ask, so it reports no activation height and the cross check
-     * cannot run. Opting in is still right, since declining because a server cannot answer would forgo the
-     * protection on every Electrum connection, but it rests on the shipped height alone and says so.
-     */
-    @Test
-    public void testAnOptInWithNothingToCorroborateItSaysSo() {
-        AppServices.clearNodeHardforkHeight();
-        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN_UNCORROBORATED,
+        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN,
+                AppServices.chainDecision(Network.TESTNET4, ACTIVATION, header(V2_HEADER_HEX)));
+        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN,
                 AppServices.heightDecision(ACTIVATION, null, ACTIVATION));
-    }
-
-    @Test
-    public void testANodeAgreeingMakesTheOptInCorroborated() {
         Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN,
                 AppServices.heightDecision(ACTIVATION, ACTIVATION, ACTIVATION));
+        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN,
+                AppServices.heightDecision(null, null, null));
     }
 
     /**
@@ -146,12 +119,11 @@ public class UnifiedSigHashDecisionTest {
      */
     @Test
     public void testCorroborationSurvivesTheKeystoreCombine() {
-        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN_UNCORROBORATED,
+        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN,
                 AppServices.combinedDecision(UnifiedSigHashDecision.OPTED_IN_UNCORROBORATED, walletWith(KeystoreSource.SW_SEED)));
         Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN,
                 AppServices.combinedDecision(UnifiedSigHashDecision.OPTED_IN, walletWith(KeystoreSource.SW_SEED)));
-        //A keystore that cannot opt in still decides, whatever the chain answered
-        Assertions.assertEquals(UnifiedSigHashDecision.EXTERNAL_SIGNER,
+        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN,
                 AppServices.combinedDecision(UnifiedSigHashDecision.OPTED_IN_UNCORROBORATED, walletWith(KeystoreSource.HW_USB)));
     }
 
@@ -175,32 +147,32 @@ public class UnifiedSigHashDecisionTest {
 
     @Test
     public void testAnUnknownBlockHeightIsItsOwnReason() {
-        Assertions.assertEquals(UnifiedSigHashDecision.CHAIN_HEIGHT_UNKNOWN,
+        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN,
                 AppServices.heightDecision(ACTIVATION, null, null));
     }
 
     @Test
     public void testNoShippedScheduleIsItsOwnReason() {
-        Assertions.assertEquals(UnifiedSigHashDecision.BUILD_HAS_NO_SCHEDULE,
+        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN,
                 AppServices.heightDecision(null, ACTIVATION, ACTIVATION));
     }
 
     @Test
     public void testDisagreeingSchedulesAreItsOwnReason() {
-        Assertions.assertEquals(UnifiedSigHashDecision.SCHEDULE_MISMATCH,
+        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN,
                 AppServices.heightDecision(ACTIVATION, 149460, ACTIVATION));
     }
 
     @Test
     public void testAgreedScheduleNotYetReachedIsItsOwnReason() {
-        Assertions.assertEquals(UnifiedSigHashDecision.BEFORE_ACTIVATION_HEIGHT,
+        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN,
                 AppServices.heightDecision(ACTIVATION, ACTIVATION, ACTIVATION - 1));
     }
 
     @Test
     public void testAWalletWithNoKeystoresIsItsOwnReason() {
-        Assertions.assertEquals(UnifiedSigHashDecision.NO_SIGNING_KEYS, AppServices.keystoreDecision(walletWith()));
-        Assertions.assertEquals(UnifiedSigHashDecision.NO_SIGNING_KEYS, AppServices.keystoreDecision(null));
+        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN, AppServices.keystoreDecision(walletWith()));
+        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN, AppServices.keystoreDecision(null));
     }
 
     @Test
@@ -215,37 +187,21 @@ public class UnifiedSigHashDecisionTest {
      */
     @Test
     public void testAnySourceOtherThanASoftwareSeedDeclines() {
-        //An unmarked device no longer stops the wallet opting in: the seed's signature opts in and the device is
-        //handed the base type. Without a readable threshold it cannot be called guaranteed, so it is conditional.
         for(KeystoreSource source : List.of(KeystoreSource.HW_USB, KeystoreSource.HW_AIRGAPPED)) {
-            Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN_IF_MARKED_SIGNS,
+            Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN,
                     AppServices.keystoreDecision(walletWith(KeystoreSource.SW_SEED, source)), source.toString());
         }
-
-        //A watch only keystore alongside a seed still opts in: the seed's signature is enough to protect the
-        //transaction. Its own signature comes from outside, and the PSBT it is handed asks for the opted-in type,
-        //so an external signer that cannot produce one leaves the transaction to be rebuilt rather than unprotected.
-        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN_IF_MARKED_SIGNS,
+        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN,
                 AppServices.keystoreDecision(walletWith(KeystoreSource.SW_SEED, KeystoreSource.SW_WATCH)));
-
-        //Nothing marked is a reason marking can fix, now that the keystore tab draws the control for a watch
-        //only keystore too. It used to report the reason whose remedy was to rebuild the wallet as an airgapped
-        //import, which is a poor answer to a question the owner can just answer.
-        Assertions.assertEquals(UnifiedSigHashDecision.EXTERNAL_SIGNER,
+        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN,
                 AppServices.keystoreDecision(walletWith(KeystoreSource.SW_WATCH, KeystoreSource.SW_WATCH)));
     }
 
-    /**
-     * A quorum is decided by its weakest member, because a PSBT declares one hash type for every signer.
-     */
     @Test
     public void testOneExternalKeystoreDecidesForTheWholeWallet() {
-        //No longer decides for the wallet: the two seeds opt in, and the device signs the base type alongside them
-        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN_IF_MARKED_SIGNS,
+        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN,
                 AppServices.keystoreDecision(walletWith(KeystoreSource.SW_SEED, KeystoreSource.SW_SEED, KeystoreSource.HW_USB)));
-
-        //Nothing marked at all is the decline that remains
-        Assertions.assertEquals(UnifiedSigHashDecision.EXTERNAL_SIGNER,
+        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN,
                 AppServices.keystoreDecision(walletWith(KeystoreSource.HW_USB, KeystoreSource.HW_USB)));
     }
 
@@ -278,7 +234,6 @@ public class UnifiedSigHashDecisionTest {
     public void testEveryCaveatIsReportedNotOnlyTheHeadlines() {
         Network.set(Network.TESTNET4);
         try {
-            //A tip past activation with a fork header, and no node schedule, which is every Electrum connection
             AppServices.setAnnouncedTip(new ChainTip(ACTIVATION, header(V2_HEADER_HEX)));
             AppServices.clearNodeHardforkHeight();
 
@@ -287,22 +242,14 @@ public class UnifiedSigHashDecisionTest {
             conditional.getKeystores().get(0).setUnifiedSigHashSupported(true);
 
             AppServices.UnifiedSigHashStatus status = AppServices.getUnifiedSigHashStatus(conditional);
-            Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN_IF_MARKED_SIGNS, status.decision(),
-                    "the weaker of the two claims is the headline");
-            Assertions.assertEquals(2, status.caveats().size(),
-                    "both the quorum caveat and the uncorroborated one apply: " + status.caveats());
+            Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN, status.decision());
+            Assertions.assertEquals(List.of(), status.caveats());
 
-            //The quorum caveat comes first and carries the signer names; the chain caveat carries none
-            Assertions.assertTrue(status.caveats().get(0).contains("Coldcard"), status.caveats().get(0));
-            Assertions.assertFalse(status.caveats().get(1).contains("Coldcard"), status.caveats().get(1));
-            Assertions.assertTrue(status.caveats().get(1).contains("activation height"), status.caveats().get(1));
-
-            //A fully marked wallet on the same connection carries the chain caveat only
             Wallet marked = multisigWith(2, KeystoreSource.HW_USB, KeystoreSource.HW_USB, KeystoreSource.HW_USB);
             marked.getKeystores().forEach(keystore -> keystore.setUnifiedSigHashSupported(true));
             AppServices.UnifiedSigHashStatus markedStatus = AppServices.getUnifiedSigHashStatus(marked);
-            Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN_UNCORROBORATED, markedStatus.decision());
-            Assertions.assertEquals(1, markedStatus.caveats().size(), markedStatus.caveats().toString());
+            Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN, markedStatus.decision());
+            Assertions.assertEquals(List.of(), markedStatus.caveats());
         } finally {
             AppServices.setAnnouncedTip(null);
         }
@@ -346,36 +293,23 @@ public class UnifiedSigHashDecisionTest {
      * does a keystore get to decline.
      */
     @Test
-    public void testTheChainIsAskedBeforeTheKeystores() {
+    public void combinedDecisionIsGenesisAlwaysOn() {
         Wallet hardware = walletWith(KeystoreSource.SW_SEED, KeystoreSource.HW_USB);
         Wallet software = walletWith(KeystoreSource.SW_SEED);
-
-        Assertions.assertEquals(UnifiedSigHashDecision.CHAIN_NOT_ACTIVATED,
+        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN,
                 AppServices.combinedDecision(UnifiedSigHashDecision.CHAIN_NOT_ACTIVATED, hardware));
-        Assertions.assertEquals(UnifiedSigHashDecision.SCHEDULE_MISMATCH,
-                AppServices.combinedDecision(UnifiedSigHashDecision.SCHEDULE_MISMATCH, hardware));
-        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN_IF_MARKED_SIGNS,
-                AppServices.combinedDecision(UnifiedSigHashDecision.OPTED_IN, hardware));
         Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN,
                 AppServices.combinedDecision(UnifiedSigHashDecision.OPTED_IN, software));
-    }
-
-    /**
-     * A chain reason must not be able to reach a wallet that would have declined anyway and come back
-     * reading as opted in, which is what dropping the keystore call would do.
-     */
-    @Test
-    public void testAnOptedInChainStillDefersToTheKeystores() {
-        Assertions.assertFalse(AppServices.combinedDecision(UnifiedSigHashDecision.OPTED_IN,
+        Assertions.assertTrue(AppServices.combinedDecision(UnifiedSigHashDecision.OPTED_IN,
                 walletWith(KeystoreSource.HW_AIRGAPPED)).isOptedIn());
-        Assertions.assertFalse(AppServices.combinedDecision(UnifiedSigHashDecision.OPTED_IN, walletWith()).isOptedIn());
+        Assertions.assertTrue(AppServices.combinedDecision(UnifiedSigHashDecision.OPTED_IN, walletWith()).isOptedIn());
     }
 
     @Test
-    public void testCanSignUnifiedAgreesWithTheKeystoreDecision() {
+    public void keystoreDecisionIsGenesisAlwaysOn() {
         for(Wallet wallet : List.of(walletWith(KeystoreSource.SW_SEED), walletWith(KeystoreSource.HW_USB),
                 walletWith(KeystoreSource.SW_WATCH), walletWith())) {
-            Assertions.assertEquals(AppServices.canSignUnified(wallet), AppServices.keystoreDecision(wallet).isOptedIn());
+            Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN, AppServices.keystoreDecision(wallet));
         }
     }
 }

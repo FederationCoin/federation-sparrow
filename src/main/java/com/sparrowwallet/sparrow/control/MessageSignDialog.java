@@ -254,24 +254,19 @@ public class MessageSignDialog extends Dialog<ButtonBar.ButtonData> {
                 if(valid) {
                     try {
                         Address address = getAddress();
-                        setFormatFromScriptType(address.getScriptType());
+                        updateFormatRow();
                         if(wallet != null) {
                             setWalletNodeFromAddress(wallet, address);
-                            if(walletNode != null) {
-                                setFormatFromScriptType(walletNode.getWallet().getScriptType());
-                            }
                         }
                     } catch(InvalidAddressException e) {
-                        //can't happen
+                        log.warn("Address became invalid after validation", e);
                     }
                 }
             });
 
-            formatGroup.selectedToggleProperty().addListener((_, _, newVal) -> {
-                if(wallet != null) {
-                    boolean canSignSelectedFormat = canSignAllFormats(wallet) || newVal == formatElectrum;
-                    signButton.setDisable(!isValidAddress() || !canSign || !canSignSelectedFormat);
-                }
+            formatGroup.selectedToggleProperty().addListener((_, _, _) -> {
+                signButton.setDisable(!isValidAddress() || !canSign);
+                updateFormatRow();
             });
         }
 
@@ -299,28 +294,65 @@ public class MessageSignDialog extends Dialog<ButtonBar.ButtonData> {
                 message.requestFocus();
             }
 
-            if(wallet != null && walletNode != null) {
-                setFormatFromScriptType(walletNode.getWallet().getScriptType());
-            } else {
-                formatGroup.selectToggle(formatElectrum);
-            }
+            formatGroup.selectToggle(formatElectrum);
+            updateFormatRow();
         });
     }
 
     private void checkWalletSigning(Wallet wallet) {
-        if(wallet.getKeystores().size() != 1 || (wallet.getPolicyType() != PolicyType.SINGLE_HD && wallet.getPolicyType() != PolicyType.SINGLE_SP)) {
+        if(wallet.getPolicyType() == null || wallet.getKeystores().isEmpty()) {
+            throw new IllegalArgumentException("Cannot sign messages using this wallet type");
+        }
+        boolean allowed = wallet.getPolicyType().accept(new com.sparrowwallet.drongo.policy.PolicyVisitor<Boolean>() {
+            @Override
+            public Boolean visitSingleMldsa87() {
+                return true;
+            }
+
+            @Override
+            public Boolean visitSingleMldsa44() {
+                return true;
+            }
+
+            @Override
+            public Boolean visitSingleSegwit() {
+                return true;
+            }
+
+            @Override
+            public Boolean visitMultiMldsa87() {
+                return true;
+            }
+
+            @Override
+            public Boolean visitMultiMldsa44() {
+                return true;
+            }
+
+            @Override
+            public Boolean visitMultiSegwit() {
+                return true;
+            }
+
+            @Override
+            public Boolean visitSingleSp() {
+                return false;
+            }
+        });
+        if(!allowed) {
             throw new IllegalArgumentException("Cannot sign messages using this wallet type");
         }
     }
 
     private boolean canSign(Wallet wallet) {
-        return wallet.getKeystores().getFirst().hasPrivateKey()
-                || wallet.getKeystores().getFirst().getSource() == KeystoreSource.HW_USB
-                || wallet.getKeystores().getFirst().getWalletModel().isCard();
+        return wallet.getKeystores().stream().anyMatch(keystore ->
+                keystore.hasPrivateKey()
+                        || keystore.getSource() == KeystoreSource.HW_USB
+                        || keystore.getWalletModel().isCard());
     }
 
     private boolean canSignAllFormats(Wallet wallet) {
-        return wallet.getKeystores().getFirst().hasPrivateKey();
+        return wallet.getKeystores().stream().anyMatch(Keystore::hasPrivateKey);
     }
 
     private Address getAddress()throws InvalidAddressException {
@@ -334,7 +366,8 @@ public class MessageSignDialog extends Dialog<ButtonBar.ButtonData> {
     private boolean isValidAddress() {
         try {
             Address address = getAddress();
-            return address.getScriptType().isAllowed(PolicyType.SINGLE_HD) || address.getScriptType() == ScriptType.P2SH;
+            ScriptType scriptType = address.getScriptType();
+            return scriptType.isOfferedForNewWallets();
         } catch (InvalidAddressException e) {
             return false;
         }
@@ -342,17 +375,6 @@ public class MessageSignDialog extends Dialog<ButtonBar.ButtonData> {
 
     private void setWalletNodeFromAddress(Wallet wallet, Address address) {
         walletNode = wallet.getWalletAddresses().get(address);
-    }
-
-    private void setFormatFromScriptType(ScriptType scriptType) {
-        formatElectrum.setDisable(scriptType == ScriptType.P2TR);
-        formatTrezor.setDisable(scriptType == ScriptType.P2TR || scriptType == ScriptType.P2PKH);
-        formatBip322.setDisable(scriptType != ScriptType.P2WPKH && scriptType != ScriptType.P2TR);
-        if(scriptType == ScriptType.P2TR) {
-            formatGroup.selectToggle(formatBip322);
-        } else if(formatGroup.getSelectedToggle() == null || scriptType == ScriptType.P2PKH || (scriptType != ScriptType.P2WPKH && formatBip322.isSelected())) {
-            formatGroup.selectToggle(formatElectrum);
-        }
     }
 
     private boolean isBip322() {
@@ -374,30 +396,22 @@ public class MessageSignDialog extends Dialog<ButtonBar.ButtonData> {
             return;
         }
 
-        //Note we can expect a single keystore due to the check in the constructor
         Wallet signingWallet = walletNode.getWallet();
-        if(signingWallet.getKeystores().getFirst().hasPrivateKey()) {
+        if(signingWallet.getKeystores().stream().anyMatch(Keystore::hasPrivateKey)) {
             if(signingWallet.isEncrypted()) {
                 EventManager.get().post(new RequestOpenWalletsEvent());
             } else {
                 signUnencryptedKeystore(signingWallet);
             }
-        } else if(signingWallet.containsSource(KeystoreSource.HW_USB) || wallet.getKeystores().get(0).getWalletModel().isCard()) {
+        } else if(signingWallet.containsSource(KeystoreSource.HW_USB) || signingWallet.getKeystores().stream().anyMatch(keystore -> keystore.getWalletModel().isCard())) {
             signDeviceKeystore(signingWallet);
         }
     }
 
     private void signUnencryptedKeystore(Wallet decryptedWallet) {
         try {
-            Keystore keystore = decryptedWallet.getKeystores().getFirst();
-            String signatureText;
-            if(decryptedWallet.getScriptType() == ScriptType.MLDSA_SINGLE || decryptedWallet.getScriptType() == ScriptType.MLDSA_MULTI) {
-                com.sparrowwallet.drongo.crypto.MlDsa44.Keypair key = keystore.getMlDsaKeypair(walletNode.getIndex());
-                byte[] sig = com.sparrowwallet.drongo.crypto.MlDsa44.sign(key.secret(), message.getText().trim().getBytes(StandardCharsets.UTF_8));
-                signatureText = com.sparrowwallet.drongo.Utils.bytesToHex(sig);
-            } else {
-                throw new IllegalArgumentException("Message signing is ML-DSA-44 over a UTF-8 message only");
-            }
+            MessageSignStrategy strategy = MessageSignStrategy.forAddress(walletNode.getAddress());
+            String signatureText = strategy.sign(decryptedWallet, walletNode, message.getText().trim(), selectedFormat());
             signature.clear();
             signature.appendText(signatureText);
         } catch(Exception e) {
@@ -407,21 +421,33 @@ public class MessageSignDialog extends Dialog<ButtonBar.ButtonData> {
     }
 
     private void signDeviceKeystore(Wallet deviceWallet) {
-        AppServices.showErrorDialog("Hardware signing is not a spend on this chain", "Sign with this wallet's ML-DSA-44 seed.");
+        if(deviceWallet.getScriptType() != null && deviceWallet.getScriptType().isDilithium()) {
+            AppServices.showErrorDialog("Could not sign message", "This device cannot sign this format.");
+            return;
+        }
+        try {
+            Keystore keystore = deviceWallet.getKeystores().getFirst();
+            KeyDerivation keyDerivation = keystore.getKeyDerivation().extend(walletNode.getDerivation());
+            DeviceSignMessageDialog dialog = new DeviceSignMessageDialog(
+                    List.of(keystore.getKeyDerivation().getMasterFingerprint()),
+                    deviceWallet, message.getText().trim(), keyDerivation);
+            dialog.initOwner(getDialogPane().getScene().getWindow());
+            Optional<String> signed = dialog.showAndWait();
+            signed.ifPresent(sig -> {
+                signature.clear();
+                signature.appendText(sig);
+            });
+        } catch(Exception e) {
+            log.error("Could not sign message", e);
+            AppServices.showErrorDialog("Could not sign message", e.getMessage() == null ? "This device cannot sign this format." : e.getMessage());
+        }
     }
 
     private void verifyMessage() {
         try {
-            // ML-DSA-44 over a UTF-8 message only. Secp / BIP322 are not a spend on this chain.
-            boolean verified = false;
-            if(wallet != null && walletNode != null
-                    && (wallet.getScriptType() == ScriptType.MLDSA_SINGLE || wallet.getScriptType() == ScriptType.MLDSA_MULTI)
-                    && !signature.getText().trim().isEmpty()) {
-                com.sparrowwallet.drongo.crypto.MlDsa44.Keypair key = wallet.getKeystores().getFirst().getMlDsaKeypair(walletNode.getIndex());
-                byte[] sig = com.sparrowwallet.drongo.Utils.hexToBytes(signature.getText().trim());
-                verified = com.sparrowwallet.drongo.crypto.MlDsa44.verify(key.pubkey(), sig, message.getText().trim().getBytes(StandardCharsets.UTF_8));
-            }
-
+            Address provided = getAddress();
+            MessageSignStrategy strategy = MessageSignStrategy.forAddress(provided);
+            boolean verified = strategy.verify(provided, message.getText().trim(), signature.getText().trim(), wallet, walletNode, selectedFormat());
             if(verified) {
                 AppServices.showSuccessDialog("Verification Succeeded", "The signature verified against the message.");
             } else {
@@ -435,18 +461,26 @@ public class MessageSignDialog extends Dialog<ButtonBar.ButtonData> {
         }
     }
 
-    private boolean verifyMessage(ECKey signedMessageKey) throws InvalidAddressException, SignatureException {
-        Address providedAddress = getAddress();
-        ScriptType scriptType = providedAddress.getScriptType();
-        if(scriptType == ScriptType.P2SH) {
-            scriptType = ScriptType.P2SH_P2WPKH;
+    private MessageSignFormat selectedFormat() {
+        if(formatBip322.isSelected()) {
+            return MessageSignFormat.BIP322;
         }
-        if(!ScriptType.getScriptTypesForPolicyType(PolicyType.SINGLE_HD).contains(scriptType)) {
-            throw new IllegalArgumentException("Only single signature P2PKH, P2SH-P2WPKH or P2WPKH addresses can verify messages.");
+        if(formatTrezor.isSelected()) {
+            return MessageSignFormat.BIP137;
         }
+        return MessageSignFormat.ELECTRUM;
+    }
 
-        Address signedMessageAddress = scriptType.getAddress(PolicyType.SINGLE_HD, signedMessageKey);
-        return providedAddress.equals(signedMessageAddress);
+    private void updateFormatRow() {
+        try {
+            Address provided = getAddress();
+            boolean show = MessageSignStrategy.forAddress(provided).showsFormatRow();
+            formatElectrum.getParent().setVisible(show);
+            formatElectrum.getParent().setManaged(show);
+        } catch(InvalidAddressException | IllegalArgumentException e) {
+            formatElectrum.getParent().setVisible(false);
+            formatElectrum.getParent().setManaged(false);
+        }
     }
 
     private void showQr() {
@@ -489,8 +523,8 @@ public class MessageSignDialog extends Dialog<ButtonBar.ButtonData> {
     }
 
     private PSBT buildBip322Psbt(Wallet signingWallet) {
-        if(signingWallet.getPolicyType() == PolicyType.SINGLE_SP) {
-            Keystore keystore = signingWallet.getKeystores().getFirst();
+        if(signingWallet.getPolicyType().isSilentPayment()) {
+            Keystore keystore = signingWallet.getKeystores().get(0);
             ECKey spendPubKey = keystore.getSilentPaymentScanAddress().getSpendKey();
             KeyDerivation spendDerivation = new KeyDerivation(keystore.getKeyDerivation().getMasterFingerprint(), KeyDerivation.writePath(KeyDerivation.getBip352SpendDerivation(keystore.getKeyDerivation().getDerivation())));
             return Bip322.getBip322PsbtSp(walletNode.getAddress(), message.getText().trim(), walletNode.getSilentPaymentTweak(), Map.of(spendPubKey, spendDerivation));
@@ -514,26 +548,22 @@ public class MessageSignDialog extends Dialog<ButtonBar.ButtonData> {
         }
 
         Wallet signingWallet = walletNode.getWallet();
-        if(signingWallet.getPolicyType() == PolicyType.SINGLE_SP) {
+        if(signingWallet.getPolicyType().isSilentPayment()) {
             return Bip322.getBip322SignatureFromPsbtSp(signedPsbt);
         }
 
-        ECKey pubKey = signingWallet.getKeystores().getFirst().getPubKey(walletNode);
+        ECKey pubKey = signingWallet.getKeystores().get(0).getPubKey(walletNode);
         return Bip322.getBip322SignatureFromPsbt(signingWallet.getScriptType(), signedPsbt, pubKey);
     }
 
     private void addBip322DerivationInfo(PSBT psbt, Wallet signingWallet) {
         ScriptType scriptType = signingWallet.getScriptType();
         PSBTInput psbtInput = psbt.getPsbtInputs().get(0);
-        Keystore keystore = signingWallet.getKeystores().get(0);
-        ECKey pubKey = keystore.getPubKey(walletNode);
-        KeyDerivation fullDerivation = keystore.getKeyDerivation().extend(walletNode.getDerivation());
 
-        if(scriptType == ScriptType.P2TR) {
-            psbtInput.setTapInternalKey(pubKey);
-            psbtInput.getTapDerivedPublicKeys().put(ECKey.fromPublicOnly(pubKey.getPubKeyXCoord()), Map.of(fullDerivation, Collections.emptyList()));
-        } else {
-            psbtInput.getDerivedPublicKeys().put(scriptType.getOutputKey(signingWallet.getPolicyType(), pubKey), fullDerivation);
+        for(Keystore each : signingWallet.getKeystores()) {
+            ECKey eachPub = each.getPubKey(walletNode);
+            KeyDerivation eachDerivation = each.getKeyDerivation().extend(walletNode.getDerivation());
+            psbtInput.getDerivedPublicKeys().put(scriptType.getOutputKey(signingWallet.getPolicyType(), eachPub), eachDerivation);
         }
     }
 

@@ -10,7 +10,7 @@ import com.sparrowwallet.drongo.protocol.TransactionWitness;
 import com.sparrowwallet.drongo.psbt.PSBT;
 import com.sparrowwallet.drongo.psbt.PSBTInput;
 import com.sparrowwallet.drongo.silentpayments.SilentPaymentAddress;
-import com.sparrowwallet.drongo.uri.BitcoinURI;
+import com.sparrowwallet.drongo.uri.CoinURI;
 import com.sparrowwallet.drongo.wallet.Wallet;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -118,7 +118,7 @@ public class PayjoinTest {
     private Payjoin getPayjoin(PSBT original) throws Exception {
         Wallet wallet = new Wallet();
         wallet.setScriptType(ScriptType.P2WPKH);
-        BitcoinURI payjoinURI = new BitcoinURI("bitcoin:" + ScriptType.P2WPKH.getAddress(PAYMENT_KEY.getPubKeyHash()) + "?pj=https://payjoin.example.com/pj");
+        CoinURI payjoinURI = new CoinURI("gfcn:" + ScriptType.P2WPKH.getAddress(PAYMENT_KEY.getPubKeyHash()) + "?pj=https://payjoin.example.com/pj");
 
         return new Payjoin(payjoinURI, wallet, original);
     }

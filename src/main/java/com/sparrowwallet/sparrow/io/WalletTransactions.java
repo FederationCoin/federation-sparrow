@@ -1,7 +1,7 @@
 package com.sparrowwallet.sparrow.io;
 
 import com.csvreader.CsvWriter;
-import com.sparrowwallet.drongo.BitcoinUnit;
+import com.sparrowwallet.drongo.CoinUnit;
 import com.sparrowwallet.drongo.protocol.Transaction;
 import com.sparrowwallet.drongo.protocol.TransactionInput;
 import com.sparrowwallet.drongo.protocol.TransactionOutput;
@@ -68,9 +68,9 @@ public class WalletTransactions implements WalletExport {
             fiatRates = exchangeSource.getHistoricalExchangeRates(fiatCurrency, new Date(stats.getMin() - ONE_DAY), new Date(stats.getMax()));
         }
 
-        BitcoinUnit bitcoinUnit = Config.get().getBitcoinUnit();
-        if(bitcoinUnit == null || bitcoinUnit.equals(BitcoinUnit.AUTO)) {
-            bitcoinUnit = walletForm.getWallet().getAutoUnit();
+        CoinUnit coinUnit = Config.get().getCoinUnit();
+        if(coinUnit == null || coinUnit.equals(CoinUnit.AUTO)) {
+            coinUnit = walletForm.getWallet().getAutoUnit();
         }
 
         try {
@@ -91,10 +91,10 @@ public class WalletTransactions implements WalletExport {
                 TransactionEntry txEntry = (TransactionEntry)entry;
                 writer.write(txEntry.getBlockTransaction().getDate() == null ? "Unconfirmed" : DATE_FORMAT.format(txEntry.getBlockTransaction().getDate()));
                 writer.write(txEntry.getLabel());
-                writer.write(getCoinValue(bitcoinUnit, txEntry.getValue()));
-                writer.write(getCoinValue(bitcoinUnit, txEntry.getBalance()));
+                writer.write(getCoinValue(coinUnit, txEntry.getValue()));
+                writer.write(getCoinValue(coinUnit, txEntry.getBalance()));
                 Long fee = getFee(wallet, txEntry.getBlockTransaction());
-                writer.write(fee == null ? "" : getCoinValue(bitcoinUnit, fee));
+                writer.write(fee == null ? "" : getCoinValue(coinUnit, fee));
                 if(fiatCurrency != null) {
                     Double fiatValue = getFiatValue(txEntry, fiatRates);
                     writer.write(fiatValue == null ? "" : getFiatValue(fiatValue));
@@ -136,9 +136,9 @@ public class WalletTransactions implements WalletExport {
         return fee;
     }
 
-    private String getCoinValue(BitcoinUnit bitcoinUnit, Long value) {
+    private String getCoinValue(CoinUnit coinUnit, Long value) {
         UnitFormat format = Config.get().getUnitFormat() == null ? UnitFormat.DOT : Config.get().getUnitFormat();
-        return BitcoinUnit.BTC.equals(bitcoinUnit) ? format.tableFormatBtcValue(value) : String.format(Locale.ENGLISH, "%d", value);
+        return CoinUnit.GFCN.equals(coinUnit) ? format.tableFormatCoinValue(value) : String.format(Locale.ENGLISH, "%d", value);
     }
 
     private String getFiatValue(Double value) {
@@ -157,7 +157,7 @@ public class WalletTransactions implements WalletExport {
         }
 
         if(dayRate != null) {
-            return dayRate * txEntry.getValue() / Transaction.SATOSHIS_PER_BITCOIN;
+            return dayRate * txEntry.getValue() / Transaction.TOKENS_PER_COIN;
         }
 
         return null;
