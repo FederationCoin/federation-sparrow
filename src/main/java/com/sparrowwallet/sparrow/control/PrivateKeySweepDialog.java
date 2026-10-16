@@ -15,7 +15,6 @@ import com.sparrowwallet.drongo.protocol.*;
 import com.sparrowwallet.drongo.psbt.PSBT;
 import com.sparrowwallet.drongo.psbt.PSBTInput;
 import com.sparrowwallet.drongo.psbt.PSBTProofException;
-import com.sparrowwallet.drongo.silentpayments.*;
 import com.sparrowwallet.drongo.wallet.Payment;
 import com.sparrowwallet.drongo.wallet.Wallet;
 import com.sparrowwallet.drongo.wallet.WalletModel;
@@ -56,10 +55,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.sparrowwallet.drongo.protocol.ScriptType.P2TR;
-
 public class PrivateKeySweepDialog extends Dialog<Transaction> {
     private static final Logger log = LoggerFactory.getLogger(PrivateKeySweepDialog.class);
+
+    public static boolean supportedOnThisChain() {
+        return PolicyType.offeredForNewWallets().contains(PolicyType.SINGLE_SEGWIT);
+    }
 
     private final TextArea key;
     private final ComboBox<ScriptType> keyScriptType;
@@ -70,7 +71,6 @@ public class PrivateKeySweepDialog extends Dialog<Transaction> {
     private final FeeRangeSlider feeRange;
     private final CopyableLabel feeRate;
     private final UnlabeledToggleSwitch ignoreDust;
-    private SilentPaymentAddress silentPaymentAddress;
 
     public PrivateKeySweepDialog(Wallet wallet) {
         final DialogPane dialogPane = getDialogPane();
@@ -103,7 +103,7 @@ public class PrivateKeySweepDialog extends Dialog<Transaction> {
         HBox.setHgrow(key, Priority.ALWAYS);
         keyField.getInputs().add(keyBox);
 
-        if(CardApi.isReaderAvailable()) {
+        if(CardApi.isReaderAvailable() && java.util.Arrays.stream(WalletModel.values()).anyMatch(model -> model.supportsThisChain() && model.hasUsb())) {
             VBox cardButtonBox = new VBox(5);
             Button cardKey = new Button("", getGlyph(FontAwesome5.Glyph.WIFI));
             cardKey.setOnAction(event -> unsealPrivateKey());
@@ -214,31 +214,18 @@ public class PrivateKeySweepDialog extends Dialog<Transaction> {
         });
 
         toAddress.textProperty().addListener((observable, oldValue, newValue) -> {
-            try {
-                silentPaymentAddress = SilentPaymentAddress.from(newValue);
-            } catch(Exception e) {
-                silentPaymentAddress = null;
-            }
             createButton.setDisable(!isValidKey() || !isValidToAddress());
         });
 
         toWallet.valueProperty().addListener((observable, oldValue, selectedWallet) -> {
             if(selectedWallet != null) {
-                if(selectedWallet.getPolicyType() == PolicyType.SINGLE_SP) {
-                    toAddress.setText(selectedWallet.getSilentPaymentScanAddress().getSilentPaymentAddress().getAddress());
-                } else {
-                    toAddress.setText(selectedWallet.getFreshNode(KeyPurpose.RECEIVE).getAddress().toString());
-                }
+                toAddress.setText(selectedWallet.getFreshNode(KeyPurpose.RECEIVE).getAddress().toString());
             }
         });
 
         keyScriptType.setValue(ScriptType.P2WPKH);
         if(wallet != null) {
-            if(wallet.getPolicyType() == PolicyType.SINGLE_SP) {
-                toAddress.setText(wallet.getSilentPaymentScanAddress().getSilentPaymentAddress().getAddress());
-            } else {
-                toAddress.setText(wallet.getFreshNode(KeyPurpose.RECEIVE).getAddress().toString());
-            }
+            toAddress.setText(wallet.getFreshNode(KeyPurpose.RECEIVE).getAddress().toString());
         }
 
         AppServices.onEscapePressed(dialogPane.getScene(), () -> setResult(null));
@@ -527,30 +514,8 @@ public class PrivateKeySweepDialog extends Dialog<Transaction> {
         try {
             setResult(psbt.extractTransaction());
         } catch(PSBTProofException e) {
-            AppServices.showErrorDialog("Invalid Silent Payments Transaction", e.getMessage());
-        }
-    }
-
-    private Address computeSilentPaymentAddress(ECKey privKey, ScriptType scriptType, List<TransactionOutput> txOutputs, SilentPayment silentPayment) {
-        ECKey summedPrivateKey = scriptType.getOutputKey(PolicyType.SINGLE_MLDSA87, privKey);
-        if(scriptType == P2TR && summedPrivateKey.hasOddYCoord()) {
-            summedPrivateKey = summedPrivateKey.negatePrivate();
-        }
-
-        Set<HashIndex> outpoints = new LinkedHashSet<>();
-        for(TransactionOutput txOutput : txOutputs) {
-            outpoints.add(new HashIndex(txOutput.getHash(), txOutput.getIndex()));
-        }
-
-        try {
-            SilentPaymentUtils.computeOutputAddresses(List.of(silentPayment), summedPrivateKey, outpoints);
-            if(!silentPayment.isAddressComputed()) {
-                throw new IllegalStateException("Failed to compute silent payment address");
-            }
-
-            return silentPayment.getAddress();
-        } catch(InvalidSilentPaymentException e) {
-            throw new IllegalStateException("Failed to compute silent payment address", e);
+            log.error("Sweep transaction proof failed", e);
+            AppServices.showErrorDialog("Invalid transaction", e.getMessage());
         }
     }
 

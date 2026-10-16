@@ -345,13 +345,14 @@ public class MessageSignDialog extends Dialog<ButtonBar.ButtonData> {
     }
 
     private boolean canSign(Wallet wallet) {
-        return wallet.getKeystores().getFirst().hasPrivateKey()
-                || wallet.getKeystores().getFirst().getSource() == KeystoreSource.HW_USB
-                || wallet.getKeystores().getFirst().getWalletModel().isCard();
+        return wallet.getKeystores().stream().anyMatch(keystore ->
+                keystore.hasPrivateKey()
+                        || keystore.getSource() == KeystoreSource.HW_USB
+                        || keystore.getWalletModel().isCard());
     }
 
     private boolean canSignAllFormats(Wallet wallet) {
-        return wallet.getKeystores().getFirst().hasPrivateKey();
+        return wallet.getKeystores().stream().anyMatch(Keystore::hasPrivateKey);
     }
 
     private Address getAddress()throws InvalidAddressException {
@@ -395,15 +396,14 @@ public class MessageSignDialog extends Dialog<ButtonBar.ButtonData> {
             return;
         }
 
-        //Note we can expect a single keystore due to the check in the constructor
         Wallet signingWallet = walletNode.getWallet();
-        if(signingWallet.getKeystores().getFirst().hasPrivateKey()) {
+        if(signingWallet.getKeystores().stream().anyMatch(Keystore::hasPrivateKey)) {
             if(signingWallet.isEncrypted()) {
                 EventManager.get().post(new RequestOpenWalletsEvent());
             } else {
                 signUnencryptedKeystore(signingWallet);
             }
-        } else if(signingWallet.containsSource(KeystoreSource.HW_USB) || wallet.getKeystores().get(0).getWalletModel().isCard()) {
+        } else if(signingWallet.containsSource(KeystoreSource.HW_USB) || signingWallet.getKeystores().stream().anyMatch(keystore -> keystore.getWalletModel().isCard())) {
             signDeviceKeystore(signingWallet);
         }
     }
@@ -523,8 +523,8 @@ public class MessageSignDialog extends Dialog<ButtonBar.ButtonData> {
     }
 
     private PSBT buildBip322Psbt(Wallet signingWallet) {
-        if(signingWallet.getPolicyType() == PolicyType.SINGLE_SP) {
-            Keystore keystore = signingWallet.getKeystores().getFirst();
+        if(signingWallet.getPolicyType().isSilentPayment()) {
+            Keystore keystore = signingWallet.getKeystores().get(0);
             ECKey spendPubKey = keystore.getSilentPaymentScanAddress().getSpendKey();
             KeyDerivation spendDerivation = new KeyDerivation(keystore.getKeyDerivation().getMasterFingerprint(), KeyDerivation.writePath(KeyDerivation.getBip352SpendDerivation(keystore.getKeyDerivation().getDerivation())));
             return Bip322.getBip322PsbtSp(walletNode.getAddress(), message.getText().trim(), walletNode.getSilentPaymentTweak(), Map.of(spendPubKey, spendDerivation));
@@ -548,26 +548,22 @@ public class MessageSignDialog extends Dialog<ButtonBar.ButtonData> {
         }
 
         Wallet signingWallet = walletNode.getWallet();
-        if(signingWallet.getPolicyType() == PolicyType.SINGLE_SP) {
+        if(signingWallet.getPolicyType().isSilentPayment()) {
             return Bip322.getBip322SignatureFromPsbtSp(signedPsbt);
         }
 
-        ECKey pubKey = signingWallet.getKeystores().getFirst().getPubKey(walletNode);
+        ECKey pubKey = signingWallet.getKeystores().get(0).getPubKey(walletNode);
         return Bip322.getBip322SignatureFromPsbt(signingWallet.getScriptType(), signedPsbt, pubKey);
     }
 
     private void addBip322DerivationInfo(PSBT psbt, Wallet signingWallet) {
         ScriptType scriptType = signingWallet.getScriptType();
         PSBTInput psbtInput = psbt.getPsbtInputs().get(0);
-        Keystore keystore = signingWallet.getKeystores().get(0);
-        ECKey pubKey = keystore.getPubKey(walletNode);
-        KeyDerivation fullDerivation = keystore.getKeyDerivation().extend(walletNode.getDerivation());
 
-        if(scriptType == ScriptType.P2TR) {
-            psbtInput.setTapInternalKey(pubKey);
-            psbtInput.getTapDerivedPublicKeys().put(ECKey.fromPublicOnly(pubKey.getPubKeyXCoord()), Map.of(fullDerivation, Collections.emptyList()));
-        } else {
-            psbtInput.getDerivedPublicKeys().put(scriptType.getOutputKey(signingWallet.getPolicyType(), pubKey), fullDerivation);
+        for(Keystore each : signingWallet.getKeystores()) {
+            ECKey eachPub = each.getPubKey(walletNode);
+            KeyDerivation eachDerivation = each.getKeyDerivation().extend(walletNode.getDerivation());
+            psbtInput.getDerivedPublicKeys().put(scriptType.getOutputKey(signingWallet.getPolicyType(), eachPub), eachDerivation);
         }
     }
 

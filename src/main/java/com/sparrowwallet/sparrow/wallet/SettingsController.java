@@ -248,8 +248,7 @@ public class SettingsController extends WalletFormController implements Initiali
         scanDescriptorQR.prefHeightProperty().bind(descriptor.prefHeightProperty());
         showDescriptorQR.managedProperty().bind(showDescriptorQR.visibleProperty());
         showDescriptorQR.prefHeightProperty().bind(descriptor.prefHeightProperty());
-        boolean dilithium = walletForm.getWallet().getScriptType() != null && walletForm.getWallet().getScriptType().isDilithium();
-        showDescriptorQR.setVisible(walletForm.getWallet().isValid() && !dilithium);
+        showDescriptorQR.setVisible(walletForm.getWallet().isValid());
         editDescriptor.managedProperty().bind(editDescriptor.visibleProperty());
         showDescriptor.managedProperty().bind(showDescriptor.visibleProperty());
         showDescriptor.visibleProperty().bind(editDescriptor.visibleProperty().not());
@@ -272,7 +271,7 @@ public class SettingsController extends WalletFormController implements Initiali
             revert.setDisable(true);
             apply.setDisable(true);
             boolean addressChange = ((SettingsWalletForm)walletForm).isAddressChange();
-            if(walletForm.getWallet().getPolicyType() == PolicyType.SINGLE_SP && walletForm.getWallet().getBirthDate() == null && walletForm.getStorage().getEncryptionPubKey() == null) {
+            if(walletForm.getWallet().getPolicyType().isSilentPayment() && walletForm.getWallet().getBirthDate() == null && walletForm.getStorage().getEncryptionPubKey() == null) {
                 walletForm.getWallet().setBirthDate(new Date());
             }
             saveWallet(false, false);
@@ -331,7 +330,7 @@ public class SettingsController extends WalletFormController implements Initiali
         }
 
         boolean hideXpub = wallet.getScriptType() != null && wallet.getScriptType().isDilithium();
-        scanDescriptorQR.setVisible(!walletForm.getWallet().isValid() && !hideXpub);
+        scanDescriptorQR.setVisible(!walletForm.getWallet().isValid());
         export.setDisable(!walletForm.getWallet().isValid());
         addAccount.setDisable(!walletForm.getWallet().isValid() || walletForm.getWallet().getScriptType() == ScriptType.P2SH);
         revert.setDisable(true);
@@ -396,6 +395,21 @@ public class SettingsController extends WalletFormController implements Initiali
     public void showDescriptorQR(ActionEvent event) {
         if(!walletForm.getWallet().isValid()) {
             AppServices.showErrorDialog("Wallet Invalid", "Cannot show a descriptor for an invalid wallet.");
+            return;
+        }
+
+        if(walletForm.getWallet().getPolicyType().accept(new com.sparrowwallet.drongo.policy.PolicyVisitor<Boolean>() {
+            @Override public Boolean visitSingleMldsa87() { return true; }
+            @Override public Boolean visitMultiMldsa87() { return true; }
+            @Override public Boolean visitSingleMldsa44() { return true; }
+            @Override public Boolean visitMultiMldsa44() { return true; }
+            @Override public Boolean visitSingleSegwit() { return false; }
+            @Override public Boolean visitMultiSegwit() { return false; }
+            @Override public Boolean visitSingleSp() { return false; }
+        })) {
+            QRDisplayDialog qrDisplayDialog = new QRDisplayDialog(walletForm.getWallet().getMlDsaPolicyBackup());
+            qrDisplayDialog.initOwner(showDescriptorQR.getScene().getWindow());
+            qrDisplayDialog.showAndWait();
             return;
         }
 
@@ -892,7 +906,7 @@ public class SettingsController extends WalletFormController implements Initiali
             export.setDisable(true);
             addAccount.setDisable(true);
             boolean hideXpub = wallet.getScriptType() != null && wallet.getScriptType().isDilithium();
-            scanDescriptorQR.setVisible(!walletForm.getWallet().isValid() && !hideXpub);
+            scanDescriptorQR.setVisible(!walletForm.getWallet().isValid());
         }
     }
 
@@ -902,7 +916,7 @@ public class SettingsController extends WalletFormController implements Initiali
             export.setDisable(!event.getWallet().isValid());
             addAccount.setDisable(!event.getWallet().isValid() || event.getWallet().getScriptType() == ScriptType.P2SH);
             boolean hideXpub = event.getWallet().getScriptType() != null && event.getWallet().getScriptType().isDilithium();
-            scanDescriptorQR.setVisible(!walletForm.getWallet().isValid() && !hideXpub);
+            scanDescriptorQR.setVisible(!walletForm.getWallet().isValid());
         }
     }
 

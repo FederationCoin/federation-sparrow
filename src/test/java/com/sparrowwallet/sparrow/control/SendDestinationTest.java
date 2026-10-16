@@ -18,6 +18,25 @@ public class SendDestinationTest {
         Network.set(null);
     }
     @Test
+    public void visitDispatchesToChainAddress() throws Exception {
+        P2WPKHAddress address = new P2WPKHAddress(new byte[20]);
+        SendDestination dest = new SendDestination.ChainAddress(address);
+        String kind = dest.accept(new SendDestination.Visitor<>() {
+            @Override
+            public String chainAddress(SendDestination.ChainAddress destination) {
+                return "chain";
+            }
+
+            @Override
+            public String dnsHrn(SendDestination.DnsHrn destination) {
+                return "dns";
+            }
+        });
+        Assertions.assertEquals("chain", kind);
+        Assertions.assertEquals(address, dest.sendableAddress());
+    }
+
+    @Test
     public void chainAddressToPayment() throws Exception {
         P2WPKHAddress address = new P2WPKHAddress(new byte[20]);
         SendDestination dest = new SendDestination.ChainAddress(address);

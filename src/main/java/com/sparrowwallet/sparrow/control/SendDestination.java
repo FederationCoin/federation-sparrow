@@ -12,18 +12,31 @@ import com.sparrowwallet.drongo.silentpayments.SilentPaymentAddress;
 import com.sparrowwallet.drongo.uri.CoinURIParseException;
 import com.sparrowwallet.drongo.wallet.Payment;
 import com.sparrowwallet.sparrow.AppServices;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 
 public sealed interface SendDestination permits SendDestination.ChainAddress, SendDestination.DnsHrn {
+    Logger log = LoggerFactory.getLogger(SendDestination.class);
     String SILENT_PAYMENTS_UNAVAILABLE = "Silent payments are not available";
 
     Payment toPayment(String label, long value, boolean sendMax)
             throws DnsPaymentValidationException, IOException, ExecutionException, InterruptedException, CoinURIParseException;
 
     boolean needsDnsResolution();
+
+    Address sendableAddress() throws InvalidAddressException;
+
+    <R> R accept(Visitor<R> visitor);
+
+    interface Visitor<R> {
+        R chainAddress(ChainAddress destination) throws InvalidAddressException;
+
+        R dnsHrn(DnsHrn destination) throws InvalidAddressException;
+    }
 
     static SendDestination parse(String value) {
         if(value == null || value.isEmpty()) {
@@ -59,8 +72,9 @@ public sealed interface SendDestination permits SendDestination.ChainAddress, Se
             if(SILENT_PAYMENTS_UNAVAILABLE.equals(e.getMessage())) {
                 throw e;
             }
+            log.debug("Value is not a silent payment address", e);
         } catch(Exception e) {
-            // not a silent payment address
+            log.debug("Value is not a silent payment address", e);
         }
         try {
             Address address = Address.fromString(value);
@@ -99,6 +113,21 @@ public sealed interface SendDestination permits SendDestination.ChainAddress, Se
         }
 
         @Override
+        public Address sendableAddress() throws InvalidAddressException {
+            address.requireSendable();
+            return address;
+        }
+
+        @Override
+        public <R> R accept(Visitor<R> visitor) {
+            try {
+                return visitor.chainAddress(this);
+            } catch(InvalidAddressException e) {
+                throw new IllegalArgumentException(e.getMessage(), e);
+            }
+        }
+
+        @Override
         public String toString() {
             return address.toString();
         }
@@ -123,6 +152,29 @@ public sealed interface SendDestination permits SendDestination.ChainAddress, Se
         @Override
         public boolean needsDnsResolution() {
             return DnsPaymentCache.getDnsPayment(hrn) == null;
+        }
+
+        @Override
+        public Address sendableAddress() throws InvalidAddressException {
+            DnsPayment dnsPayment = DnsPaymentCache.getDnsPayment(hrn);
+            if(dnsPayment == null || !dnsPayment.hasAddress()) {
+                throw new InvalidAddressException("Could not resolve " + hrn);
+            }
+            if(dnsPayment.hasSilentPaymentAddress()) {
+                throw new InvalidAddressException(SILENT_PAYMENTS_UNAVAILABLE);
+            }
+            Address resolved = dnsPayment.coinURI().getAddress();
+            resolved.requireSendable();
+            return resolved;
+        }
+
+        @Override
+        public <R> R accept(Visitor<R> visitor) {
+            try {
+                return visitor.dnsHrn(this);
+            } catch(InvalidAddressException e) {
+                throw new IllegalArgumentException(e.getMessage(), e);
+            }
         }
 
         @Override

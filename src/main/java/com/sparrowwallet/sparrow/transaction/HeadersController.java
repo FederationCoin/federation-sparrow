@@ -506,7 +506,7 @@ public class HeadersController extends TransactionFormController implements Init
         saveFinalButton.visibleProperty().bind(broadcastButton.visibleProperty().not());
         broadcastButton.visibleProperty().bind(AppServices.onlineProperty());
 
-        boolean isPayjoinOriginalTx = payjoinURI != null && headersForm.getPsbt() != null && headersForm.getPsbt().getPsbtInputs().stream().noneMatch(PSBTInput::isFinalized);
+        boolean isPayjoinOriginalTx = Payjoin.supportedOnThisChain() && payjoinURI != null && headersForm.getPsbt() != null && headersForm.getPsbt().getPsbtInputs().stream().noneMatch(PSBTInput::isFinalized);
         payjoinButton.managedProperty().bind(payjoinButton.visibleProperty());
         payjoinButton.visibleProperty().set(isPayjoinOriginalTx);
         broadcastButton.setDefaultButton(!isPayjoinOriginalTx);
@@ -1866,6 +1866,9 @@ public class HeadersController extends TransactionFormController implements Init
     }
 
     public void getPayjoinTransaction(ActionEvent event) {
+        if(!Payjoin.supportedOnThisChain()) {
+            return;
+        }
         CoinURI currentPayjoinURI = getPayjoinURI();
         if(currentPayjoinURI == null) {
             throw new IllegalStateException("No valid Payjoin URI");

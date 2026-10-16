@@ -96,30 +96,49 @@ public class WatchOnlyDialog extends NewWalletDialog {
     @Override
     protected List<Wallet> getWallets() throws ImportException {
         String text = descriptor.getText().replaceAll("\\s+", "");
+        return WatchOnlySource.parse(text).wallets(this);
+    }
 
-        if(ExtendedKey.isValid(text)) {
+    sealed interface WatchOnlySource {
+        List<Wallet> wallets(WatchOnlyDialog dialog) throws ImportException;
+
+        static WatchOnlySource parse(String text) {
+            if(ExtendedKey.isValid(text)) {
+                return new XpubSource(text);
+            }
+            return new OutputDescriptorSource(text);
+        }
+    }
+
+    record XpubSource(String text) implements WatchOnlySource {
+        @Override
+        public List<Wallet> wallets(WatchOnlyDialog dialog) throws ImportException {
             ExtendedKey extendedKey = ExtendedKey.fromDescriptor(text);
             if(!extendedKey.getKey().isPubKeyOnly()) {
                 throw new ImportException("An extended private key cannot be used to create a watch only wallet. Enter an extended public key, or an output descriptor if the private key is intended to be imported.");
             }
-
             try {
-                return getWalletFromXpub(extendedKey, ExtendedKey.Header.fromExtendedKey(text));
+                return dialog.getWalletFromXpub(extendedKey, ExtendedKey.Header.fromExtendedKey(text));
             } catch(IllegalArgumentException e) {
                 log.warn("Watch-only xpub has no offered script type", e);
                 throw new ImportException(e.getMessage(), e);
             }
         }
+    }
 
-        try {
-            return getWalletFromOutputDescriptor(text);
-        } catch(Exception e) {
-            log.error("Could not determine wallet from descriptor: " + text, e);
-            throw new ImportException("Could not determine wallet from descriptor: " + e.getMessage(), e);
+    record OutputDescriptorSource(String text) implements WatchOnlySource {
+        @Override
+        public List<Wallet> wallets(WatchOnlyDialog dialog) throws ImportException {
+            try {
+                return dialog.getWalletFromOutputDescriptor(text);
+            } catch(Exception e) {
+                log.error("Could not determine wallet from descriptor: " + text, e);
+                throw new ImportException("Could not determine wallet from descriptor: " + e.getMessage(), e);
+            }
         }
     }
 
-    private List<Wallet> getWalletFromXpub(ExtendedKey xpub, ExtendedKey.Header header) {
+    List<Wallet> getWalletFromXpub(ExtendedKey xpub, ExtendedKey.Header header) {
         List<Wallet> wallets = new ArrayList<>();
         for(PolicyType policy : header.getDefaultScriptType().getAllowedPolicyTypes()) {
             if(!policy.isOfferedForNewWallets()) {
@@ -150,7 +169,7 @@ public class WatchOnlyDialog extends NewWalletDialog {
         return wallet;
     }
 
-    private List<Wallet> getWalletFromOutputDescriptor(String text) {
+    List<Wallet> getWalletFromOutputDescriptor(String text) {
         OutputDescriptor outputDescriptor = OutputDescriptor.getOutputDescriptor(text);
         Wallet wallet = outputDescriptor.toWallet();
         wallet.setName(walletName);

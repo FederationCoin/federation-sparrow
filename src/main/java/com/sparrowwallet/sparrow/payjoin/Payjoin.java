@@ -33,6 +33,10 @@ public class Payjoin {
     private final Wallet wallet;
     private final PSBT psbt;
 
+    public static boolean supportedOnThisChain() {
+        return false;
+    }
+
     public Payjoin(CoinURI payjoinURI, Wallet wallet, PSBT psbt) {
         this.payjoinURI = payjoinURI;
         this.wallet = wallet;

@@ -55,9 +55,69 @@ public class MessageSignStrategyTest {
         MessageSignStrategy strategy = MessageSignStrategy.forAddress(node.getAddress());
         String signature = strategy.sign(wallet, node, "hello", MessageSignFormat.ELECTRUM);
         Assertions.assertTrue(strategy.verify(node.getAddress(), "hello", signature, wallet, node, MessageSignFormat.ELECTRUM));
-        MlDsa87.Keypair key = keystore.getMlDsa87Keypair(node);
-        Assertions.assertTrue(MlDsa87.verify(key.pubkey(),
-                com.sparrowwallet.drongo.Utils.hexToBytes(signature),
-                "hello".getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        Assertions.assertTrue(strategy.verify(node.getAddress(), "hello", signature, null, null, MessageSignFormat.ELECTRUM));
+        byte[] blob = com.sparrowwallet.drongo.Utils.hexToBytes(signature);
+        byte[] pubkey = java.util.Arrays.copyOfRange(blob, 0, MlDsa87.PUBLIC_KEY_SIZE);
+        byte[] sig = java.util.Arrays.copyOfRange(blob, MlDsa87.PUBLIC_KEY_SIZE, blob.length);
+        Assertions.assertTrue(MlDsa87.verify(pubkey, sig, "hello".getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+    }
+
+    @Test
+    public void dilithium44RoundTripWithoutWallet() throws Exception {
+        DeterministicSeed seed = new DeterministicSeed(
+                "absent essay fox snake vast pumpkin height crouch silent bulb excuse razor",
+                "", 0, DeterministicSeed.Type.BIP39);
+        Wallet wallet = new Wallet();
+        wallet.setPolicyType(PolicyType.SINGLE_MLDSA44);
+        wallet.setScriptType(ScriptType.MLDSA_SINGLE);
+        Keystore keystore = Keystore.fromSeed(seed, PolicyType.SINGLE_MLDSA44, ScriptType.MLDSA_SINGLE.getDefaultDerivation());
+        wallet.getKeystores().add(keystore);
+        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.SINGLE_MLDSA44, ScriptType.MLDSA_SINGLE, wallet.getKeystores(), 1));
+        WalletNode node = wallet.getFreshNode(com.sparrowwallet.drongo.KeyPurpose.RECEIVE);
+        MessageSignStrategy strategy = MessageSignStrategy.forAddress(node.getAddress());
+        String signature = strategy.sign(wallet, node, "hello", MessageSignFormat.ELECTRUM);
+        Assertions.assertTrue(strategy.verify(node.getAddress(), "hello", signature, null, null, MessageSignFormat.ELECTRUM));
+    }
+
+    @Test
+    public void homogeneousMultiDoesNotUseOnlyFirstKeystore() throws Exception {
+        String[] phrases = {
+                "absent essay fox snake vast pumpkin height crouch silent bulb excuse razor",
+                "chef huge whisper year move obscure post pepper play minute foster lawn"
+        };
+        Wallet wallet = new Wallet();
+        wallet.setPolicyType(PolicyType.MULTI_MLDSA87);
+        wallet.setScriptType(ScriptType.MLDSA87_MULTI);
+        for(String words : phrases) {
+            DeterministicSeed seed = new DeterministicSeed(words, "", 0, DeterministicSeed.Type.BIP39);
+            wallet.getKeystores().add(Keystore.fromSeed(seed, PolicyType.SINGLE_MLDSA87, ScriptType.MLDSA87_MULTI.getDefaultDerivation()));
+        }
+        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_MLDSA87, ScriptType.MLDSA87_MULTI, wallet.getKeystores(), 2));
+        Assertions.assertEquals(2, wallet.getKeystores().size());
+        Assertions.assertTrue(wallet.getKeystores().stream().allMatch(Keystore::hasPrivateKey));
+        WalletNode node = wallet.getFreshNode(com.sparrowwallet.drongo.KeyPurpose.RECEIVE);
+        MessageSignStrategy strategy = MessageSignStrategy.forAddress(node.getAddress());
+        String signature = strategy.sign(wallet, node, "hello", MessageSignFormat.ELECTRUM);
+        Assertions.assertTrue(strategy.verify(node.getAddress(), "hello", signature, wallet, node, MessageSignFormat.ELECTRUM));
+    }
+
+    @Test
+    public void homogeneousFortyFourMultiSigns() throws Exception {
+        String[] phrases = {
+                "absent essay fox snake vast pumpkin height crouch silent bulb excuse razor",
+                "chef huge whisper year move obscure post pepper play minute foster lawn"
+        };
+        Wallet wallet = new Wallet();
+        wallet.setPolicyType(PolicyType.MULTI_MLDSA44);
+        wallet.setScriptType(ScriptType.MLDSA_MULTI);
+        for(String words : phrases) {
+            DeterministicSeed seed = new DeterministicSeed(words, "", 0, DeterministicSeed.Type.BIP39);
+            wallet.getKeystores().add(Keystore.fromSeed(seed, PolicyType.SINGLE_MLDSA44, ScriptType.MLDSA_MULTI.getDefaultDerivation()));
+        }
+        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_MLDSA44, ScriptType.MLDSA_MULTI, wallet.getKeystores(), 2));
+        WalletNode node = wallet.getFreshNode(com.sparrowwallet.drongo.KeyPurpose.RECEIVE);
+        MessageSignStrategy strategy = MessageSignStrategy.forAddress(node.getAddress());
+        String signature = strategy.sign(wallet, node, "hello", MessageSignFormat.ELECTRUM);
+        Assertions.assertTrue(strategy.verify(node.getAddress(), "hello", signature, wallet, node, MessageSignFormat.ELECTRUM));
     }
 }

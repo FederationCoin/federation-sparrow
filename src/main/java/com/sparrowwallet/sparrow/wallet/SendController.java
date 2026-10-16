@@ -1004,7 +1004,9 @@ public class SendController extends WalletFormController implements Initializabl
     }
 
     private CoinURI getPayjoinURI(List<Payment> payments) {
-        if(getWalletForm().getWallet().getPolicyType() == PolicyType.SINGLE_SP || payments.stream().anyMatch(payment -> payment instanceof SilentPayment)) {
+        if(!com.sparrowwallet.sparrow.payjoin.Payjoin.supportedOnThisChain()
+                || getWalletForm().getWallet().getPolicyType().isSilentPayment()
+                || payments.stream().anyMatch(payment -> payment instanceof SilentPayment)) {
             return null;
         }
 
@@ -1019,7 +1021,16 @@ public class SendController extends WalletFormController implements Initializabl
     }
 
     private CoinURI getPayjoinURI(Address address) {
-        // Payjoin is not a spend on this chain.
+        if(!com.sparrowwallet.sparrow.payjoin.Payjoin.supportedOnThisChain()) {
+            return null;
+        }
+        for(Tab tab : paymentTabs.getTabs()) {
+            PaymentController controller = (PaymentController)tab.getUserData();
+            CoinURI payjoinURI = controller.getPayjoinURI();
+            if(payjoinURI != null && payjoinURI.getAddress().equals(address)) {
+                return payjoinURI;
+            }
+        }
         return null;
     }
 
@@ -1158,8 +1169,7 @@ public class SendController extends WalletFormController implements Initializabl
 
         //The one decision the user can act on is offered here rather than only described: the send screen is where
         //they find out, and a setting reached by leaving the send and hunting through a tab is a setting nobody uses
-        // Unified-sighash hardware dialog is not a spend on this chain.
-        boolean actionable = false;
+        boolean actionable = !decision.isOptedIn() && decision.getRemedy() != null;
         optInStatus.getStyleClass().removeAll("actionable");
         if(actionable) {
             optInStatus.getStyleClass().add("actionable");

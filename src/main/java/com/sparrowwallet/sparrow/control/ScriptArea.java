@@ -2,7 +2,6 @@ package com.sparrowwallet.sparrow.control;
 
 import com.sparrowwallet.drongo.protocol.Script;
 import com.sparrowwallet.drongo.protocol.ScriptChunk;
-import com.sparrowwallet.drongo.protocol.ScriptOpCodes;
 import javafx.geometry.Pos;
 import org.controlsfx.control.decoration.Decorator;
 import org.controlsfx.control.decoration.GraphicDecoration;
@@ -32,39 +31,10 @@ public class ScriptArea extends CodeArea {
         if(matched != null) {
             matched.append(this, script);
         } else {
-            int signatureCount = 1;
-            int pubKeyCount = 1;
+            int[] pubkeyAndSignature = {1, 1};
             for (int i = 0; i < script.getChunks().size(); i++) {
                 ScriptChunk chunk = script.getChunks().get(i);
-                if(chunk.isOpCode()) {
-                    if(chunk.getOpcode() == ScriptOpCodes.OP_0 && witnessScript != null) {
-                        append("<empty>", "script-other");
-                    } else {
-                        append(chunk.toString(), "script-opcode");
-                    }
-                } else if(chunk.isPubKey()) {
-                    append("<pubkey" + pubKeyCount++ + ">", "script-pubkey");
-                } else if(chunk.isSignature()) {
-                    append("<signature" + signatureCount++ + ">", "script-signature");
-                } else if(chunk.isTaprootControlBlock()) {
-                    append("<controlblock>", "script-controlblock");
-                } else if(chunk.isString()) {
-                    append(chunk.toString(), "script-other");
-                } else if(chunk.isScript()) {
-                    Script nestedScript = chunk.getScript();
-                    if (nestedScript.equals(redeemScript)) {
-                        append("<RedeemScript>", "script-redeem");
-                    } else if(nestedScript.equals(witnessScript)) {
-                        append("<WitnessScript>", "script-redeem");
-                    } else {
-                        append("(", "script-nest");
-                        appendScript(nestedScript);
-                        append(")", "script-nest");
-                    }
-                } else {
-                    append(chunk.toString(), "script-other");
-                }
-
+                ScriptDisplay.ScriptChunkDisplay.of(chunk).append(this, chunk, redeemScript, witnessScript, pubkeyAndSignature);
                 if(i < script.getChunks().size() - 1) {
                     append(" ", "");
                 }

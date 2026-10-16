@@ -98,6 +98,10 @@ public class PayNym {
         return new PayNym(externalPaymentCode, null, nymName, segwit, Collections.emptyList(), Collections.emptyList());
     }
 
+    public static boolean supportedOnThisChain() {
+        return false;
+    }
+
     public static String getNymName(Wallet bip47Wallet) {
         if(bip47Wallet.getLabel() != null) {
             String suffix = " " + bip47Wallet.getScriptType().getName();

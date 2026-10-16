@@ -446,10 +446,10 @@ public class AppController implements Initializable {
         searchWallet.disableProperty().bind(exportWallet.disableProperty());
         refreshWallet.disableProperty().bind(Bindings.or(exportWallet.disableProperty(), Bindings.or(serverToggle.disableProperty(), AppServices.onlineProperty().not())));
         sendToMany.disableProperty().bind(exportWallet.disableProperty());
+        sweepPrivateKey.setVisible(PrivateKeySweepDialog.supportedOnThisChain());
         sweepPrivateKey.disableProperty().bind(Bindings.or(serverToggle.disableProperty(), AppServices.onlineProperty().not()));
-        sweepPrivateKey.setVisible(false);
+        showPayNym.setVisible(com.sparrowwallet.sparrow.paynym.PayNym.supportedOnThisChain());
         showPayNym.setDisable(true);
-        showPayNym.setVisible(false);
 
         configureSwitchServer();
         setServerType(Config.get().getServerType());
@@ -1298,7 +1298,7 @@ public class AppController implements Initializable {
                 List<ExtendedKey> xpubs = wallet.getKeystores().stream().map(Keystore::getExtendedPublicKey).filter(Objects::nonNull).collect(Collectors.toList());
                 Optional<WalletForm> optNewWalletForm = walletTabData.stream()
                         .map(WalletTabData::getWalletForm)
-                        .filter(wf -> wf.getSettingsWalletForm() != null && wf.getSettingsWalletForm().getWallet().getPolicyType() == PolicyType.MULTI_MLDSA87 &&
+                        .filter(wf -> wf.getSettingsWalletForm() != null && wf.getSettingsWalletForm().getWallet().getPolicyType().isHomogeneousMultisig() &&
                                 wf.getSettingsWalletForm().getWallet().getScriptType() == wallet.getScriptType() && !wf.getSettingsWalletForm().getWallet().isValid() &&
                                 wf.getSettingsWalletForm().getWallet().getKeystores().stream().map(Keystore::getExtendedPublicKey).anyMatch(xpubs::contains)).findFirst();
                 if(optNewWalletForm.isPresent()) {
@@ -1322,6 +1322,9 @@ public class AppController implements Initializable {
                 new KeystoneSinglesig(), new KeystoneMultisig(),
                 new CaravanMultisig());
         for(WalletImport importer : walletImporters) {
+            if(!importer.supports()) {
+                continue;
+            }
             if(importer.isDeprecated() && !Config.get().isShowDeprecatedImportExport()) {
                 continue;
             }
@@ -1369,7 +1372,7 @@ public class AppController implements Initializable {
             WalletNameDialog.NameAndBirthDate nameAndBirthDate = optNameAndBirthDate.get();
             wallet.setName(nameAndBirthDate.getName());
             wallet.setBirthDate(nameAndBirthDate.getBirthDate());
-            if(wallet.getPolicyType() == PolicyType.SINGLE_SP && wallet.getBirthDate() == null) {
+            if(wallet.getPolicyType().isSilentPayment() && wallet.getBirthDate() == null) {
                 wallet.setBirthDate(new Date());
             }
         } else {
@@ -1596,11 +1599,31 @@ public class AppController implements Initializable {
     }
 
     public void sweepPrivateKey(ActionEvent event) {
-        // Secp WIF sweep is not a spend on this chain. Send from this wallet's ML-DSA keys instead.
+        if(!PrivateKeySweepDialog.supportedOnThisChain()) {
+            return;
+        }
+        Wallet wallet = null;
+        WalletForm selectedWalletForm = getSelectedWalletForm();
+        if(selectedWalletForm != null && selectedWalletForm.getWallet().isValid()) {
+            wallet = selectedWalletForm.getWallet();
+        }
+
+        PrivateKeySweepDialog dialog = new PrivateKeySweepDialog(wallet);
+        dialog.initOwner(rootStack.getScene().getWindow());
+        Optional<Transaction> optTransaction = dialog.showAndWait();
+        optTransaction.ifPresent(transaction -> addTransactionTab(null, null, transaction));
     }
 
     public void showPayNym(ActionEvent event) {
-        // PayNym is not a spend on this chain.
+        if(!com.sparrowwallet.sparrow.paynym.PayNym.supportedOnThisChain()) {
+            return;
+        }
+        WalletForm selectedWalletForm = getSelectedWalletForm();
+        if(selectedWalletForm != null) {
+            PayNymDialog payNymDialog = new PayNymDialog(selectedWalletForm.getWalletId());
+            payNymDialog.initOwner(rootStack.getScene().getWindow());
+            payNymDialog.showAndWait();
+        }
     }
 
     public void verifyDownload(ActionEvent event) {
@@ -2805,7 +2828,10 @@ public class AppController implements Initializable {
                 refreshWallet.setText(walletTabData.getWallet() == null || walletTabData.getWalletForm().getMasterWallet().getChildWallets().stream().allMatch(Wallet::isNested) ? "Refresh Wallet" : "Refresh Wallet Account");
                 showLoadingLog.setDisable(false);
                 showTxHex.setDisable(true);
-                showPayNym.setDisable(true);
+                showPayNym.setDisable(!com.sparrowwallet.sparrow.paynym.PayNym.supportedOnThisChain()
+                        || exportWallet.isDisable()
+                        || walletTabData.getWallet() == null
+                        || !walletTabData.getWallet().hasPaymentCode());
             }
         }
     }
@@ -2830,7 +2856,9 @@ public class AppController implements Initializable {
         if(selectedWalletForm != null) {
             if(selectedWalletForm.getWalletId().equals(event.getWalletId())) {
                 exportWallet.setDisable(!event.getWallet().isValid() || selectedWalletForm.isLocked());
-                showPayNym.setDisable(true);
+                showPayNym.setDisable(!com.sparrowwallet.sparrow.paynym.PayNym.supportedOnThisChain()
+                        || exportWallet.isDisable()
+                        || !event.getWallet().hasPaymentCode());
             }
         }
 
