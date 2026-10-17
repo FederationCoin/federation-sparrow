@@ -27,7 +27,7 @@ alias cli='federationcoin-cli -regtest -datadir=$HOME/unified-sighash-regtest -r
 cli createwallet test
 ADDR=$(cli getnewaddress)
 cli generatetoaddress 101 $ADDR
-cli getblockheader $(cli getblockhash 1) false | tr -d '\n' | wc -c   # 328 hex chars, 164-byte header v2
+cli getblockheader $(cli getblockhash 1) false | tr -d '\n' | wc -c   # 332 hex chars, 166-byte header v2
 ```
 
 The node does not create a wallet on its own. Name the wallet in the alias: once Sparrow connects, Cormorant loads a second wallet, and unqualified wallet RPCs fail with error -19.
