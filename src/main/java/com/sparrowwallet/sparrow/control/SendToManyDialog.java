@@ -1,7 +1,7 @@
 package com.sparrowwallet.sparrow.control;
 
 import com.csvreader.CsvReader;
-import com.sparrowwallet.drongo.BitcoinUnit;
+import com.sparrowwallet.drongo.CoinUnit;
 import com.sparrowwallet.drongo.OsType;
 import com.sparrowwallet.drongo.address.Address;
 import com.sparrowwallet.drongo.address.InvalidAddressException;
@@ -9,9 +9,10 @@ import com.sparrowwallet.drongo.dns.DnsPayment;
 import com.sparrowwallet.drongo.dns.DnsPaymentCache;
 import com.sparrowwallet.drongo.dns.DnsPaymentResolver;
 import com.sparrowwallet.drongo.dns.DnsPaymentValidationException;
+import com.sparrowwallet.drongo.protocol.ScriptType;
 import com.sparrowwallet.drongo.silentpayments.SilentPayment;
 import com.sparrowwallet.drongo.silentpayments.SilentPaymentAddress;
-import com.sparrowwallet.drongo.uri.BitcoinURIParseException;
+import com.sparrowwallet.drongo.uri.CoinURIParseException;
 import com.sparrowwallet.drongo.wallet.Payment;
 import com.sparrowwallet.sparrow.AppServices;
 import com.sparrowwallet.sparrow.EventManager;
@@ -47,14 +48,14 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class SendToManyDialog extends Dialog<List<Payment>> {
-    private final BitcoinUnit bitcoinUnit;
+    private final CoinUnit coinUnit;
     private final UnitFormat unitFormat;
     private final UnitFormatDoubleCellType amountCellType;
     private final SpreadsheetView spreadsheetView;
-    public static final SendToAddressCellType SEND_TO_ADDRESS = new SendToAddressCellType();
+    public static final SendDestinationCellType SEND_TO_ADDRESS = new SendDestinationCellType();
 
-    public SendToManyDialog(BitcoinUnit bitcoinUnit, UnitFormat unitFormat, List<Payment> payments) {
-        this.bitcoinUnit = bitcoinUnit;
+    public SendToManyDialog(CoinUnit coinUnit, UnitFormat unitFormat, List<Payment> payments) {
+        this.coinUnit = coinUnit;
         this.unitFormat = unitFormat == null ? UnitFormat.DOT : unitFormat;
         this.amountCellType = new UnitFormatDoubleCellType(this.unitFormat);
 
@@ -62,7 +63,8 @@ public class SendToManyDialog extends Dialog<List<Payment>> {
         setDialogPane(dialogPane);
         setTitle("Send to Many");
         dialogPane.getStylesheets().add(AppServices.class.getResource("general.css").toExternalForm());
-        dialogPane.setHeaderText("Send to many recipients by specifying addresses and amounts.\nOnly the first row's label is necessary.");
+        dialogPane.setHeaderText("Send to many recipients by specifying addresses and amounts.\nOnly the first row's label is necessary.\n"
+                + com.sparrowwallet.drongo.protocol.SettlementFee.chainMinimumSentence(0));
         dialogPane.setGraphic(new DialogImage(DialogImage.Type.SPARROW));
 
         List<Payment> initialPayments = IntStream.range(0, 100)
@@ -110,7 +112,7 @@ public class SendToManyDialog extends Dialog<List<Payment>> {
     }
 
     private Grid getGrid(List<Payment> payments) {
-        return createGrid(payments.stream().map(payment -> new SendToPayment(payment, SendToAddress.fromPayment(payment))).collect(Collectors.toList()));
+        return createGrid(payments.stream().map(payment -> new SendToPayment(payment, SendDestination.fromPayment(payment))).collect(Collectors.toList()));
     }
 
     private Grid createGrid(List<SendToPayment> sendToPayments) {
@@ -122,15 +124,15 @@ public class SendToManyDialog extends Dialog<List<Payment>> {
             SendToPayment sendToPayment = sendToPayments.get(row);
             final ObservableList<SpreadsheetCell> list = FXCollections.observableArrayList();
 
-            SendToAddress sendToAddress = sendToPayment.sendToAddress();
+            SendDestination sendToAddress = sendToPayment.sendToAddress();
             SpreadsheetCell addressCell = SEND_TO_ADDRESS.createCell(row, 0, 1, 1, sendToAddress);
             addressCell.getStyleClass().add("fixed-width");
             list.add(addressCell);
 
             long rawAmount = sendToPayment.payment().getAmount();
-            Double amount = rawAmount < 0 ? null : bitcoinUnit.getValue(rawAmount);
+            Double amount = rawAmount < 0 ? null : coinUnit.getValue(rawAmount);
             SpreadsheetCell amountCell = amountCellType.createCell(row, 1, 1, 1, amount);
-            amountCell.setFormat(bitcoinUnit == BitcoinUnit.BTC ? "0.00000000" : "###,###");
+            amountCell.setFormat(coinUnit == CoinUnit.GFCN ? "0.00000000" : "###,###");
             amountCell.getStyleClass().add("number-value");
             if(OsType.getCurrent() == OsType.MACOS) {
                 amountCell.getStyleClass().add("number-field");
@@ -141,7 +143,7 @@ public class SendToManyDialog extends Dialog<List<Payment>> {
             rows.add(list);
         }
         grid.setRows(rows);
-        grid.getColumnHeaders().setAll("Address", "Amount (" + bitcoinUnit.getLabel() + ")", "Label");
+        grid.getColumnHeaders().setAll("Address", "Amount (" + coinUnit.getLabel() + ")", "Label");
 
         return grid;
     }
@@ -182,8 +184,8 @@ public class SendToManyDialog extends Dialog<List<Payment>> {
     private boolean needsResolution() {
         for(int row = 0; row < spreadsheetView.getGrid().getRowCount(); row++) {
             ObservableList<SpreadsheetCell> rowCells = spreadsheetView.getItems().get(row);
-            SendToAddress sendToAddress = (SendToAddress)rowCells.getFirst().getItem();
-            if(sendToAddress != null && sendToAddress.hrn != null && DnsPaymentCache.getDnsPayment(sendToAddress.hrn) == null) {
+            SendDestination sendToAddress = (SendDestination)rowCells.getFirst().getItem();
+            if(sendToAddress != null && sendToAddress.needsDnsResolution()) {
                 return true;
             }
         }
@@ -225,10 +227,10 @@ public class SendToManyDialog extends Dialog<List<Payment>> {
                                         String rawAmount = csvReader.get(1).trim();
                                         String groupingStripped = rawAmount.replaceAll(Pattern.quote(unitFormat.getGroupingSeparator()), "");
                                         long amount;
-                                        if(bitcoinUnit == BitcoinUnit.BTC) {
+                                        if(coinUnit == CoinUnit.GFCN) {
                                             String normalised = groupingStripped.replaceAll(Pattern.quote(unitFormat.getDecimalSeparator()), ".");
                                             double doubleAmount = Double.parseDouble(normalised);
-                                            amount = bitcoinUnit.getSatsValue(doubleAmount);
+                                            amount = coinUnit.getTokensValue(doubleAmount);
                                         } else {
                                             amount = Long.parseLong(groupingStripped);
                                         }
@@ -236,16 +238,15 @@ public class SendToManyDialog extends Dialog<List<Payment>> {
                                         Optional<String> optDnsPaymentHrn = DnsPayment.getHrn(csvReader.get(0));
                                         if(optDnsPaymentHrn.isPresent()) {
                                             Payment payment = new Payment(null, label, amount, false);
-                                            csvPayments.add(new SendToPayment(payment, new SendToAddress(optDnsPaymentHrn.get())));
+                                            csvPayments.add(new SendToPayment(payment, new SendDestination.DnsHrn(optDnsPaymentHrn.get())));
                                         } else {
                                             try {
-                                                SilentPaymentAddress silentPaymentAddress = SilentPaymentAddress.from(csvReader.get(0));
-                                                Payment payment = new SilentPayment(silentPaymentAddress, label, amount, false);
-                                                csvPayments.add(new SendToPayment(payment, SendToAddress.fromPayment(payment)));
-                                            } catch(Exception e) {
+                                                SilentPaymentAddress.from(csvReader.get(0));
+                                                AppServices.showErrorDialog("Invalid Address", SendDestination.SILENT_PAYMENTS_UNAVAILABLE);
+                                            } catch(IllegalArgumentException silent) {
                                                 Address address = Address.fromString(csvReader.get(0));
                                                 Payment payment = new Payment(address, label, amount, false);
-                                                csvPayments.add(new SendToPayment(payment, SendToAddress.fromPayment(payment)));
+                                                csvPayments.add(new SendToPayment(payment, SendDestination.fromPayment(payment)));
                                             }
                                         }
                                     } catch(NumberFormatException e) {
@@ -256,7 +257,7 @@ public class SendToManyDialog extends Dialog<List<Payment>> {
                                 }
 
                                 if(csvPayments.isEmpty()) {
-                                    AppServices.showErrorDialog("No recipients found", "No valid recipients were found. Use a CSV file with three columns, and ensure amounts are in " + bitcoinUnit.getLabel() + ".");
+                                    AppServices.showErrorDialog("No recipients found", "No valid recipients were found. Use a CSV file with three columns, and ensure amounts are in " + coinUnit.getLabel() + ".");
                                     return;
                                 }
 
@@ -277,16 +278,16 @@ public class SendToManyDialog extends Dialog<List<Payment>> {
         }
     }
 
-    public static class SendToAddressCellType extends SpreadsheetCellType<SendToAddress> {
-        public SendToAddressCellType() {
-            this(new StringConverterWithFormat<>(new SendToAddressStringConverter()) {
+    public static class SendDestinationCellType extends SpreadsheetCellType<SendDestination> {
+        public SendDestinationCellType() {
+            this(new StringConverterWithFormat<>(new SendDestinationStringConverter()) {
                 @Override
-                public String toString(SendToAddress item) {
+                public String toString(SendDestination item) {
                     return toStringFormat(item, ""); //$NON-NLS-1$
                 }
 
                 @Override
-                public SendToAddress fromString(String str) {
+                public SendDestination fromString(String str) {
                     if(str == null || str.isEmpty()) { //$NON-NLS-1$
                         return null;
                     } else {
@@ -295,7 +296,7 @@ public class SendToManyDialog extends Dialog<List<Payment>> {
                 }
 
                 @Override
-                public String toStringFormat(SendToAddress item, String format) {
+                public String toStringFormat(SendDestination item, String format) {
                     try {
                         if(item == null) {
                             return ""; //$NON-NLS-1$
@@ -309,7 +310,7 @@ public class SendToManyDialog extends Dialog<List<Payment>> {
             });
         }
 
-        public SendToAddressCellType(StringConverter<SendToAddress> converter) {
+        public SendDestinationCellType(StringConverter<SendDestination> converter) {
             super(converter);
         }
 
@@ -319,7 +320,7 @@ public class SendToManyDialog extends Dialog<List<Payment>> {
         }
 
         public SpreadsheetCell createCell(final int row, final int column, final int rowSpan, final int columnSpan,
-                                          final SendToAddress value) {
+                                          final SendDestination value) {
             SpreadsheetCell cell = new SpreadsheetCellBase(row, column, rowSpan, columnSpan, this);
             cell.setItem(value);
             return cell;
@@ -332,7 +333,7 @@ public class SendToManyDialog extends Dialog<List<Payment>> {
 
         @Override
         public boolean match(Object value, Object... options) {
-            if(value instanceof SendToAddress)
+            if(value instanceof SendDestination)
                 return true;
             else {
                 try {
@@ -345,9 +346,9 @@ public class SendToManyDialog extends Dialog<List<Payment>> {
         }
 
         @Override
-        public SendToAddress convertValue(Object value) {
-            if(value instanceof SendToAddress)
-                return (SendToAddress)value;
+        public SendDestination convertValue(Object value) {
+            if(value instanceof SendDestination)
+                return (SendDestination)value;
             else {
                 try {
                     return converter.fromString(value == null ? null : value.toString());
@@ -358,13 +359,13 @@ public class SendToManyDialog extends Dialog<List<Payment>> {
         }
 
         @Override
-        public String toString(SendToAddress item) {
+        public String toString(SendDestination item) {
             return converter.toString(item);
         }
 
         @Override
-        public String toString(SendToAddress item, String format) {
-            return ((StringConverterWithFormat<SendToAddress>)converter).toStringFormat(item, format);
+        public String toString(SendDestination item, String format) {
+            return ((StringConverterWithFormat<SendDestination>)converter).toStringFormat(item, format);
         }
     };
 
@@ -522,103 +523,15 @@ public class SendToManyDialog extends Dialog<List<Payment>> {
         }
     }
 
-    public static class SendToAddress {
-        private final String hrn;
-        private final Address address;
-        private final SilentPaymentAddress silentPaymentAddress;
-
-        public SendToAddress(String hrn) {
-            this.hrn = hrn;
-            this.address = null;
-            this.silentPaymentAddress = null;
-        }
-
-        public SendToAddress(Address address) {
-            this.hrn = null;
-            this.address = address;
-            this.silentPaymentAddress = null;
-        }
-
-        public SendToAddress(SilentPaymentAddress silentPaymentAddress) {
-            this.hrn = null;
-            this.address = null;
-            this.silentPaymentAddress = silentPaymentAddress;
-        }
-
-        public String toString() {
-            return hrn == null ? silentPaymentAddress == null ? (address == null ? null : address.toString()) : silentPaymentAddress.toString() : hrn;
-        }
-
-        public static SendToAddress fromPayment(Payment payment) {
-            DnsPayment dnsPayment = DnsPaymentCache.getDnsPayment(payment);
-            if(dnsPayment != null) {
-                return new SendToAddress(dnsPayment.hrn());
-            }
-            return payment instanceof SilentPayment ? new SendToAddress(((SilentPayment)payment).getSilentPaymentAddress()) : new SendToAddress(payment.getAddress());
-        }
-
-        public Payment toPayment(String label, long value, boolean sendMax) throws DnsPaymentValidationException, IOException, ExecutionException, InterruptedException, BitcoinURIParseException {
-            if(hrn != null) {
-                DnsPayment dnsPayment = DnsPaymentCache.getDnsPayment(hrn);
-                if(dnsPayment == null) {
-                    DnsPaymentResolver resolver = new DnsPaymentResolver(hrn);
-                    Optional<DnsPayment> optDnsPayment = resolver.resolve(AppServices.getProxy());
-                    if(optDnsPayment.isPresent()) {
-                        dnsPayment = optDnsPayment.get();
-                        if(dnsPayment.hasAddress()) {
-                            DnsPaymentCache.putDnsPayment(dnsPayment.bitcoinURI().getAddress(), dnsPayment);
-                        } else if(dnsPayment.hasSilentPaymentAddress()) {
-                            DnsPaymentCache.putDnsPayment(dnsPayment.bitcoinURI().getSilentPaymentAddress(), dnsPayment);
-                        }
-                        return getPayment(optDnsPayment.get(), label, value, sendMax);
-                    } else {
-                        throw new IllegalArgumentException("Payment to " + hrn + " could not be resolved.");
-                    }
-                } else {
-                    return getPayment(dnsPayment, label, value, sendMax);
-                }
-            }
-
-            if(silentPaymentAddress != null) {
-                return new SilentPayment(silentPaymentAddress, label, value, sendMax);
-            } else {
-                return new Payment(address, label, value, sendMax);
-            }
-        }
-
-        private static Payment getPayment(DnsPayment dnsPayment, String label, long value, boolean sendMax) {
-            if(dnsPayment.hasAddress()) {
-                return new Payment(dnsPayment.bitcoinURI().getAddress(), label, value, sendMax);
-            } else if(dnsPayment.hasSilentPaymentAddress()) {
-                return new SilentPayment(dnsPayment.bitcoinURI().getSilentPaymentAddress(), label, value, sendMax);
-            } else {
-                throw new IllegalArgumentException("Payment to " + dnsPayment + " has no associated address.");
-            }
-        }
-    }
-
-    private static class SendToAddressStringConverter extends StringConverter<SendToAddress> {
-        private final AddressStringConverter addressStringConverter = new AddressStringConverter();
-
+    private static class SendDestinationStringConverter extends StringConverter<SendDestination> {
         @Override
-        public SendToAddress fromString(String value) {
-            Optional<String> optDnsPaymentHrn = DnsPayment.getHrn(value);
-            if(optDnsPaymentHrn.isPresent()) {
-                return new SendToAddress(optDnsPaymentHrn.get());
-            }
-
-            try {
-                SilentPaymentAddress silentPaymentAddress = SilentPaymentAddress.from(value);
-                return new SendToAddress(silentPaymentAddress);
-            } catch(Exception e) {
-                Address address = addressStringConverter.fromString(value);
-                return address == null ? null : new SendToAddress(address);
-            }
+        public SendDestination fromString(String value) {
+            return SendDestination.parse(value);
         }
 
         @Override
-        public String toString(SendToAddress value) {
-            return value.toString();
+        public String toString(SendDestination value) {
+            return value == null ? null : value.toString();
         }
     }
 
@@ -633,13 +546,13 @@ public class SendToManyDialog extends Dialog<List<Payment>> {
             };
         }
 
-        private List<Payment> getPayments() throws DnsPaymentValidationException, IOException, ExecutionException, InterruptedException, BitcoinURIParseException {
+        private List<Payment> getPayments() throws DnsPaymentValidationException, IOException, ExecutionException, InterruptedException, CoinURIParseException {
             List<Payment> payments = new ArrayList<>();
             Grid grid = spreadsheetView.getGrid();
             String firstLabel = null;
             for(int row = 0; row < grid.getRowCount(); row++) {
                 ObservableList<SpreadsheetCell> rowCells = spreadsheetView.getItems().get(row);
-                SendToAddress sendToAddress = (SendToAddress)rowCells.get(0).getItem();
+                SendDestination sendToAddress = (SendDestination)rowCells.get(0).getItem();
                 Double value = (Double)rowCells.get(1).getItem();
                 String label = (String)rowCells.get(2).getItem();
                 if(firstLabel == null) {
@@ -650,7 +563,7 @@ public class SendToManyDialog extends Dialog<List<Payment>> {
                 }
 
                 if(sendToAddress != null && value != null) {
-                    payments.add(sendToAddress.toPayment(label, bitcoinUnit.getSatsValue(value), false));
+                    payments.add(sendToAddress.toPayment(label, coinUnit.getTokensValue(value), false));
                 }
             }
 
@@ -658,5 +571,5 @@ public class SendToManyDialog extends Dialog<List<Payment>> {
         }
     }
 
-    private record SendToPayment(Payment payment, SendToAddress sendToAddress) {}
+    private record SendToPayment(Payment payment, SendDestination sendToAddress) {}
 }

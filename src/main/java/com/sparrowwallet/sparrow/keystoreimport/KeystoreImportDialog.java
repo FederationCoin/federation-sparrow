@@ -48,7 +48,7 @@ public class KeystoreImportDialog extends Dialog<Keystore> {
                 keystoreImportController.setRequiredModel(currentModel);
             }
 
-            final ButtonType watchOnlyButtonType = new javafx.scene.control.ButtonType(Network.get().getXpubHeader().getDisplayName() + " / Watch Only Wallet", ButtonBar.ButtonData.LEFT);
+            final ButtonType watchOnlyButtonType = new javafx.scene.control.ButtonType("Watch Only Wallet", ButtonBar.ButtonData.LEFT);
             if(!restrictImport) {
                 dialogPane.getButtonTypes().add(watchOnlyButtonType);
             }
@@ -66,7 +66,29 @@ public class KeystoreImportDialog extends Dialog<Keystore> {
     }
 
     public static List<KeystoreSource> getSupportedSources() {
-        return List.of(KeystoreSource.HW_USB, KeystoreSource.HW_AIRGAPPED, KeystoreSource.SW_SEED);
+        List<KeystoreSource> sources = new java.util.ArrayList<>();
+        boolean anyUsb = false;
+        boolean anyAirgap = false;
+        for(WalletModel model : WalletModel.values()) {
+            if(!model.supportsThisChain()) {
+                continue;
+            }
+            if(model.hasUsb()) {
+                anyUsb = true;
+            }
+            if(model.isAirgapped()) {
+                anyAirgap = true;
+            }
+        }
+        if(anyUsb) {
+            sources.add(KeystoreSource.HW_USB);
+        }
+        if(anyAirgap) {
+            sources.add(KeystoreSource.HW_AIRGAPPED);
+        }
+        sources.add(KeystoreSource.SW_WATCH);
+        sources.add(KeystoreSource.SW_SEED);
+        return sources;
     }
 
     private Keystore getWatchOnlyKeystore() {

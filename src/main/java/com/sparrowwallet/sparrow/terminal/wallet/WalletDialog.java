@@ -3,7 +3,7 @@ package com.sparrowwallet.sparrow.terminal.wallet;
 import com.google.common.base.Strings;
 import com.googlecode.lanterna.gui2.dialogs.DialogWindow;
 import com.googlecode.lanterna.gui2.dialogs.TextInputDialogBuilder;
-import com.sparrowwallet.drongo.BitcoinUnit;
+import com.sparrowwallet.drongo.CoinUnit;
 import com.sparrowwallet.drongo.SecureString;
 import com.sparrowwallet.drongo.crypto.ECKey;
 import com.sparrowwallet.drongo.crypto.EncryptionType;
@@ -157,9 +157,9 @@ public class WalletDialog extends DialogWindow {
     }
 
     protected String formatBitcoinValue(long value, boolean appendUnit) {
-        BitcoinUnit unit = Config.get().getBitcoinUnit();
-        if(unit == null || unit.equals(BitcoinUnit.AUTO)) {
-            unit = (value >= BitcoinUnit.getAutoThreshold() ? BitcoinUnit.BTC : BitcoinUnit.SATOSHIS);
+        CoinUnit unit = Config.get().getCoinUnit();
+        if(unit == null || unit.equals(CoinUnit.AUTO)) {
+            unit = (value >= CoinUnit.getAutoThreshold() ? CoinUnit.GFCN : CoinUnit.TOKENS);
         }
 
         UnitFormat format = Config.get().getUnitFormat();
@@ -167,7 +167,7 @@ public class WalletDialog extends DialogWindow {
             format = UnitFormat.DOT;
         }
 
-        return unit == BitcoinUnit.SATOSHIS ? format.formatSatsValue(value) + (appendUnit ? " sats" : "") : format.formatBtcValue(value) + (appendUnit ? " BTC" : "");
+        return unit == CoinUnit.TOKENS ? format.formatTokensValue(value) + (appendUnit ? " tokens" : "") : format.formatCoinValue(value) + (appendUnit ? " GFCN" : "");
     }
 
     protected String formatFiatValue(Double value) {
@@ -187,7 +187,7 @@ public class WalletDialog extends DialogWindow {
 
     protected double getFiatValue(long satsValue, CurrencyRate currencyRate) {
         if(currencyRate != null && currencyRate.isAvailable()) {
-            return satsValue * currencyRate.getBtcRate() / Transaction.SATOSHIS_PER_BITCOIN;
+            return satsValue * currencyRate.getBtcRate() / Transaction.TOKENS_PER_COIN;
         }
 
         return 0d;

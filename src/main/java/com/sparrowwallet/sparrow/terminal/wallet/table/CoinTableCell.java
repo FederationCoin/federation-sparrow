@@ -1,7 +1,7 @@
 package com.sparrowwallet.sparrow.terminal.wallet.table;
 
 import com.google.common.base.Strings;
-import com.sparrowwallet.drongo.BitcoinUnit;
+import com.sparrowwallet.drongo.CoinUnit;
 import com.sparrowwallet.sparrow.UnitFormat;
 import com.sparrowwallet.sparrow.io.Config;
 import com.sparrowwallet.sparrow.wallet.Entry;
@@ -32,9 +32,9 @@ public class CoinTableCell extends TableCell {
             value = 0L;
         }
 
-        BitcoinUnit unit = Config.get().getBitcoinUnit();
-        if(unit == null || unit.equals(BitcoinUnit.AUTO)) {
-            unit = (value >= BitcoinUnit.getAutoThreshold() ? BitcoinUnit.BTC : BitcoinUnit.SATOSHIS);
+        CoinUnit unit = Config.get().getCoinUnit();
+        if(unit == null || unit.equals(CoinUnit.AUTO)) {
+            unit = (value >= CoinUnit.getAutoThreshold() ? CoinUnit.GFCN : CoinUnit.TOKENS);
         }
 
         UnitFormat format = Config.get().getUnitFormat();
@@ -42,7 +42,7 @@ public class CoinTableCell extends TableCell {
             format = UnitFormat.DOT;
         }
 
-        String formattedValue = unit == BitcoinUnit.SATOSHIS ? format.formatSatsValue(value) : format.formatBtcValue(value);
+        String formattedValue = unit == CoinUnit.TOKENS ? format.formatTokensValue(value) : format.formatCoinValue(value);
         return Strings.padStart(formattedValue, getWidth(entry), ' ');
     }
 

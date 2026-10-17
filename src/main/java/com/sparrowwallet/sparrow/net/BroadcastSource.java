@@ -24,7 +24,7 @@ public enum BroadcastSource {
         kept up: an opted-in transaction is refused there, but a legacy one relays, which is the
         replay this wallet exists to avoid. mempool.guide kept up and is the only source left.
      */
-    MEMPOOL_GUIDE("mempool.guide", "https://mempool.guide", "http://mempool5nxspkxjk3n5afqh7zswbv4i324z76ltmw3cvfmniw45mnhad.onion") {
+    MEMPOOL_GUIDE("mempool.federationcoin.org", "https://mempool.federationcoin.org", "https://mempool.federationcoin.org") {
         public Sha256Hash broadcastTransaction(Transaction transaction) throws BroadcastException {
             String data = Utils.bytesToHex(transaction.bitcoinSerialize());
             return postTransactionData(data);
@@ -32,19 +32,11 @@ public enum BroadcastSource {
 
         @Override
         public List<Network> getSupportedNetworks() {
-            return List.of(Network.MAINNET, Network.SIGNET, Network.TESTNET4);
+            return List.of(Network.TESTNET, Network.MAINNET, Network.SIGNET, Network.TESTNET4);
         }
 
         protected URL getURL(HostAndPort proxy) throws MalformedURLException, URISyntaxException {
-            if(Network.get() == Network.MAINNET) {
-                return new URI(getBaseUrl(proxy) + "/api/tx").toURL();
-            } else if(Network.get() == Network.SIGNET) {
-                return new URI(getBaseUrl(proxy) + "/signet/api/tx").toURL();
-            } else if(Network.get() == Network.TESTNET4) {
-                return new URI(getBaseUrl(proxy) + "/testnet4/api/tx").toURL();
-            } else {
-                throw new IllegalStateException("Cannot broadcast transaction to " + getName() + " on network " + Network.get());
-            }
+            return new URI(getBaseUrl(proxy) + mempoolBroadcastTxPath(Network.get())).toURL();
         }
     };
 
@@ -74,6 +66,20 @@ public enum BroadcastSource {
 
     public String getBaseUrl(HostAndPort proxy) {
         return (proxy == null ? getTlsUrl() : getOnionUrl());
+    }
+
+    static String mempoolBroadcastTxPath(Network network) {
+        if(network == Network.TESTNET) {
+            return "/api/tx";
+        } else if(network == Network.MAINNET) {
+            return "/api/tx";
+        } else if(network == Network.SIGNET) {
+            return "/signet/api/tx";
+        } else if(network == Network.TESTNET4) {
+            return "/testnet4/api/tx";
+        } else {
+            throw new IllegalStateException("Cannot broadcast transaction to mempool.federationcoin.org on network " + network);
+        }
     }
 
     public abstract Sha256Hash broadcastTransaction(Transaction transaction) throws BroadcastException;

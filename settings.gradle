@@ -1,4 +1,14 @@
 rootProject.name = 'sparrow'
 include 'drongo'
+include 'tern'
+include 'hummingbird'
+include 'toucan'
+include 'bokmakierie'
+include 'bwt-jni'
+include 'fxsvgimage'
 include 'lark'
+
+// Upstream fxsvgimage is Ant/Maven. Keep that tree unmodified and wrap it
+// with a Gradle project owned by this repo.
+project(':fxsvgimage').projectDir = file('gradle/fxsvgimage-project')
 

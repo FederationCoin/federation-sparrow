@@ -12,12 +12,10 @@ import java.util.Locale;
 
 public enum BlockExplorer {
     /*
-        mempool.guide is a mempool instance following the BLAKE2b fork. mempool.space and blockstream.info
-        were here and are gone: neither kept up, so a link to either for anything
-        mined past the activation height names a block they do not have. A custom URL can still be entered
-        in the settings for anyone who wants one.
+        mempool.federationcoin.org is this chain's explorer. mempool.space and blockstream.info
+        were here and are gone: they index Bitcoin, not this chain.
      */
-    MEMPOOL_GUIDE("https://mempool.guide"),
+    MEMPOOL_GUIDE("https://mempool.federationcoin.org"),
     NONE("http://none");
 
     /**

@@ -56,11 +56,11 @@ public class SettingsDialog extends WalletDialog {
         TerminalSize screenSize = SparrowTerminal.get().getScreen().getTerminalSize();
         int descriptorWidth = Math.min(Math.max(20, screenSize.getColumns() - 20), 120);
 
-        OutputDescriptor descriptor = OutputDescriptor.getOutputDescriptor(getWalletForm().getWallet(), KeyPurpose.DEFAULT_PURPOSES, null);
-        String outputDescriptorString = descriptor.toString(true);
+        Wallet settingsWallet = getWalletForm().getWallet();
+        String outputDescriptorString = settingsWallet.getPolicyType().getName() + " / " + settingsWallet.getScriptType().getDescription();
         List<String> outputDescriptorLines = splitString(outputDescriptorString, descriptorWidth);
 
-        mainPanel.addComponent(new Label("Output Descriptor"));
+        mainPanel.addComponent(new Label("Policy"));
         outputDescriptor = new TextBox(new TerminalSize(descriptorWidth, Math.min(outputDescriptorLines.size(), 10)));
         outputDescriptor.setReadOnly(true);
         outputDescriptor.setText(outputDescriptorLines.stream().reduce((s1, s2) -> s1 + "\n" + s2).get());
@@ -75,7 +75,7 @@ public class SettingsDialog extends WalletDialog {
             Panel leftButtonPanel = new Panel();
             leftButtonPanel.setLayoutManager(new GridLayout(2).setHorizontalSpacing(1));
             leftButtonPanel.addComponent(new Button("Add Account", this::showAddAccount));
-            if(getWalletForm().getWallet().getPolicyType() == PolicyType.SINGLE_HD || getWalletForm().getWallet().getPolicyType() == PolicyType.SINGLE_SP) {
+            if(getWalletForm().getWallet().getPolicyType() == PolicyType.SINGLE_MLDSA87 || getWalletForm().getWallet().getPolicyType() == PolicyType.SINGLE_SP) {
                 leftButtonPanel.addComponent(new Button("Show Seed", this::showSeed));
             } else {
                 leftButtonPanel.addComponent(new EmptySpace(TerminalSize.ZERO));

@@ -21,7 +21,7 @@ public class FeeRatesSourceDefaultTest {
 
     @Test
     public void testTheDefaultCoversTheNetworksTheForkRunsOn() {
-        for(Network network : new Network[] {Network.MAINNET, Network.TESTNET4}) {
+        for(Network network : new Network[] {Network.MAINNET, Network.TESTNET}) {
             Assertions.assertTrue(FeeRatesSource.getDefault().supportsNetwork(network),
                     network + " is a network this fork activates on, so the default must serve it");
         }
@@ -58,7 +58,7 @@ public class FeeRatesSourceDefaultTest {
     @Test
     public void testTheDefaultBlockExplorerHasAdoptedTheFork() {
         Assertions.assertEquals(BlockExplorer.MEMPOOL_GUIDE, BlockExplorer.getDefault());
-        Assertions.assertTrue(BlockExplorer.getDefault().getServer().getUrl().contains("mempool.guide"));
+        Assertions.assertTrue(BlockExplorer.getDefault().getServer().getUrl().contains("mempool.federationcoin.org"));
     }
 
     @Test
@@ -136,18 +136,24 @@ public class FeeRatesSourceDefaultTest {
         }
     }
 
-    /**
-     * No public Electrum server kept up, and connecting to one would show the wallet blocks
-     * and balances that diverge past the activation height. The option is withdrawn rather than filled with servers
-     * that mislead; the entries stay in the enum only so upstream changes to that file keep merging.
-     */
     @Test
     public void testThePublicServerOptionIsWithdrawn() {
+        Assertions.assertEquals(0, PublicElectrumServer.values().length,
+                "no Bitcoin Electrum hosts");
         Assertions.assertTrue(PublicElectrumServer.SUPPORTED_NETWORKS.isEmpty(),
-                "no public Electrum server indexes the BLAKE2b chain");
+                "no public Electrum server indexes this chain");
         Assertions.assertFalse(PublicElectrumServer.supportedNetwork());
-        Assertions.assertTrue(PublicElectrumServer.getServers().isEmpty(),
-                "and the list one caller divides by must be empty rather than full of other-chain servers");
+        Assertions.assertTrue(PublicElectrumServer.getServers().isEmpty());
+    }
+
+    @Test
+    public void minimumFeeRatesUseIntegerChainFloor() {
+        java.util.Map<Integer, Double> rates = FeeRatesSource.MINIMUM.getBlockTargetFeeRates(
+                java.util.Map.of(1, 99.0, 6, 99.0));
+        double floor = com.sparrowwallet.drongo.protocol.SettlementFee.minimumRateTokensPerVb();
+        for(Double rate : rates.values()) {
+            Assertions.assertEquals(floor, rate);
+        }
     }
 
     /**

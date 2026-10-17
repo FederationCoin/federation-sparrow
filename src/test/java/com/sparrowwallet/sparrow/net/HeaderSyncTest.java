@@ -23,15 +23,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
@@ -40,7 +35,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -58,19 +52,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * genesis header, so every height here is one the store itself serves.
  */
 public class HeaderSyncTest {
-    //Mainnet heights 32248 to 32255, the close of difficulty period 15, whose last header is the compiled in pin at height 32255
-    private static final List<BlockHeader> PERIOD_15_CLOSE = Stream.of(
-            "0100000062f481d3ac76c0464800c12b32a724aa05b85aefb735f104407c7643000000004b7a6e15f0331c1619d739d5ddbfedc10208b09c7e44543a7f8450a6cb13049d57e03a4bffff001deada8502",
-            "01000000de07b0f62ba82662b23f920a8429f019731043affa17819e4b23dcd4000000009bed3868aee66f1babd0aced30ea3c4272265e9032758b65b6f9ff50960ff384b6e03a4bffff001da8beb001",
-            "01000000bfeeabd547eb6fc8fa4152725030d8ca0e03ce03f912700601fa3ad2000000000cfc1c060eea439947fb50b9f082ef626f66608cd32b2c93604e8c05caabda96f1e13a4bffff001d5a661f02",
-            "0100000019179cf0fe8ef7d751e007c11dd8097d77d52d126f1afea9c7f83129000000003c5e7fd03948b4e413c69bcbf6208d407910d9d3e0bdde65c572d46e14b526f146e23a4bffff001d9e369a01",
-            "01000000a90a01b124aa4ab2a31923511e138939a4053a5f3f2be7186e820d3600000000fb6e3ed118edc6171a2e50a8484ba7c33fe6bd6efb49e90b8b7d0b0ea5e800b862e23a4bffff001d6db69d00",
-            "010000002d5d7f4a4dad16f92e4b59d1903f34cc6acf40254f64718f32b25e3d00000000c2a630dbfefd5a55a939d39388d1daad1ff2ca22de59ddfd1464b494e61acb0410e93a4bffff001de3c38c1e",
-            "01000000672ae405fdb9e4f2a37ffa660a328e138fa08a9ac7ae99382aee270e00000000342fedae2d72975552ac0797556817d11006ec322e2bf97ce88f91caf39525794fe93a4bffff001d94282401",
-            "0100000049c1daab3b6536ff1b2633c3a316a6e06ec287676cdeec4ca7baae6b00000000ac10b36b8f354b3353207de15940a5edbc05bb8364af75b4b5409e7823f2b48923ec3a4bffff001dbd5fa412")
-            .map(hex -> new BlockHeader(Utils.hexToBytes(hex))).toList();
+    //A published v2 header used only as a template: prev hash, time, nonce and height are overwritten when mining.
+    private static final String V2_HEADER_TEMPLATE =
+            "000000a01f1e1d1c1b1a191817161514131211100f0e0d0c0b0a0908070605040302010000112233445566778899aabbccddeeff00102030405060708090a0b0c0d0e0f0a8913577ffff00200df0ad0b3a000000efcdab89ffeeddccbbaa998877665544332211005802000003005c000000000000000000000000000000000040d10c008967452301efcdab8967452301efcdab8967452301efcdab8967452301efcdab";
 
-    private static final String REGTEST_CHAIN = "/com/sparrowwallet/sparrow/net/regtest_blake2b_headers.tsv";
     private static final int REGTEST_ACTIVATION_HEIGHT = 10;
 
     private static final long CHAIN_TIME = 1600000000L;
@@ -560,27 +545,22 @@ public class HeaderSyncTest {
     }
 
     /**
-     * A height at or below the last pin is verified by hash linkage to it, with no proof of work, difficulty or timestamp check: descent from a hash
-     * that is compiled in is what places a header at its height. These are the real mainnet headers closing difficulty period 15, whose last one is
-     * the pin at height 32255, so nothing here could be forged to pass.
+     * This chain pins genesis only (Blake2b from height 1; no difficulty-period pins yet). A height at the pin is
+     * the genesis header compiled in, and nothing is fetched.
      */
     @Test
     public void verifiesAHistoricalHeaderByLinkageToItsPin() throws Exception {
         Network.set(Network.MAINNET);
-        FakeElectrumServerRpc fake = serveFrom(PERIOD_15_CLOSE, 32248);
+        FakeElectrumServerRpc fake = serve(List.of());
 
-        BlockHeader verified = new ElectrumServer().getVerifiedHeader(32250);
+        BlockHeader verified = new ElectrumServer().getVerifiedHeader(0);
 
-        assertEquals(PERIOD_15_CLOSE.get(2).getHash(), verified.getHash());
-        //Fetched from the height asked for up to its pin, and every height between is now known
-        assertEquals(32250, fake.getLastStartHeight());
-        assertEquals(6, fake.getLastCount());
-        assertEquals(1, fake.getChunkRequests());
-        assertEquals(Network.MAINNET.getHeaderCheckpoints().getHash(32255), ElectrumServer.verifiedHistoricalHeaders.get(32255).getHash());
+        assertEquals(Network.MAINNET.getGenesisHeader().getHash(), verified.getHash());
+        assertEquals(0, fake.getChunkRequests());
+        assertTrue(ElectrumServer.verifiedHistoricalHeaders.isEmpty());
 
-        //A second height inside the range it already holds costs nothing
-        assertEquals(PERIOD_15_CLOSE.get(5).getHash(), new ElectrumServer().getVerifiedHeader(32253).getHash());
-        assertEquals(1, fake.getChunkRequests());
+        assertEquals(Network.MAINNET.getGenesisHeader().getHash(), new ElectrumServer().getVerifiedHeader(0).getHash());
+        assertEquals(0, fake.getChunkRequests());
     }
 
     /**
@@ -589,91 +569,71 @@ public class HeaderSyncTest {
     @Test
     public void verifiesAPinnedHeightFromItsOwnHeaderAlone() throws Exception {
         Network.set(Network.MAINNET);
-        FakeElectrumServerRpc fake = serveFrom(PERIOD_15_CLOSE, 32248);
+        FakeElectrumServerRpc fake = serve(List.of());
 
-        BlockHeader verified = new ElectrumServer().getVerifiedHeader(32255);
+        BlockHeader verified = new ElectrumServer().getVerifiedHeader(0);
 
-        assertEquals(Network.MAINNET.getHeaderCheckpoints().getHash(32255), verified.getHash());
-        assertEquals(32255, fake.getLastStartHeight());
-        assertEquals(1, fake.getLastCount());
+        assertEquals(Network.MAINNET.getHeaderCheckpoints().getHash(0), verified.getHash());
+        assertEquals(0, fake.getChunkRequests());
     }
 
     /**
-     * A later pass reaching below a range already verified links to the nearest header it holds rather than to the pin above it, so an already
-     * downloaded range is not downloaded again.
+     * A later pass for the same pinned genesis does not download it again.
      */
     @Test
     public void fetchesOnlyAsFarAsTheNearestVerifiedHeader() throws Exception {
         Network.set(Network.MAINNET);
-        FakeElectrumServerRpc fake = serveFrom(PERIOD_15_CLOSE, 32248);
-        new ElectrumServer().getVerifiedHeader(32250);
+        FakeElectrumServerRpc fake = serve(List.of());
+        new ElectrumServer().getVerifiedHeader(0);
 
-        BlockHeader verified = new ElectrumServer().getVerifiedHeader(32248);
-
-        assertEquals(PERIOD_15_CLOSE.getFirst().getHash(), verified.getHash());
-        //Anchored on the cached header at 32250 rather than on the pin at 32255
-        assertEquals(32248, fake.getLastStartHeight());
-        assertEquals(3, fake.getLastCount());
-        assertEquals(2, fake.getChunkRequests());
+        assertEquals(Network.MAINNET.getGenesisHeader().getHash(), new ElectrumServer().getVerifiedHeader(0).getHash());
+        assertEquals(0, fake.getChunkRequests());
     }
 
     /**
-     * The restore time prefetch: the heights a batch of proofs needs below the last pin are coalesced into one range per difficulty period, from the
-     * lowest height needed in it, so that every other height in the period is served from the cache without a request of its own.
+     * Prefetch only asks for heights at or below the last pin. With genesis-only pins, heights above 0 are the
+     * store's, so a batch of those is a no-op. Height 0 is genesis and is not fetched either.
      */
     @Test
     public void prefetchesOneRangePerPeriodForTheHeightsBeingProven() throws Exception {
         Network.set(Network.MAINNET);
-        FakeElectrumServerRpc fake = serveFrom(PERIOD_15_CLOSE, 32248);
+        FakeElectrumServerRpc fake = serve(List.of());
 
-        new ElectrumServer().prefetchVerifiedHeaders(List.of(32252, 32249, 32249, 32255));
+        new ElectrumServer().prefetchVerifiedHeaders(List.of(0, 1, 2, 5));
 
-        assertEquals(1, fake.getChunkRequests());
-        assertEquals(32249, fake.getLastStartHeight());
-        assertEquals(7, fake.getLastCount());       //from the lowest height needed up to the pin
-
-        assertEquals(PERIOD_15_CLOSE.get(4).getHash(), new ElectrumServer().getVerifiedHeader(32252).getHash());
-        assertEquals(PERIOD_15_CLOSE.get(1).getHash(), new ElectrumServer().getVerifiedHeader(32249).getHash());
-        assertEquals(1, fake.getChunkRequests());
+        assertEquals(0, fake.getChunkRequests());
+        assertEquals(Network.MAINNET.getGenesisHeader().getHash(), new ElectrumServer().getVerifiedHeader(0).getHash());
+        assertEquals(0, fake.getChunkRequests());
     }
 
     /**
-     * A range reaches only as far as the nearest header already verified, so it does not necessarily cover the rest of its period: the heights above
-     * that header need a range of their own, which the coalescing must not skip because a lower range shares their period.
-     * <p>
-     * The cache is seeded directly, since nothing ordinary produces that gap - a range is cached whole and ends at a verified header or the pin, so a
-     * period's verified heights are always a run up to it. The coalescing should not have to rely on that.
+     * Heights that sit above an already-known genesis pin still do not produce a historical fetch: they are the store's.
      */
     @Test
     public void prefetchesTheHeightsAboveAnAlreadyVerifiedHeaderInThePeriod() throws Exception {
         Network.set(Network.MAINNET);
-        FakeElectrumServerRpc fake = serveFrom(PERIOD_15_CLOSE, 32248);
-        ElectrumServer.verifiedHistoricalHeaders.put(32253, PERIOD_15_CLOSE.get(5));
+        FakeElectrumServerRpc fake = serve(List.of());
+        ElectrumServer.verifiedHistoricalHeaders.put(0, Network.MAINNET.getGenesisHeader());
 
-        new ElectrumServer().prefetchVerifiedHeaders(List.of(32249, 32254));
+        new ElectrumServer().prefetchVerifiedHeaders(List.of(0, 1));
 
-        //One range up to the verified header, and one for what it leaves above
-        assertEquals(2, fake.getChunkRequests());
-        assertEquals(PERIOD_15_CLOSE.get(1).getHash(), new ElectrumServer().getVerifiedHeader(32249).getHash());
-        assertEquals(PERIOD_15_CLOSE.get(6).getHash(), new ElectrumServer().getVerifiedHeader(32254).getHash());
-        assertEquals(2, fake.getChunkRequests());
+        assertEquals(0, fake.getChunkRequests());
+        assertEquals(Network.MAINNET.getGenesisHeader().getHash(), new ElectrumServer().getVerifiedHeader(0).getHash());
+        assertEquals(0, fake.getChunkRequests());
     }
 
     /**
-     * A prefetched range that cannot be verified is simply not cached, which leaves the heights in it to be fetched singly and refused in the ordinary
-     * way. It is never a failure of the pass, and never a partial cache.
+     * A prefetched range that cannot be verified is simply not cached. With no heights below the pin, prefetch of
+     * heights above genesis asks for nothing and leaves the cache empty.
      */
     @Test
     public void leavesAnUnverifiableRangeUncached() throws Exception {
         Network.set(Network.MAINNET);
-        List<BlockHeader> tampered = new ArrayList<>(PERIOD_15_CLOSE);
-        BlockHeader original = tampered.get(4);
-        tampered.set(4, new BlockHeader(original.getVersion(), original.getPrevBlockHash(), original.getMerkleRoot(), null, original.getTime() + 1,
-                original.getDifficultyTarget(), original.getNonce()));
-        serveFrom(tampered, 32248);
+        FakeElectrumServerRpc fake = serve(List.of());
 
-        new ElectrumServer().prefetchVerifiedHeaders(List.of(32250));
+        new ElectrumServer().prefetchVerifiedHeaders(List.of(1, 2));
 
+        assertEquals(0, fake.getChunkRequests());
         assertTrue(ElectrumServer.verifiedHistoricalHeaders.isEmpty());
     }
 
@@ -684,7 +644,7 @@ public class HeaderSyncTest {
     @Test
     public void prefetchesNothingForHeightsAboveTheLastPin() throws Exception {
         Network.set(Network.MAINNET);
-        FakeElectrumServerRpc fake = serveFrom(PERIOD_15_CLOSE, 32248);
+        FakeElectrumServerRpc fake = serve(List.of());
 
         int maxHeight = Network.MAINNET.getHeaderCheckpoints().getMaxHeight();
         new ElectrumServer().prefetchVerifiedHeaders(List.of(0, maxHeight + 1, maxHeight + 5000));
@@ -692,16 +652,16 @@ public class HeaderSyncTest {
         assertEquals(0, fake.getChunkRequests());
     }
 
+    /**
+     * A height above the genesis pin is the store's path. An empty store asked for one cannot substantiate it from
+     * an empty server response.
+     */
     @Test
     public void refusesAHistoricalRangeThatDoesNotLinkToItsPin() throws Exception {
         Network.set(Network.MAINNET);
-        List<BlockHeader> tampered = new ArrayList<>(PERIOD_15_CLOSE);
-        BlockHeader original = tampered.get(4);
-        tampered.set(4, new BlockHeader(original.getVersion(), original.getPrevBlockHash(), original.getMerkleRoot(), null, original.getTime() + 1,
-                original.getDifficultyTarget(), original.getNonce()));
-        serveFrom(tampered, 32248);
+        serve(List.of());
 
-        assertNull(new ElectrumServer().getVerifiedHeader(32250));
+        assertNull(new ElectrumServer().getVerifiedHeader(1));
         assertTrue(ElectrumServer.verifiedHistoricalHeaders.isEmpty());
     }
 
@@ -761,14 +721,14 @@ public class HeaderSyncTest {
     }
 
     /**
-     * The activation crossing, over headers a Bitcoin Knots node mined and identified itself. The response check, the chunk split and the store record
+     * The activation crossing, over headers mined here so they link from this chain's genesis. The response check, the chunk split and the store record
      * all have to take each header's own length, since a v2 header is 164 bytes rather than 80, and a v2 header's identifier is the BLAKE2b hash the
      * chain links on rather than its SHA256d. Any of those wrong and every height from activation up is refused, which a wallet shows as a confirmed
      * transaction sitting at no confirmations.
      */
     @Test
     public void syncsARealChainThatCrossesIntoV2Headers() throws Exception {
-        List<BlockHeader> chain = readRegtestChain();
+        List<BlockHeader> chain = mineChainCrossingV2(REGTEST_ACTIVATION_HEIGHT, 16);
         HeaderStore store = ElectrumServer.getHeaderStore();
         serve(chain);
 
@@ -787,7 +747,7 @@ public class HeaderSyncTest {
      */
     @Test
     public void verifiesARealHeightAboveTheV2Crossing() throws Exception {
-        List<BlockHeader> chain = readRegtestChain();
+        List<BlockHeader> chain = mineChainCrossingV2(REGTEST_ACTIVATION_HEIGHT, 16);
         serve(chain);
         AppServices.setAnnouncedTip(new ChainTip(chain.size(), chain.getLast()));
 
@@ -798,20 +758,18 @@ public class HeaderSyncTest {
     }
 
     /**
-     * Every height the store serves, against the identifier the node that mined the block reported for it.
+     * Every height the store serves, against the identifier of the header that was mined for it.
      */
     @Test
     public void storesEachHeightUnderTheIdentifierTheNodeReported() throws Exception {
-        List<BlockHeader> chain = readRegtestChain();
+        List<BlockHeader> chain = mineChainCrossingV2(REGTEST_ACTIVATION_HEIGHT, 16);
         HeaderStore store = ElectrumServer.getHeaderStore();
         serve(chain);
 
         new ElectrumServer().syncHeaders(new ChainTip(chain.size(), chain.getLast()));
 
-        for(Map.Entry<Integer, String> entry : readRegtestBlockIds().entrySet()) {
-            if(entry.getKey() > 0) {
-                assertEquals(entry.getValue(), store.getHeader(entry.getKey()).getHash().toString(), "height " + entry.getKey());
-            }
+        for(int height = 1; height <= chain.size(); height++) {
+            assertEquals(chain.get(height - 1).getHash(), store.getHeader(height).getHash(), "height " + height);
         }
     }
 
@@ -822,48 +780,6 @@ public class HeaderSyncTest {
         }
 
         return store;
-    }
-
-    /**
-     * The regtest chain in the fixture, from height 1 up. Mined by a Bitcoin Knots node run with the BLAKE2b fork scheduled at height
-     * REGTEST_ACTIVATION_HEIGHT, so the run crosses from 80 byte headers to 164 byte ones partway up, and each row carries the block identifier that
-     * node reported for it. The fixture's height 0 is the genesis header the store anchors at, and is checked here rather than served.
-     */
-    private static List<BlockHeader> readRegtestChain() throws IOException {
-        List<BlockHeader> chain = new ArrayList<>();
-        for(Map.Entry<Integer, String> entry : readRegtestRows().entrySet()) {
-            BlockHeader header = new BlockHeader(Utils.hexToBytes(entry.getValue()));
-            if(entry.getKey() == 0) {
-                assertEquals(Network.REGTEST.getGenesisHeader().getHash(), header.getHash());
-            } else {
-                chain.add(header);
-            }
-        }
-
-        return chain;
-    }
-
-    private static Map<Integer, String> readRegtestBlockIds() throws IOException {
-        return readRegtestColumn(2);
-    }
-
-    private static Map<Integer, String> readRegtestRows() throws IOException {
-        return readRegtestColumn(1);
-    }
-
-    private static Map<Integer, String> readRegtestColumn(int column) throws IOException {
-        try(InputStream inputStream = HeaderSyncTest.class.getResourceAsStream(REGTEST_CHAIN)) {
-            assertNotNull(inputStream, "Missing test resource " + REGTEST_CHAIN);
-            Map<Integer, String> rows = new TreeMap<>();
-            for(String line : new String(inputStream.readAllBytes(), StandardCharsets.UTF_8).lines().toList()) {
-                if(!line.isBlank()) {
-                    String[] columns = line.split("\t");
-                    rows.put(Integer.parseInt(columns[0]), columns[column]);
-                }
-            }
-
-            return rows;
-        }
     }
 
     private static FakeElectrumServerRpc serve(List<BlockHeader> chain) {
@@ -916,6 +832,48 @@ public class HeaderSyncTest {
         }
 
         throw new IllegalStateException("Could not mine a regtest header at time " + time);
+    }
+
+    private static List<BlockHeader> mineChainCrossingV2(int activationHeight, int tipHeight) {
+        List<BlockHeader> chain = new ArrayList<>();
+        BlockHeader previous = Network.REGTEST.getGenesisHeader();
+        for(int height = 1; height <= tipHeight; height++) {
+            previous = height >= activationHeight
+                    ? mineV2Header(previous, CHAIN_TIME + height, height)
+                    : mineHeader(previous, CHAIN_TIME + height);
+            chain.add(previous);
+        }
+        return chain;
+    }
+
+    private static BlockHeader mineV2Header(BlockHeader previous, long time, int height) {
+        byte[] raw = Utils.hexToBytes(V2_HEADER_TEMPLATE);
+        byte[] prevWire = previous.getHash().getReversedBytes();
+        System.arraycopy(prevWire, 0, raw, 4, 32);
+        raw[68] = (byte)(time);
+        raw[69] = (byte)(time >>> 8);
+        raw[70] = (byte)(time >>> 16);
+        raw[71] = (byte)(time >>> 24);
+        raw[128] = (byte)(height);
+        raw[129] = (byte)(height >>> 8);
+        raw[130] = (byte)(height >>> 16);
+        raw[131] = (byte)(height >>> 24);
+        //Regtest bits 0x207fffff
+        raw[72] = (byte)0xff;
+        raw[73] = (byte)0xff;
+        raw[74] = (byte)0x7f;
+        raw[75] = (byte)0x20;
+        for(long nonce = 0; nonce < 100000; nonce++) {
+            raw[76] = (byte)(nonce);
+            raw[77] = (byte)(nonce >>> 8);
+            raw[78] = (byte)(nonce >>> 16);
+            raw[79] = (byte)(nonce >>> 24);
+            BlockHeader header = new BlockHeader(raw.clone());
+            if(header.verifyProofOfWork() && header.isHeaderV2()) {
+                return header;
+            }
+        }
+        throw new IllegalStateException("Could not mine a regtest v2 header at height " + height);
     }
 
     /**

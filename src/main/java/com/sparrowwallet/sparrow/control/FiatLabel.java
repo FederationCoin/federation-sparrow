@@ -98,11 +98,11 @@ public class FiatLabel extends CopyableLabel {
             }
 
             BigDecimal satsBalance = BigDecimal.valueOf(balance);
-            BigDecimal btcBalance = satsBalance.divide(BigDecimal.valueOf(Transaction.SATOSHIS_PER_BITCOIN));
+            BigDecimal btcBalance = satsBalance.divide(BigDecimal.valueOf(Transaction.TOKENS_PER_COIN));
             BigDecimal fiatBalance = btcBalance.multiply(BigDecimal.valueOf(getBtcRate()));
 
             String label = getCurrency().getSymbol() + " " + unitFormat.formatCurrencyValue(fiatBalance.doubleValue());
-            tooltip.setText("1 BTC = " + getCurrency().getSymbol() + " " + unitFormat.formatCurrencyValue(getBtcRate()));
+            tooltip.setText("1 GFCN = " + getCurrency().getSymbol() + " " + unitFormat.formatCurrencyValue(getBtcRate()));
 
             setText(label);
             setTooltip(tooltip);

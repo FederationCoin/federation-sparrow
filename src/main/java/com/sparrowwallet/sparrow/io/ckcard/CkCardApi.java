@@ -303,7 +303,7 @@ public class CkCardApi extends CardApi {
         }
 
         CardRead cardRead = cardProtocol.read(null, currentSlot);
-        Address address = getDefaultScriptType().getAddress(PolicyType.SINGLE_HD, cardRead.getPubKey());
+        Address address = getDefaultScriptType().getAddress(PolicyType.forScript(getDefaultScriptType(), false), cardRead.getPubKey());
 
         String left = addr.substring(0, addr.indexOf('_'));
         String right = addr.substring(addr.lastIndexOf('_') + 1);

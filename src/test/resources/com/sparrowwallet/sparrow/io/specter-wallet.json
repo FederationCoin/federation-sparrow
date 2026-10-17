@@ -1,5 +1,5 @@
 {
   "label": "specter-wallet",
   "blockheight": 647153,
-  "descriptor": "sh(wpkh([4df18faa/49'/0'/0']xpub6BgwyseZdeGJj2vB3FPHSGPxR1LLkr8AsAJqedrgjwBXKXXVWkH31fhwtQXgrM7uMrWjLwXhuDhhenNAh5eBdUSjrHkrKfaXutcJdAfgQ8D))"
+  "descriptor": "sh(wpkh([4df18faa/49'/0'/0']xqiMjrJmjS2MXAes3LrGSKRBAbqDEWaueEx4eHZU1ag6kFRQHhdAnNqUJPypA1mi65paKMNtB9htU8XSQvyKD1oR3NuuD17StPBaCBArG1XGME5))"
 }

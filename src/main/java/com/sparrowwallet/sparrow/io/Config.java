@@ -1,7 +1,7 @@
 package com.sparrowwallet.sparrow.io;
 
 import com.google.gson.*;
-import com.sparrowwallet.drongo.BitcoinUnit;
+import com.sparrowwallet.drongo.CoinUnit;
 import com.sparrowwallet.drongo.protocol.Transaction;
 import com.sparrowwallet.sparrow.UnitFormat;
 import com.sparrowwallet.sparrow.Mode;
@@ -22,8 +22,8 @@ import java.util.*;
 import static com.sparrowwallet.sparrow.AppServices.ENUMERATE_HW_PERIOD_SECS;
 import static com.sparrowwallet.sparrow.net.PagedBatchRequestBuilder.DEFAULT_PAGE_SIZE;
 import static com.sparrowwallet.sparrow.net.TcpTransport.DEFAULT_MAX_TIMEOUT;
-import static com.sparrowwallet.sparrow.wallet.WalletUtxosEntry.DUST_ATTACK_THRESHOLD_SATS;
-import static com.sparrowwallet.sparrow.wallet.WalletUtxosEntry.DUST_ATTACK_THRESHOLD_SP_SATS;
+import static com.sparrowwallet.sparrow.wallet.WalletUtxosEntry.DUST_ATTACK_THRESHOLD_TOKENS;
+import static com.sparrowwallet.sparrow.wallet.WalletUtxosEntry.DUST_ATTACK_THRESHOLD_SP_TOKENS;
 
 public class Config {
     private static final Logger log = LoggerFactory.getLogger(Config.class);
@@ -31,7 +31,7 @@ public class Config {
     public static final String CONFIG_FILENAME = "config";
 
     private Mode mode;
-    private BitcoinUnit bitcoinUnit;
+    private CoinUnit coinUnit;
     private UnitFormat unitFormat;
     private Server blockExplorer;
     private FeeRatesSource feeRatesSource;
@@ -63,8 +63,8 @@ public class Config {
     private File walletsDir;
     private List<File> recentWalletFiles;
     private Integer keyDerivationPeriod;
-    private long dustAttackThreshold = DUST_ATTACK_THRESHOLD_SATS;
-    private long dustAttackThresholdSp = DUST_ATTACK_THRESHOLD_SP_SATS;
+    private long dustAttackThreshold = DUST_ATTACK_THRESHOLD_TOKENS;
+    private long dustAttackThresholdSp = DUST_ATTACK_THRESHOLD_SP_TOKENS;
     private int enumerateHwPeriod = ENUMERATE_HW_PERIOD_SECS;
     private QRDensity qrDensity;
     private QREncoding qrEncoding;
@@ -165,12 +165,12 @@ public class Config {
         flush();
     }
 
-    public BitcoinUnit getBitcoinUnit() {
-        return bitcoinUnit;
+    public CoinUnit getCoinUnit() {
+        return coinUnit;
     }
 
-    public void setBitcoinUnit(BitcoinUnit bitcoinUnit) {
-        this.bitcoinUnit = bitcoinUnit;
+    public void setCoinUnit(CoinUnit coinUnit) {
+        this.coinUnit = coinUnit;
         flush();
     }
 

@@ -23,8 +23,8 @@ public class PackageVersionTest {
     private static final List<String> TEMPLATES = List.of(
             "src/main/deploy/package/linux/control",
             "src/main/deploy/package/linux-headless/control",
-            "src/main/deploy/package/linux/shrike.spec",
-            "src/main/deploy/package/linux-headless/shrikeserver.spec");
+            "src/main/deploy/package/linux/federationcoin-sparrow.spec",
+            "src/main/deploy/package/linux-headless/federationcoin-sparrow-server.spec");
 
     @Test
     public void testTheReleaseNumberIsReadable() throws Exception {

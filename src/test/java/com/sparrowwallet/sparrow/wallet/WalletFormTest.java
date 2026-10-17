@@ -24,6 +24,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import com.sparrowwallet.sparrow.ChainEncoding;
 
 /**
  * Which nodes a wallet update reports as changed, and so which rows the persistence layer rewrites. The case covered here is the one the ordinary
@@ -174,13 +175,13 @@ public class WalletFormTest {
 
     private static Wallet testWallet() {
         Wallet wallet = new Wallet();
-        wallet.setPolicyType(PolicyType.SINGLE_HD);
+        wallet.setPolicyType(PolicyType.SINGLE_MLDSA87);
         wallet.setScriptType(ScriptType.P2WPKH);
         Keystore keystore = new Keystore();
         keystore.setKeyDerivation(new KeyDerivation("00000000", "m/84'/0'/0'"));
-        keystore.setExtendedPublicKey(ExtendedKey.fromDescriptor(TEST_XPUB));
+        keystore.setExtendedPublicKey(ChainEncoding.fromPublishedDescriptor(TEST_XPUB));
         wallet.getKeystores().add(keystore);
-        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.SINGLE_HD, ScriptType.P2WPKH, wallet.getKeystores(), 1));
+        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.SINGLE_MLDSA87, ScriptType.P2WPKH, wallet.getKeystores(), 1));
         wallet.getNode(KeyPurpose.RECEIVE).fillToIndex(wallet, 1);
 
         return wallet;

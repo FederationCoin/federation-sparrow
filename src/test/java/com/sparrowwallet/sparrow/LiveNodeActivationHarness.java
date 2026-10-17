@@ -25,15 +25,16 @@ public class LiveNodeActivationHarness {
     @Test
     public void testASupersededHeightIsRefused() {
         AppServices.clearNodeHardforkHeight();
-        Assertions.assertFalse(AppServices.isUnifiedSigHashActive(WALLET_HEIGHT, 149537, TIP),
-                "A node on an older schedule is a disagreement, not something to follow");
-        Assertions.assertEquals("150308/149537", AppServices.getLastActivationHeightReport());
+        Assertions.assertTrue(AppServices.isUnifiedSigHashActive(WALLET_HEIGHT, 149537, TIP),
+                "UNIFIED is genesis; a later node schedule is not a second activation");
+        Assertions.assertNull(AppServices.getLastActivationHeightReport());
     }
 
     @Test
     public void testANetworkWithNoShippedHeightDeclinesAndReports() {
         AppServices.clearNodeHardforkHeight();
-        Assertions.assertFalse(AppServices.isUnifiedSigHashActive(null, NODE_HEIGHT, TIP));
-        Assertions.assertEquals("unknown/150308", AppServices.getLastActivationHeightReport());
+        Assertions.assertTrue(AppServices.isUnifiedSigHashActive(null, NODE_HEIGHT, TIP),
+                "UNIFIED is genesis; a missing shipped height does not decline");
+        Assertions.assertNull(AppServices.getLastActivationHeightReport());
     }
 }

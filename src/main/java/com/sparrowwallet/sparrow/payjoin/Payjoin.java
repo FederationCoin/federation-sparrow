@@ -8,7 +8,7 @@ import com.sparrowwallet.drongo.protocol.Transaction;
 import com.sparrowwallet.drongo.protocol.TransactionInput;
 import com.sparrowwallet.drongo.protocol.TransactionOutput;
 import com.sparrowwallet.drongo.psbt.*;
-import com.sparrowwallet.drongo.uri.BitcoinURI;
+import com.sparrowwallet.drongo.uri.CoinURI;
 import com.sparrowwallet.drongo.wallet.Wallet;
 import com.sparrowwallet.drongo.wallet.WalletNode;
 import com.sparrowwallet.sparrow.AppServices;
@@ -29,11 +29,15 @@ import java.util.*;
 public class Payjoin {
     private static final Logger log = LoggerFactory.getLogger(Payjoin.class);
 
-    private final BitcoinURI payjoinURI;
+    private final CoinURI payjoinURI;
     private final Wallet wallet;
     private final PSBT psbt;
 
-    public Payjoin(BitcoinURI payjoinURI, Wallet wallet, PSBT psbt) {
+    public static boolean supportedOnThisChain() {
+        return false;
+    }
+
+    public Payjoin(CoinURI payjoinURI, Wallet wallet, PSBT psbt) {
         this.payjoinURI = payjoinURI;
         this.wallet = wallet;
         this.psbt = psbt.getForExport();
@@ -262,7 +266,7 @@ public class Payjoin {
                     // That's the payment output, the receiver may have changed it.
                 } else {
                     if(originalOutput.getKey().getValue() > proposedTxOut.getValue()) {
-                        throw new PayjoinReceiverException("The receiver decreased the value of one of the outputs from " + originalOutput.getKey().getValue() + " sats to " + proposedTxOut.getValue() + " sats");
+                        throw new PayjoinReceiverException("The receiver decreased the value of one of the outputs from " + originalOutput.getKey().getValue() + " tokens to " + proposedTxOut.getValue() + " tokens");
                     }
                 }
 
@@ -290,7 +294,7 @@ public class Payjoin {
         // Once signed, the fee rate of the payjoin transaction must not be less than the minfeerate we requested
         double proposalFeeRate = getProposalFeeRate(original, proposal);
         if(proposalFeeRate < minFeeRate) {
-            throw new PayjoinReceiverException("The fee rate of the payjoin transaction of " + String.format("%.2f", proposalFeeRate) + " sats/vB is less than the requested minimum of " + String.format("%.2f", minFeeRate) + " sats/vB");
+            throw new PayjoinReceiverException("The fee rate of the payjoin transaction of " + String.format("%.2f", proposalFeeRate) + " token/vB is less than the requested minimum of " + String.format("%.2f", minFeeRate) + " token/vB");
         }
 
         //Add global pubkey map for signing

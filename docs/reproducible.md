@@ -8,7 +8,7 @@ The installer packages (`.msi`, `.deb` and `.dmg`) are not byte for byte reprodu
 
 ### Install Java
 
-Because the release binaries bundle a Java runtime, the same version of Java must be installed to rebuild them. Shrike uses Eclipse Temurin 25.0.2+10, which is what the release workflow installs.
+Because the release binaries bundle a Java runtime, the same version of Java must be installed to rebuild them. Federation Sparrow uses Eclipse Temurin 25.0.2+10, which is what the release workflow installs.
 
 Note: Do not install Java using a system package manager (e.g. apt, dnf, rpm).
 Linux packages replace the JDK's bundled `cacerts` file with a symlink to the system CA certificates, which differ from those in the release tarballs and will produce a non-reproducible build.
@@ -49,7 +49,7 @@ sudo apt install -y rpm fakeroot binutils
 
 ### Building the binaries
 
-First, assign a temporary variable in your shell for the specific release you want to build, as it is named on the [releases page](https://github.com/privkeyio/shrike/releases):
+First, assign a temporary variable in your shell for the specific release you want to build, as it is named on the [releases page](https://github.com/FederationCoin/federation-sparrow/releases):
 
 ```shell
 GIT_TAG="v2.5.5-blake2b.21"
@@ -58,13 +58,13 @@ GIT_TAG="v2.5.5-blake2b.21"
 The project can then be initially cloned as follows. `--recursive` matters, because the BLAKE2b work lives in the drongo submodule:
 
 ```shell
-git clone --recursive --branch "${GIT_TAG}" https://github.com/privkeyio/shrike.git
+git clone --recursive --branch "${GIT_TAG}" git@github.com:FederationCoin/federation-sparrow.git
 ```
 
-If you already have the shrike repo cloned, fetch all new updates and checkout the release. For this, change into your local shrike folder and execute:
+If you already have the wallet repo cloned, fetch all new updates and checkout the release. For this, change into your local federation-sparrow folder and execute:
 
 ```shell
-cd {yourPathToShrike}/shrike
+cd {yourPathToWallet}/federation-sparrow
 git pull --recurse-submodules
 git checkout "${GIT_TAG}"
 ```
@@ -78,10 +78,10 @@ To checkout the submodule to the correct commit for `GIT_TAG`, additionally run:
 git submodule update --checkout
 ```
 
-Thereafter, building should be straightforward. If not already done, change into the shrike folder and run:
+Thereafter, building should be straightforward. If not already done, change into the federation-sparrow folder and run:
 
 ```shell
-cd {yourPathToShrike}/shrike  # if you aren't already in the shrike folder
+cd {yourPathToWallet}/federation-sparrow  # if you aren't already in the wallet folder
 ./gradlew jpackage
 ```
 
@@ -89,23 +89,23 @@ The binaries (and installers) will be placed in the `build/jpackage` folder.
 
 ### Verifying the binaries are identical
 
-Verify the built binaries against the released binaries at https://github.com/privkeyio/shrike/releases.
+Verify the built binaries against the released binaries at https://github.com/FederationCoin/federation-sparrow/releases.
 
-Note that you will be verifying the files in the `build/jpackage/Shrike` folder against either the `.tar.gz` or `.zip` releases.
+Note that you will be verifying the files in the `build/jpackage/federationcoin-sparrow` folder against either the `.tar.gz` or `.zip` releases.
 Download either of these depending on your platform and extract the contents to a folder (in the following example, `/tmp`).
 Then compare all of the folders and files recursively:
 
 ```shell
-diff -r build/jpackage/Shrike /tmp/Shrike
+diff -r build/jpackage/federationcoin-sparrow /tmp/federationcoin-sparrow
 ```
 
 This command should have no output indicating that the two folders (and all their contents) are identical.
 
-The headless server build reproduces the same way. It is built with the headless flag and compared against `shrikeserver-<version>-<arch>.tar.gz`, which also extracts to a `Shrike` folder:
+The headless server build reproduces the same way. It is built with the headless flag and compared against `federationcoin-sparrow-server-<version>-<arch>.tar.gz`, which also extracts to a `federationcoin-sparrow` folder:
 
 ```shell
 ./gradlew -Djava.awt.headless=true clean jpackage
-diff -r build/jpackage/Shrike /tmp/Shrike
+diff -r build/jpackage/federationcoin-sparrow /tmp/federationcoin-sparrow
 ```
 
 ### Comparing what a deb installs
@@ -116,8 +116,8 @@ The `.deb` file itself is not byte for byte reproducible, but its payload is. Un
 ./repackage.sh   # the release workflow runs this after jpackage
 
 mkdir -p /tmp/deb-local /tmp/deb-published
-(cd /tmp/deb-local && ar x {yourPathToShrike}/shrike/build/jpackage/shrike_<version>_amd64.deb && tar xf data.tar.xz)
-(cd /tmp/deb-published && ar x /path/to/downloaded/shrike_<version>_amd64.deb && tar xf data.tar.xz)
+(cd /tmp/deb-local && ar x {yourPathToWallet}/federation-sparrow/build/jpackage/federationcoin-sparrow_<version>_amd64.deb && tar xf data.tar.xz)
+(cd /tmp/deb-published && ar x /path/to/downloaded/federationcoin-sparrow_<version>_amd64.deb && tar xf data.tar.xz)
 
 diff -r /tmp/deb-local/opt /tmp/deb-published/opt
 ```

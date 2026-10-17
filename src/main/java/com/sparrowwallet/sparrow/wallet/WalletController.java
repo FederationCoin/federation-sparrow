@@ -107,11 +107,17 @@ public class WalletController extends WalletFormController implements Initializa
                     }
 
                     controller.setWalletForm(walletForm);
-                    walletFunction.setViewOrder(1);
+                    walletFunction.setViewOrder(0);
                     walletPane.getChildren().add(walletFunction);
                 }
-            } catch (IOException e) {
-                throw new IllegalStateException("Can't find pane", e);
+            } catch (Exception e) {
+                log.error("Wallet pane " + function + " failed to open", e);
+                showErrorDialog("Could not open " + function.toString().toLowerCase(Locale.ROOT), e.getMessage());
+                if(oldValue != null) {
+                    oldValue.setSelected(true);
+                } else {
+                    selectedToggle.setSelected(false);
+                }
             }
         });
 

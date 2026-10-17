@@ -46,6 +46,13 @@ public class KeystoreImportController implements Initializable {
 
     public void initializeView(Wallet wallet) {
         this.wallet = wallet;
+        java.util.List<KeystoreSource> offered = KeystoreImportDialog.getSupportedSources();
+        for(Toggle toggle : importMenu.getToggles()) {
+            KeystoreSource source = (KeystoreSource)toggle.getUserData();
+            boolean show = offered.contains(source);
+            ((Node)toggle).setVisible(show);
+            ((Node)toggle).setManaged(show);
+        }
         importMenu.selectedToggleProperty().addListener((observable, oldValue, selectedToggle) -> {
             if(selectedToggle == null) {
                 oldValue.setSelected(true);

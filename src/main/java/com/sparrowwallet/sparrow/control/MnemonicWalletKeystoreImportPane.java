@@ -81,7 +81,7 @@ public class MnemonicWalletKeystoreImportPane extends MnemonicKeystorePane {
     protected void onWordChange(boolean empty, boolean validWords, boolean validChecksum) {
         if(!empty && validWords) {
             try {
-                importer.getKeystore(PolicyType.SINGLE_HD, ScriptType.P2WPKH.getDefaultDerivation(), wordEntriesProperty.get(), passphraseProperty.get());
+                importer.getKeystore(PolicyType.SINGLE_MLDSA87, ScriptType.P2WPKH.getDefaultDerivation(), wordEntriesProperty.get(), passphraseProperty.get());
                 validChecksum = true;
             } catch(ImportException e) {
                 if(e.getCause() instanceof MnemonicException.MnemonicTypeException) {
@@ -108,14 +108,14 @@ public class MnemonicWalletKeystoreImportPane extends MnemonicKeystorePane {
         discoverButton.setGraphic(progressIndicator);
         List<Wallet> wallets = new ArrayList<>();
 
-        List<List<ChildNumber>> derivations = ScriptType.getScriptTypesForPolicyType(PolicyType.SINGLE_HD).stream().map(ScriptType::getDefaultDerivation).collect(Collectors.toList());
+        List<List<ChildNumber>> derivations = ScriptType.getScriptTypesForPolicyType(PolicyType.SINGLE_MLDSA87).stream().map(ScriptType::getDefaultDerivation).collect(Collectors.toList());
         derivations.add(List.of(new ChildNumber(0, true)));
         derivations.add(ScriptType.P2PKH.getDefaultDerivation(1)); //Bisq segwit misderivation
 
-        for(ScriptType scriptType : ScriptType.getScriptTypesForPolicyType(PolicyType.SINGLE_HD)) {
+        for(ScriptType scriptType : ScriptType.getScriptTypesForPolicyType(PolicyType.SINGLE_MLDSA87)) {
             for(List<ChildNumber> derivation : derivations) {
                 try {
-                    Wallet wallet = getWallet(PolicyType.SINGLE_HD, scriptType, derivation);
+                    Wallet wallet = getWallet(PolicyType.SINGLE_MLDSA87, scriptType, derivation);
                     wallets.add(wallet);
                 } catch(ImportException e) {
                     String errorMessage = e.getMessage();
@@ -146,7 +146,7 @@ public class MnemonicWalletKeystoreImportPane extends MnemonicKeystorePane {
             } else {
                 discoverButton.setDisable(false);
                 Optional<ButtonType> optButtonType = AppServices.showErrorDialog("No existing wallet found",
-                        Config.get().getServerType() == ServerType.BITCOIN_CORE ? "The configured server type is Bitcoin Knots, which does not support wallet discovery.\n\n" +
+                        Config.get().getServerType() == ServerType.BITCOIN_CORE ? "The configured server type is federationcoind, which does not support wallet discovery.\n\n" +
                                 "You can however import this wallet and scan the blockchain by supplying a start date. Do you want to import this wallet?" :
                                 "Could not find an HD wallet with existing transactions using this mnemonic. Import this wallet anyway?", ButtonType.NO, ButtonType.YES);
                 if(optButtonType.isPresent() && optButtonType.get() == ButtonType.YES) {
@@ -177,7 +177,7 @@ public class MnemonicWalletKeystoreImportPane extends MnemonicKeystorePane {
         Label label = new Label("Type:");
 
         List<PolicyAndScriptType> types = new ArrayList<>();
-        for(PolicyType policyType : List.of(PolicyType.SINGLE_HD, PolicyType.SINGLE_SP)) {
+        for(PolicyType policyType : List.of(PolicyType.SINGLE_MLDSA87, PolicyType.SINGLE_SP)) {
             for(ScriptType scriptType : ScriptType.getAddressableScriptTypes(policyType)) {
                 types.add(new PolicyAndScriptType(policyType, scriptType));
             }
@@ -186,7 +186,7 @@ public class MnemonicWalletKeystoreImportPane extends MnemonicKeystorePane {
         HBox fieldBox = new HBox(5);
         fieldBox.setAlignment(Pos.CENTER_RIGHT);
         ComboBox<PolicyAndScriptType> comboBox = new ComboBox<>(FXCollections.observableArrayList(types));
-        PolicyAndScriptType defaultType = new PolicyAndScriptType(PolicyType.SINGLE_HD, ScriptType.P2WPKH);
+        PolicyAndScriptType defaultType = new PolicyAndScriptType(PolicyType.SINGLE_MLDSA87, ScriptType.P2WPKH);
         if(types.contains(defaultType)) {
             comboBox.setValue(defaultType);
         }

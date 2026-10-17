@@ -4,6 +4,7 @@ import com.github.arteam.simplejsonrpc.client.Transport;
 import com.google.common.eventbus.Subscribe;
 import com.google.common.net.HostAndPort;
 import com.sparrowwallet.drongo.ExtendedKey;
+import com.sparrowwallet.sparrow.ChainEncoding;
 import com.sparrowwallet.drongo.KeyDerivation;
 import com.sparrowwallet.drongo.KeyPurpose;
 import com.sparrowwallet.drongo.Network;
@@ -64,6 +65,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import com.sparrowwallet.sparrow.ChainEncoding;
 
 /**
  * The write boundary against a server that answers proofs as the test chooses: which confirmed heights are written, which are demoted to unconfirmed,
@@ -1196,13 +1198,13 @@ public class TransactionProofTest {
 
     private static Wallet testWallet() {
         Wallet wallet = new Wallet();
-        wallet.setPolicyType(PolicyType.SINGLE_HD);
+        wallet.setPolicyType(PolicyType.SINGLE_MLDSA87);
         wallet.setScriptType(ScriptType.P2WPKH);
         Keystore keystore = new Keystore();
         keystore.setKeyDerivation(new KeyDerivation("00000000", "m/84'/0'/0'"));
-        keystore.setExtendedPublicKey(ExtendedKey.fromDescriptor(Network.get() == Network.MAINNET ? TEST_XPUB : TEST_TPUB));
+        keystore.setExtendedPublicKey(ChainEncoding.fromPublishedDescriptor(Network.get() == Network.MAINNET ? TEST_XPUB : TEST_TPUB));
         wallet.getKeystores().add(keystore);
-        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.SINGLE_HD, ScriptType.P2WPKH, wallet.getKeystores(), 1));
+        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.SINGLE_MLDSA87, ScriptType.P2WPKH, wallet.getKeystores(), 1));
         wallet.getNode(KeyPurpose.RECEIVE).fillToIndex(wallet, 1);
 
         return wallet;

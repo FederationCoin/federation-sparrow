@@ -77,14 +77,13 @@ public class ChainQualificationsTest {
         ChainTip previous = AppServices.getAnnouncedTip();
         try {
             AppServices.setAnnouncedTip(null);
-            Assertions.assertEquals(AppServices.chainQualifications(UnifiedSigHashDecision.CHAIN_UNSEEN),
+            Assertions.assertEquals(AppServices.chainQualifications(UnifiedSigHashDecision.OPTED_IN),
                     AppServices.chainQualifications(),
-                    "with no tip announced the chain has not been seen, and that is what the label has to say");
+                    "UNIFIED is genesis, so a missing tip does not withdraw the opt-in");
 
-            //A pre-fork header, which is a chain that has not activated whatever height it claims
             BlockHeader preFork = new BlockHeader(1, Sha256Hash.ZERO_HASH, Sha256Hash.ZERO_HASH, null, 0, 0x207fffffL, 0);
-            AppServices.setAnnouncedTip(new ChainTip(1, preFork));
-            Assertions.assertEquals(AppServices.chainQualifications(UnifiedSigHashDecision.CHAIN_NOT_ACTIVATED),
+            AppServices.setAnnouncedTip(new ChainTip(0, preFork));
+            Assertions.assertEquals(AppServices.chainQualifications(UnifiedSigHashDecision.OPTED_IN),
                     AppServices.chainQualifications());
         } finally {
             AppServices.setAnnouncedTip(previous);

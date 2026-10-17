@@ -1,10 +1,10 @@
-Package: shrikeserver
+Package: federationcoin-sparrow-server
 Version: ${version}-${release}
 Section: utils
 Maintainer: Kyle Santiago <kyle@privkey.io>
 Priority: optional
 Architecture: ${arch}
-Provides: shrikeserver
-Description: Shrike Server
+Provides: federationcoin-sparrow-server
+Description: Federation Sparrow Server
 Depends: libc6, zlib1g
 Installed-Size: ${size}

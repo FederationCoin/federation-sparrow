@@ -32,13 +32,13 @@ public class DescriptorArea extends CodeArea {
         List<Keystore> keystores = wallet.getKeystores();
         int threshold = wallet.getDefaultPolicy().getNumSignaturesRequired();
 
-        if(SINGLE_HD.equals(policyType)) {
+        if(SINGLE_MLDSA87.equals(policyType)) {
             append(scriptType.getDescriptor(), "descriptor-text");
             replace(getLength(), getLength(), keystores.get(0).getScriptName(), List.of(keystores.get(0).isValid() ? "descriptor-text" : "descriptor-error", keystores.get(0).getScriptName()));
             append(scriptType.getCloseDescriptor(), "descriptor-text");
         }
 
-        if(MULTI_HD.equals(policyType)) {
+        if(MULTI_MLDSA87.equals(policyType)) {
             append(scriptType.getDescriptor(), "descriptor-text");
             append(MULTISIG.getDescriptor(), "descriptor-text");
             append(Integer.toString(threshold), "descriptor-text");
@@ -81,14 +81,14 @@ public class DescriptorArea extends CodeArea {
             });
             getItems().add(copyvalue);
 
-            MenuItem copyOutputDescriptor = new MenuItem("Copy Output Descriptor");
-            copyOutputDescriptor.setOnAction(AE -> {
+            MenuItem copyPolicy = new MenuItem("Copy Policy");
+            copyPolicy.setOnAction(AE -> {
                 hide();
                 ClipboardContent content = new ClipboardContent();
-                content.putString(OutputDescriptor.getOutputDescriptor(wallet, KeyPurpose.DEFAULT_PURPOSES, null).toString(true));
+                content.putString(wallet.getMlDsaPolicyBackup());
                 Clipboard.getSystemClipboard().setContent(content);
             });
-            getItems().add(copyOutputDescriptor);
+            getItems().add(copyPolicy);
             this.setStyle("-fx-background-color: -fx-color; -fx-font-family: System; -fx-font-size: 1em;");
         }
     }

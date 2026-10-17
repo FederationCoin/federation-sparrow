@@ -19,7 +19,9 @@ public class AddressStringConverter extends StringConverter<Address> {
         }
 
         try {
-            return Address.fromString(value);
+            Address parsed = Address.fromString(value);
+            parsed.requireSendable();
+            return parsed;
         } catch(InvalidAddressException e) {
             throw new IllegalArgumentException(e);
         }

@@ -62,7 +62,7 @@ public class WelcomeController {
             welcomeBox.getStyleClass().clear();
             welcomeBox.getStyleClass().add("bitcoin-core");
             serverToggle.setSelected(true);
-            serverStatus.setText("Connected to Bitcoin Knots (demonstration only)");
+            serverStatus.setText("Connected to federationcoind (demonstration only)");
             return true;
         }
 
@@ -99,7 +99,7 @@ public class WelcomeController {
             welcomeBox.getStyleClass().clear();
             welcomeBox.getStyleClass().add("bitcoin-core");
             serverToggle.setSelected(true);
-            serverStatus.setText("Connected to Bitcoin Knots (demonstration only)");
+            serverStatus.setText("Connected to federationcoind (demonstration only)");
             return true;
         }
 

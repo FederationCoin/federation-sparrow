@@ -12,7 +12,7 @@ public class SwController extends KeystoreImportDetailController {
     private Accordion importAccordion;
 
     public void initializeView() {
-        List<KeystoreImport> importers = List.of(new Bip39(), new Bip32(), new Slip39(), new Bip93());
+        List<KeystoreImport> importers = List.of(new Bip39(), new Slip39());
 
         for(KeystoreImport importer : importers) {
             if(importer.isDeprecated() && !Config.get().isShowDeprecatedImportExport()) {

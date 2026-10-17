@@ -1,6 +1,7 @@
 package com.sparrowwallet.sparrow.io;
 
 import com.sparrowwallet.drongo.ExtendedKey;
+import com.sparrowwallet.drongo.OutputDescriptor;
 import com.sparrowwallet.drongo.protocol.ScriptType;
 import com.sparrowwallet.drongo.wallet.Keystore;
 import com.sparrowwallet.drongo.wallet.Wallet;
@@ -9,6 +10,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import com.sparrowwallet.sparrow.ChainEncoding;
 
 public class DescriptorTest extends IoTest {
     @Test
@@ -20,7 +22,7 @@ public class DescriptorTest extends IoTest {
         Keystore keystore = wallet.getKeystores().getFirst();
         Assertions.assertEquals("m/84'/0'/0'", keystore.getKeyDerivation().getDerivationPath());
         Assertions.assertEquals("a262308d", keystore.getKeyDerivation().getMasterFingerprint());
-        Assertions.assertEquals(ExtendedKey.fromDescriptor("xpub6DM7CYgaTMdMbhTcLTUWmNUE5WLXK5hx8ZMa4sRw8qYJPqtqKYiKnwsmT8A6AijDVAUZRivdBnXdR8QE7Y9vVnqvzPL3fXCmu1WtCRLdAoz"), keystore.getExtendedPublicKey());
+        Assertions.assertEquals(ExtendedKey.fromDescriptor(ChainEncoding.extendedKey("xpub6DM7CYgaTMdMbhTcLTUWmNUE5WLXK5hx8ZMa4sRw8qYJPqtqKYiKnwsmT8A6AijDVAUZRivdBnXdR8QE7Y9vVnqvzPL3fXCmu1WtCRLdAoz")), keystore.getExtendedPublicKey());
         Assertions.assertTrue(keystore.isValid());
     }
 
@@ -33,7 +35,7 @@ public class DescriptorTest extends IoTest {
         Keystore keystore = wallet.getKeystores().getFirst();
         Assertions.assertEquals("m/84'/0'/0'", keystore.getKeyDerivation().getDerivationPath());
         Assertions.assertEquals("a262308d", keystore.getKeyDerivation().getMasterFingerprint());
-        Assertions.assertEquals(ExtendedKey.fromDescriptor("xpub6DM7CYgaTMdMbhTcLTUWmNUE5WLXK5hx8ZMa4sRw8qYJPqtqKYiKnwsmT8A6AijDVAUZRivdBnXdR8QE7Y9vVnqvzPL3fXCmu1WtCRLdAoz"), keystore.getExtendedPublicKey());
+        Assertions.assertEquals(ExtendedKey.fromDescriptor(ChainEncoding.extendedKey("xpub6DM7CYgaTMdMbhTcLTUWmNUE5WLXK5hx8ZMa4sRw8qYJPqtqKYiKnwsmT8A6AijDVAUZRivdBnXdR8QE7Y9vVnqvzPL3fXCmu1WtCRLdAoz")), keystore.getExtendedPublicKey());
         Assertions.assertTrue(keystore.isValid());
     }
 
@@ -46,7 +48,7 @@ public class DescriptorTest extends IoTest {
         Keystore keystore = wallet.getKeystores().getFirst();
         Assertions.assertEquals("m/84'/0'/0'", keystore.getKeyDerivation().getDerivationPath());
         Assertions.assertEquals("a262308d", keystore.getKeyDerivation().getMasterFingerprint());
-        Assertions.assertEquals(ExtendedKey.fromDescriptor("xpub6DM7CYgaTMdMbhTcLTUWmNUE5WLXK5hx8ZMa4sRw8qYJPqtqKYiKnwsmT8A6AijDVAUZRivdBnXdR8QE7Y9vVnqvzPL3fXCmu1WtCRLdAoz"), keystore.getExtendedPublicKey());
+        Assertions.assertEquals(ExtendedKey.fromDescriptor(ChainEncoding.extendedKey("xpub6DM7CYgaTMdMbhTcLTUWmNUE5WLXK5hx8ZMa4sRw8qYJPqtqKYiKnwsmT8A6AijDVAUZRivdBnXdR8QE7Y9vVnqvzPL3fXCmu1WtCRLdAoz")), keystore.getExtendedPublicKey());
         Assertions.assertTrue(keystore.isValid());
     }
 
@@ -59,9 +61,9 @@ public class DescriptorTest extends IoTest {
         descriptor.exportWallet(wallet, baos, null);
         String export = baos.toString();
 
-        Assertions.assertTrue(export.contains("wpkh([a262308d/84h/0h/0h]xpub6DM7CYgaTMdMbhTcLTUWmNUE5WLXK5hx8ZMa4sRw8qYJPqtqKYiKnwsmT8A6AijDVAUZRivdBnXdR8QE7Y9vVnqvzPL3fXCmu1WtCRLdAoz/<0;1>/*)#cpx4ean7"));
-        Assertions.assertTrue(export.contains("wpkh([a262308d/84h/0h/0h]xpub6DM7CYgaTMdMbhTcLTUWmNUE5WLXK5hx8ZMa4sRw8qYJPqtqKYiKnwsmT8A6AijDVAUZRivdBnXdR8QE7Y9vVnqvzPL3fXCmu1WtCRLdAoz/0/*)#s5x06kda"));
-        Assertions.assertTrue(export.contains("wpkh([a262308d/84h/0h/0h]xpub6DM7CYgaTMdMbhTcLTUWmNUE5WLXK5hx8ZMa4sRw8qYJPqtqKYiKnwsmT8A6AijDVAUZRivdBnXdR8QE7Y9vVnqvzPL3fXCmu1WtCRLdAoz/1/*)#pqrw8ra9"));
+        Assertions.assertTrue(export.contains(ChainEncoding.descriptor("wpkh([a262308d/84h/0h/0h]xpub6DM7CYgaTMdMbhTcLTUWmNUE5WLXK5hx8ZMa4sRw8qYJPqtqKYiKnwsmT8A6AijDVAUZRivdBnXdR8QE7Y9vVnqvzPL3fXCmu1WtCRLdAoz/<0;1>/*)#cpx4ean7")));
+        Assertions.assertTrue(export.contains(ChainEncoding.descriptor("wpkh([a262308d/84h/0h/0h]xpub6DM7CYgaTMdMbhTcLTUWmNUE5WLXK5hx8ZMa4sRw8qYJPqtqKYiKnwsmT8A6AijDVAUZRivdBnXdR8QE7Y9vVnqvzPL3fXCmu1WtCRLdAoz/0/*)#s5x06kda")));
+        Assertions.assertTrue(export.contains(ChainEncoding.descriptor("wpkh([a262308d/84h/0h/0h]xpub6DM7CYgaTMdMbhTcLTUWmNUE5WLXK5hx8ZMa4sRw8qYJPqtqKYiKnwsmT8A6AijDVAUZRivdBnXdR8QE7Y9vVnqvzPL3fXCmu1WtCRLdAoz/1/*)#pqrw8ra9")));
     }
 
     @Test
@@ -92,7 +94,7 @@ public class DescriptorTest extends IoTest {
         Keystore keystore = wallet.getKeystores().getFirst();
         Assertions.assertEquals("m/84'/0'/0'", keystore.getKeyDerivation().getDerivationPath());
         Assertions.assertEquals("a262308d", keystore.getKeyDerivation().getMasterFingerprint());
-        Assertions.assertEquals(ExtendedKey.fromDescriptor("xpub6DM7CYgaTMdMbhTcLTUWmNUE5WLXK5hx8ZMa4sRw8qYJPqtqKYiKnwsmT8A6AijDVAUZRivdBnXdR8QE7Y9vVnqvzPL3fXCmu1WtCRLdAoz"), keystore.getExtendedPublicKey());
+        Assertions.assertEquals(ExtendedKey.fromDescriptor(ChainEncoding.extendedKey("xpub6DM7CYgaTMdMbhTcLTUWmNUE5WLXK5hx8ZMa4sRw8qYJPqtqKYiKnwsmT8A6AijDVAUZRivdBnXdR8QE7Y9vVnqvzPL3fXCmu1WtCRLdAoz")), keystore.getExtendedPublicKey());
         Assertions.assertTrue(keystore.isValid());
     }
 
@@ -105,7 +107,7 @@ public class DescriptorTest extends IoTest {
         Keystore keystore = wallet.getKeystores().getFirst();
         Assertions.assertEquals("m/84'/0'/0'", keystore.getKeyDerivation().getDerivationPath());
         Assertions.assertEquals("a262308d", keystore.getKeyDerivation().getMasterFingerprint());
-        Assertions.assertEquals(ExtendedKey.fromDescriptor("xpub6DM7CYgaTMdMbhTcLTUWmNUE5WLXK5hx8ZMa4sRw8qYJPqtqKYiKnwsmT8A6AijDVAUZRivdBnXdR8QE7Y9vVnqvzPL3fXCmu1WtCRLdAoz"), keystore.getExtendedPublicKey());
+        Assertions.assertEquals(ExtendedKey.fromDescriptor(ChainEncoding.extendedKey("xpub6DM7CYgaTMdMbhTcLTUWmNUE5WLXK5hx8ZMa4sRw8qYJPqtqKYiKnwsmT8A6AijDVAUZRivdBnXdR8QE7Y9vVnqvzPL3fXCmu1WtCRLdAoz")), keystore.getExtendedPublicKey());
         Assertions.assertTrue(keystore.isValid());
     }
 }

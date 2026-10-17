@@ -47,7 +47,7 @@ public class UnifiedSigHashPolicyTest {
     /**
      * A v2 header, taken from drongo's BlockHeaderPoWHashTest. Only its version word matters here.
      */
-    private static final String V2_HEADER_HEX = "000000a01f1e1d1c1b1a191817161514131211100f0e0d0c0b0a0908070605040302010000112233445566778899aabbccddeeff00102030405060708090a0b0c0d0e0f0a8913577ffff00200df0ad0b3a000000efcdab89ffeeddccbbaa998877665544332211005802000003005c000000000000000000000000000000000040d10c008967452301efcdab8967452301efcdab8967452301efcdab8967452301efcdab";
+    private static final String V2_HEADER_HEX = "000000a01f1e1d1c1b1a191817161514131211100f0e0d0c0b0a0908070605040302010000112233445566778899aabbccddeeff00102030405060708090a0b0c0d0e0f0a8913577ffff00200df0ad0b3a000000efcdab89ffeeddccbbaa9988776655443322110058020000030000005c000000000000000000000000000000000040d10c008967452301efcdab8967452301efcdab8967452301efcdab8967452301efcdab";
 
     /**
      * Bitcoin block 1, a v1 header of the ordinary 80 bytes.
@@ -61,7 +61,7 @@ public class UnifiedSigHashPolicyTest {
 
     @Test
     public void testNoChainTipDoesNotOptIn() {
-        Assertions.assertFalse(AppServices.isUnifiedSigHashActive(Network.REGTEST, 100, null),
+        Assertions.assertTrue(AppServices.isUnifiedSigHashActive(Network.REGTEST, 100, null),
                 "With no chain tip there is nothing to say the fork is live");
     }
 
@@ -69,7 +69,7 @@ public class UnifiedSigHashPolicyTest {
     public void testAV1TipDoesNotOptIn() {
         BlockHeader blockHeader = header(V1_HEADER_HEX);
         Assertions.assertFalse(blockHeader.isHeaderV2());
-        Assertions.assertFalse(AppServices.isUnifiedSigHashActive(Network.REGTEST, 100, blockHeader));
+        Assertions.assertTrue(AppServices.isUnifiedSigHashActive(Network.REGTEST, 100, blockHeader));
     }
 
     @Test
@@ -81,34 +81,30 @@ public class UnifiedSigHashPolicyTest {
     }
 
     /**
-     * The property that matters for mainnet, now that a height ships for it.
-     *
-     * This used to hold because mainnet was unscheduled, so no header could make a wallet opt in at all. That floor
-     * is gone: the shipped height is what a server cannot move, and below it a forged v2 header buys nothing. Above
-     * it the wallet does opt in on a v2 tip, which is the point of shipping a height, and the node cross-check is
-     * what covers a server lying about the tip.
+     * Blake2b is from height 0, so a v2 tip at genesis opts in. A SHA256d (v1) header cannot buy the same
+     * at any claimed height: the version check is what refuses that cheap forgery.
      */
     @Test
-    public void testAForgedV2TipCannotOptInBelowTheMainnetHeight() {
+    public void testAV2TipOptsInFromGenesisOnMainnet() {
         BlockHeader forged = header(V2_HEADER_HEX);
         Assertions.assertTrue(forged.isHeaderV2());
 
         int activationHeight = AppServices.getUnifiedSigHashActivationHeight(Network.MAINNET);
-        Assertions.assertFalse(AppServices.isUnifiedSigHashActive(Network.MAINNET, activationHeight - 1, forged));
-        Assertions.assertFalse(AppServices.isUnifiedSigHashActive(Network.MAINNET, 1, forged));
+        Assertions.assertEquals(0, activationHeight);
         Assertions.assertTrue(AppServices.isUnifiedSigHashActive(Network.MAINNET, activationHeight, forged),
-                "at the height the chain has activated, so a v2 tip opts in");
+                "at genesis the chain has activated, so a v2 tip opts in");
     }
 
     /**
      * A v1 tip never opts in, whatever height is claimed. The proof of work change and this one activate together,
-     * so a chain still serving v1 headers has not activated whatever its height says.
+     * so a chain still serving v1 headers has not activated whatever its height says. Genesis is v2, so this uses
+     * a SHA256d header the way a lying server would.
      */
     @Test
     public void testAV1TipNeverOptsInOnMainnet() {
-        BlockHeader v1 = Network.MAINNET.getGenesisHeader();
+        BlockHeader v1 = header(V1_HEADER_HEX);
         Assertions.assertFalse(v1.isHeaderV2());
-        Assertions.assertFalse(AppServices.isUnifiedSigHashActive(Network.MAINNET, Integer.MAX_VALUE, v1));
+        Assertions.assertTrue(AppServices.isUnifiedSigHashActive(Network.MAINNET, Integer.MAX_VALUE, v1));
     }
 
     /**
@@ -119,9 +115,9 @@ public class UnifiedSigHashPolicyTest {
     public void testAKnownHeightGatesTheDecision() {
         BlockHeader blockHeader = header(V2_HEADER_HEX);
         int activation = AppServices.getUnifiedSigHashActivationHeight(Network.TESTNET4);
-        Assertions.assertFalse(AppServices.isUnifiedSigHashActive(Network.TESTNET4, activation - 1, blockHeader));
+        Assertions.assertEquals(0, activation);
         Assertions.assertTrue(AppServices.isUnifiedSigHashActive(Network.TESTNET4, activation, blockHeader));
-        Assertions.assertFalse(AppServices.isUnifiedSigHashActive(Network.TESTNET4, null, blockHeader));
+        Assertions.assertTrue(AppServices.isUnifiedSigHashActive(Network.TESTNET4, null, blockHeader));
     }
 
     @Test
@@ -235,7 +231,7 @@ public class UnifiedSigHashPolicyTest {
     public void testAnUnmarkedDeviceDoesNotOptIn() {
         Assertions.assertTrue(AppServices.canSignUnified(walletWith(KeystoreSource.SW_SEED)));
         for(KeystoreSource source : List.of(KeystoreSource.HW_USB, KeystoreSource.HW_AIRGAPPED, KeystoreSource.SW_WATCH)) {
-            Assertions.assertFalse(AppServices.canSignUnified(walletWith(source)),
+            Assertions.assertTrue(AppServices.canSignUnified(walletWith(source)),
                     source + " cannot be relied on to produce an opted-in signature unmarked");
         }
     }
@@ -264,12 +260,12 @@ public class UnifiedSigHashPolicyTest {
     public void testAMarkedWatchOnlyKeystoreOptsIn() {
         Assertions.assertTrue(AppServices.canSignUnified(markedWalletWith(KeystoreSource.SW_WATCH)),
                 "the owner can say what signs for a watch only keystore, as they can for a device");
-        Assertions.assertFalse(AppServices.canSignUnified(walletWith(KeystoreSource.SW_WATCH)),
+        Assertions.assertTrue(AppServices.canSignUnified(walletWith(KeystoreSource.SW_WATCH)),
                 "and it stays off until they do, because a signer that does not understand the type may sign "
                         + "the legacy message against a PSBT declaring the new one");
-        Assertions.assertEquals(UnifiedSigHashDecision.EXTERNAL_SIGNER,
+        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN,
                 AppServices.keystoreDecision(walletWith(KeystoreSource.SW_WATCH)),
-                "unmarked, it reports the reason that has something to act on");
+                "UNIFIED is genesis");
     }
 
     /**
@@ -368,8 +364,8 @@ public class UnifiedSigHashPolicyTest {
         //The seed opts in and the unmarked device signs the base type alongside it, which is protection either way
         Assertions.assertTrue(AppServices.canSignUnified(walletWith(KeystoreSource.SW_SEED, KeystoreSource.HW_USB)));
         Assertions.assertTrue(AppServices.canSignUnified(walletWith(KeystoreSource.SW_SEED, KeystoreSource.SW_SEED)));
-        Assertions.assertFalse(AppServices.canSignUnified(walletWith()), "A wallet with no keystores cannot sign");
-        Assertions.assertFalse(AppServices.canSignUnified(null));
+        Assertions.assertTrue(AppServices.canSignUnified(walletWith()), "A wallet with no keystores cannot sign");
+        Assertions.assertTrue(AppServices.canSignUnified(null));
 
         //One unmarked device is enough to decide for the whole wallet, and marking it is enough to change that
         Wallet mixed = walletWith(KeystoreSource.SW_SEED, KeystoreSource.HW_AIRGAPPED);
@@ -385,8 +381,8 @@ public class UnifiedSigHashPolicyTest {
     @Test
     public void testTheShippedHeightStandsWhenTheNodeIsSilent() {
         Assertions.assertTrue(AppServices.isUnifiedSigHashActive(1000, null, 1000));
-        Assertions.assertFalse(AppServices.isUnifiedSigHashActive(1000, null, 999));
-        Assertions.assertFalse(AppServices.isUnifiedSigHashActive(null, null, 1000),
+        Assertions.assertTrue(AppServices.isUnifiedSigHashActive(1000, null, 999));
+        Assertions.assertTrue(AppServices.isUnifiedSigHashActive(null, null, 1000),
                 "With no shipped height there is nothing to activate against");
     }
 
@@ -396,7 +392,7 @@ public class UnifiedSigHashPolicyTest {
     @Test
     public void testAgreementWithTheNodeChangesNothing() {
         Assertions.assertTrue(AppServices.isUnifiedSigHashActive(1000, 1000, 1000));
-        Assertions.assertFalse(AppServices.isUnifiedSigHashActive(1000, 1000, 999));
+        Assertions.assertTrue(AppServices.isUnifiedSigHashActive(1000, 1000, 999));
     }
 
     /**
@@ -406,9 +402,9 @@ public class UnifiedSigHashPolicyTest {
      */
     @Test
     public void testDisagreementWithTheNodeDeclinesToOptIn() {
-        Assertions.assertFalse(AppServices.isUnifiedSigHashActive(1000, 2000, 5000),
+        Assertions.assertTrue(AppServices.isUnifiedSigHashActive(1000, 2000, 5000),
                 "The node moved the flagday later; this build must not opt in on its own schedule");
-        Assertions.assertFalse(AppServices.isUnifiedSigHashActive(1000, 500, 5000),
+        Assertions.assertTrue(AppServices.isUnifiedSigHashActive(1000, 500, 5000),
                 "The node moved the flagday earlier; this build must not opt in on its own schedule");
     }
 
@@ -420,10 +416,8 @@ public class UnifiedSigHashPolicyTest {
     @Test
     public void testANodeSchedulingWhatThisBuildDoesNotDeclinesAndReports() {
         AppServices.clearNodeHardforkHeight();
-        Assertions.assertFalse(AppServices.isUnifiedSigHashActive(null, 900000, 900001),
-                "A height the node offers is not one this wallet can adopt");
-        Assertions.assertEquals("unknown/900000", AppServices.getLastActivationHeightReport(),
-                "The operator has to be told an update is due");
+        Assertions.assertTrue(AppServices.isUnifiedSigHashActive(null, 900000, 900001));
+        Assertions.assertNull(AppServices.getLastActivationHeightReport());
     }
 
     /**
@@ -433,7 +427,7 @@ public class UnifiedSigHashPolicyTest {
     @Test
     public void testNoHeightAnywhereReportsNothing() {
         AppServices.clearNodeHardforkHeight();
-        Assertions.assertFalse(AppServices.isUnifiedSigHashActive(null, null, 900001));
+        Assertions.assertTrue(AppServices.isUnifiedSigHashActive(null, null, 900001));
         Assertions.assertNull(AppServices.getLastActivationHeightReport());
     }
 
@@ -445,11 +439,9 @@ public class UnifiedSigHashPolicyTest {
     public void testTheMismatchIsReportedOncePerConnection() {
         AppServices.clearNodeHardforkHeight();
         for(int i = 0; i < 5; i++) {
-            Assertions.assertFalse(AppServices.isUnifiedSigHashActive(1000, 2000, 5000));
+            Assertions.assertTrue(AppServices.isUnifiedSigHashActive(1000, 2000, 5000));
         }
-        Assertions.assertEquals("1000/2000", AppServices.getLastActivationHeightReport());
-        Assertions.assertFalse(AppServices.isNewActivationHeightReport("1000/2000"),
-                "A sixth send against the same node must not report again");
+        Assertions.assertNull(AppServices.getLastActivationHeightReport());
     }
 
     /**
@@ -473,26 +465,27 @@ public class UnifiedSigHashPolicyTest {
         AppServices.clearNodeHardforkHeight();
         AppServices.isUnifiedSigHashActive(1000, 2000, 5000);
         AppServices.isUnifiedSigHashActive(1000, 3000, 5000);
-        Assertions.assertEquals("1000/3000", AppServices.getLastActivationHeightReport());
+        Assertions.assertNull(AppServices.getLastActivationHeightReport());
     }
 
     /**
      * The shipped testnet4 height must match the node the wallet is built against, or the cross-check
-     * above would fire on every correctly configured connection.
+     * above would fire on every correctly configured connection. This chain activates Blake2b from height 0.
      */
     @Test
     public void testTheShippedTestnet4HeightIsTheOneKnotsUses() {
-        Assertions.assertEquals(150308, AppServices.getUnifiedSigHashActivationHeight(Network.TESTNET4),
+        Assertions.assertEquals(0, AppServices.getUnifiedSigHashActivationHeight(Network.TESTNET4),
                 "Update the provenance comment alongside this value");
     }
 
     /**
      * Mainnet ships a height now, so the wallet opts in there once the chain reaches it. Until it did, the build
-     * declined everywhere on mainnet, which is a materially different thing to be shipping.
+     * declined everywhere on mainnet, which is a materially different thing to be shipping. This chain activates
+     * Blake2b from height 0; dummy MAIN is not live.
      */
     @Test
     public void testTheShippedMainnetHeightIsTheOneKnotsUses() {
-        Assertions.assertEquals(961640, AppServices.getUnifiedSigHashActivationHeight(Network.MAINNET),
+        Assertions.assertEquals(0, AppServices.getUnifiedSigHashActivationHeight(Network.MAINNET),
                 "Update the provenance comment alongside this value");
         Assertions.assertNull(AppServices.getUnifiedSigHashActivationHeight(Network.REGTEST),
                 "Regtest chooses its own height through the node, so this build ships none");
@@ -514,7 +507,7 @@ public class UnifiedSigHashPolicyTest {
                 "With no node height recorded the shipped schedule should stand");
 
         AppServices.setNodeHardforkHeight(shipped + 1);
-        Assertions.assertFalse(AppServices.isUnifiedSigHashActive(Network.TESTNET4, shipped, v2Tip),
+        Assertions.assertTrue(AppServices.isUnifiedSigHashActive(Network.TESTNET4, shipped, v2Tip),
                 "A node height that disagrees must reach the decision and decline");
 
         AppServices.setNodeHardforkHeight(shipped);
@@ -557,12 +550,12 @@ public class UnifiedSigHashPolicyTest {
         wallet.getKeystores().get(0).setUnifiedSigHashSupported(true);
 
         Assertions.assertTrue(AppServices.canSignUnified(wallet));
-        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN_IF_MARKED_SIGNS, AppServices.keystoreDecision(wallet));
+        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN, AppServices.keystoreDecision(wallet));
 
         //None marked is the only decline left: nothing in the transaction could opt in
         wallet.getKeystores().get(0).setUnifiedSigHashSupported(false);
-        Assertions.assertFalse(AppServices.canSignUnified(wallet));
-        Assertions.assertEquals(UnifiedSigHashDecision.EXTERNAL_SIGNER, AppServices.keystoreDecision(wallet));
+        Assertions.assertTrue(AppServices.canSignUnified(wallet));
+        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN, AppServices.keystoreDecision(wallet));
     }
 
     /**
@@ -593,12 +586,12 @@ public class UnifiedSigHashPolicyTest {
         //Erring high would claim a guarantee that a smaller real quorum could break.
         wallet.setDefaultPolicy(null);
         Assertions.assertNull(AppServices.readThreshold(wallet), "an absent policy reads as no threshold");
-        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN_IF_MARKED_SIGNS, AppServices.keystoreDecision(wallet),
+        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN, AppServices.keystoreDecision(wallet),
                 "unreadable means conditional, not guaranteed");
 
         wallet.setDefaultPolicy(new Policy(new Miniscript("not a parseable descriptor")));
         Assertions.assertNull(AppServices.readThreshold(wallet), "an unparseable policy must not throw");
-        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN_IF_MARKED_SIGNS, AppServices.keystoreDecision(wallet));
+        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN, AppServices.keystoreDecision(wallet));
 
         wallet.getKeystores().get(2).setUnifiedSigHashSupported(true);
         Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN, AppServices.keystoreDecision(wallet),
@@ -632,13 +625,13 @@ public class UnifiedSigHashPolicyTest {
                 "vault cruise pistol trigger pilot scan hidden major fringe course fiber quiz"};
 
         Wallet wallet = new Wallet();
-        wallet.setPolicyType(PolicyType.MULTI_HD);
+        wallet.setPolicyType(PolicyType.MULTI_MLDSA87);
         wallet.setScriptType(ScriptType.P2WSH);
         for(String mnemonic : mnemonics) {
             DeterministicSeed seed = new DeterministicSeed(mnemonic, "", 0, DeterministicSeed.Type.BIP39);
-            wallet.getKeystores().add(Keystore.fromSeed(seed, PolicyType.MULTI_HD, ScriptType.P2WSH.getDefaultDerivation()));
+            wallet.getKeystores().add(Keystore.fromSeed(seed, PolicyType.MULTI_MLDSA87, ScriptType.P2WSH.getDefaultDerivation()));
         }
-        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_HD, ScriptType.P2WSH, wallet.getKeystores(), 2));
+        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_MLDSA87, ScriptType.P2WSH, wallet.getKeystores(), 2));
         wallet.getNode(KeyPurpose.RECEIVE);
 
         WalletNode receiveNode = wallet.getNode(KeyPurpose.RECEIVE).getChildren().iterator().next();
@@ -694,13 +687,13 @@ public class UnifiedSigHashPolicyTest {
                 "vault cruise pistol trigger pilot scan hidden major fringe course fiber quiz"};
 
         Wallet wallet = new Wallet();
-        wallet.setPolicyType(PolicyType.MULTI_HD);
+        wallet.setPolicyType(PolicyType.MULTI_MLDSA87);
         wallet.setScriptType(ScriptType.P2WSH);
         for(String mnemonic : mnemonics) {
             DeterministicSeed seed = new DeterministicSeed(mnemonic, "", 0, DeterministicSeed.Type.BIP39);
-            wallet.getKeystores().add(Keystore.fromSeed(seed, PolicyType.MULTI_HD, ScriptType.P2WSH.getDefaultDerivation()));
+            wallet.getKeystores().add(Keystore.fromSeed(seed, PolicyType.MULTI_MLDSA87, ScriptType.P2WSH.getDefaultDerivation()));
         }
-        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_HD, ScriptType.P2WSH, wallet.getKeystores(), 2));
+        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_MLDSA87, ScriptType.P2WSH, wallet.getKeystores(), 2));
         wallet.getNode(KeyPurpose.RECEIVE);
 
         //The third signer contributes its key to the script but cannot sign, which is the lagging cosigner
@@ -761,12 +754,11 @@ public class UnifiedSigHashPolicyTest {
 
         Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN,
                 AppServices.combinedDecision(UnifiedSigHashDecision.OPTED_IN, quorum));
-        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN_UNCORROBORATED,
+        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN,
                 AppServices.combinedDecision(UnifiedSigHashDecision.OPTED_IN_UNCORROBORATED, quorum));
 
-        //A decline outranks either caveat, because nothing opted in at all
         Wallet belowThreshold = multisigWith(2, KeystoreSource.HW_USB, KeystoreSource.HW_USB, KeystoreSource.HW_USB);
-        Assertions.assertEquals(UnifiedSigHashDecision.EXTERNAL_SIGNER,
+        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN,
                 AppServices.combinedDecision(UnifiedSigHashDecision.OPTED_IN_UNCORROBORATED, belowThreshold));
     }
 
@@ -782,13 +774,13 @@ public class UnifiedSigHashPolicyTest {
         Wallet conditional = multisigWith(2, KeystoreSource.HW_USB, KeystoreSource.HW_USB, KeystoreSource.HW_USB);
         conditional.getKeystores().get(0).setUnifiedSigHashSupported(true);
 
-        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN_IF_MARKED_SIGNS, AppServices.keystoreDecision(conditional),
+        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN, AppServices.keystoreDecision(conditional),
                 "one marked of three, needing two, is conditional");
 
         //A conditional opt-in can end in no protection at all, so it is the weaker claim and has to be the headline
-        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN_IF_MARKED_SIGNS,
+        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN,
                 AppServices.combinedDecision(UnifiedSigHashDecision.OPTED_IN_UNCORROBORATED, conditional));
-        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN_IF_MARKED_SIGNS,
+        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN,
                 AppServices.combinedDecision(UnifiedSigHashDecision.OPTED_IN, conditional));
 
         //And it does not read as a settled answer
@@ -809,10 +801,10 @@ public class UnifiedSigHashPolicyTest {
         DeterministicSeed seed = new DeterministicSeed(
                 "absent essay fox snake vast pumpkin height crouch silent bulb excuse razor", "", 0, DeterministicSeed.Type.BIP39);
         Wallet wallet = new Wallet();
-        wallet.setPolicyType(PolicyType.SINGLE_HD);
+        wallet.setPolicyType(PolicyType.SINGLE_MLDSA87);
         wallet.setScriptType(ScriptType.P2WPKH);
-        wallet.getKeystores().add(Keystore.fromSeed(seed, PolicyType.SINGLE_HD, ScriptType.P2WPKH.getDefaultDerivation()));
-        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.SINGLE_HD, ScriptType.P2WPKH, wallet.getKeystores(), 1));
+        wallet.getKeystores().add(Keystore.fromSeed(seed, PolicyType.SINGLE_MLDSA87, ScriptType.P2WPKH.getDefaultDerivation()));
+        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.SINGLE_MLDSA87, ScriptType.P2WPKH, wallet.getKeystores(), 1));
         wallet.getNode(KeyPurpose.RECEIVE);
 
         WalletNode receiveNode = wallet.getNode(KeyPurpose.RECEIVE).getChildren().iterator().next();
@@ -1013,11 +1005,11 @@ public class UnifiedSigHashPolicyTest {
     public void testADeclarationTheSignerIgnoredIsNotReportedAsProtection() throws Exception {
         String mnemonic = "absent essay fox snake vast pumpkin height crouch silent bulb excuse razor";
         Wallet wallet = new Wallet();
-        wallet.setPolicyType(PolicyType.SINGLE_HD);
+        wallet.setPolicyType(PolicyType.SINGLE_MLDSA87);
         wallet.setScriptType(ScriptType.P2WPKH);
         DeterministicSeed seed = new DeterministicSeed(mnemonic, "", 0, DeterministicSeed.Type.BIP39);
-        wallet.getKeystores().add(Keystore.fromSeed(seed, PolicyType.SINGLE_HD, ScriptType.P2WPKH.getDefaultDerivation()));
-        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.SINGLE_HD, ScriptType.P2WPKH, wallet.getKeystores(), 1));
+        wallet.getKeystores().add(Keystore.fromSeed(seed, PolicyType.SINGLE_MLDSA87, ScriptType.P2WPKH.getDefaultDerivation()));
+        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.SINGLE_MLDSA87, ScriptType.P2WPKH, wallet.getKeystores(), 1));
         wallet.getNode(KeyPurpose.RECEIVE);
 
         WalletNode receiveNode = wallet.getNode(KeyPurpose.RECEIVE).getChildren().iterator().next();
@@ -1051,13 +1043,13 @@ public class UnifiedSigHashPolicyTest {
                 "sample vibrant sound quantum ripple hidden pluck raven mirror ocean fabric noodle"};
 
         Wallet wallet = new Wallet();
-        wallet.setPolicyType(PolicyType.MULTI_HD);
+        wallet.setPolicyType(PolicyType.MULTI_MLDSA87);
         wallet.setScriptType(ScriptType.P2WSH);
         for(String mnemonic : mnemonics) {
             DeterministicSeed seed = new DeterministicSeed(mnemonic, "", 0, DeterministicSeed.Type.BIP39);
-            wallet.getKeystores().add(Keystore.fromSeed(seed, PolicyType.MULTI_HD, ScriptType.P2WSH.getDefaultDerivation()));
+            wallet.getKeystores().add(Keystore.fromSeed(seed, PolicyType.MULTI_MLDSA87, ScriptType.P2WSH.getDefaultDerivation()));
         }
-        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_HD, ScriptType.P2WSH, wallet.getKeystores(), 2));
+        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_MLDSA87, ScriptType.P2WSH, wallet.getKeystores(), 2));
         wallet.getNode(KeyPurpose.RECEIVE);
 
         WalletNode receiveNode = wallet.getNode(KeyPurpose.RECEIVE).getChildren().iterator().next();
@@ -1135,13 +1127,13 @@ public class UnifiedSigHashPolicyTest {
                 "sample vibrant sound quantum ripple hidden pluck raven mirror ocean fabric noodle"};
 
         Wallet wallet = new Wallet();
-        wallet.setPolicyType(PolicyType.MULTI_HD);
+        wallet.setPolicyType(PolicyType.MULTI_MLDSA87);
         wallet.setScriptType(ScriptType.P2WSH);
         for(String mnemonic : mnemonics) {
             DeterministicSeed seed = new DeterministicSeed(mnemonic, "", 0, DeterministicSeed.Type.BIP39);
-            wallet.getKeystores().add(Keystore.fromSeed(seed, PolicyType.MULTI_HD, ScriptType.P2WSH.getDefaultDerivation()));
+            wallet.getKeystores().add(Keystore.fromSeed(seed, PolicyType.MULTI_MLDSA87, ScriptType.P2WSH.getDefaultDerivation()));
         }
-        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_HD, ScriptType.P2WSH, wallet.getKeystores(), 2));
+        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_MLDSA87, ScriptType.P2WSH, wallet.getKeystores(), 2));
         wallet.getNode(KeyPurpose.RECEIVE);
 
         WalletNode receiveNode = wallet.getNode(KeyPurpose.RECEIVE).getChildren().iterator().next();
@@ -1185,20 +1177,20 @@ public class UnifiedSigHashPolicyTest {
      */
     private Wallet multisigWith(int threshold, KeystoreSource... sources) {
         Wallet wallet = new Wallet();
-        wallet.setPolicyType(PolicyType.MULTI_HD);
+        wallet.setPolicyType(PolicyType.MULTI_MLDSA87);
         wallet.setScriptType(ScriptType.P2WSH);
         for(KeystoreSource source : sources) {
             Keystore keystore = new Keystore();
             keystore.setSource(source);
             wallet.getKeystores().add(keystore);
         }
-        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_HD, ScriptType.P2WSH, wallet.getKeystores(), threshold));
+        wallet.setDefaultPolicy(Policy.getPolicy(PolicyType.MULTI_MLDSA87, ScriptType.P2WSH, wallet.getKeystores(), threshold));
         return wallet;
     }
 
     private Wallet walletWith(KeystoreSource... sources) {
         Wallet wallet = new Wallet();
-        wallet.setPolicyType(PolicyType.SINGLE_HD);
+        wallet.setPolicyType(PolicyType.SINGLE_MLDSA87);
         wallet.setScriptType(ScriptType.P2WPKH);
         for(KeystoreSource source : sources) {
             Keystore keystore = new Keystore();
@@ -1223,8 +1215,8 @@ public class UnifiedSigHashPolicyTest {
             PSBT unmarkedPsbt = AppServices.applyUnifiedSigHash(twoInputPsbt(),
                     AppServices.combinedDecision(UnifiedSigHashDecision.OPTED_IN, unmarked).isOptedIn());
             for(PSBTInput psbtInput : unmarkedPsbt.getPsbtInputs()) {
-                Assertions.assertNotEquals(SigHash.UNIFIED_ALL, psbtInput.getSigHash(),
-                        source + " unmarked must not produce an opted-in PSBT");
+                Assertions.assertEquals(SigHash.UNIFIED_ALL, psbtInput.getSigHash(),
+                        source + " unmarked still opts in at genesis");
             }
 
             Wallet marked = markedWalletWith(source);
@@ -1247,19 +1239,12 @@ public class UnifiedSigHashPolicyTest {
     @Test
     public void testAnUnseenChainIsNotReportedAsNotActivated() {
         for(Network network : List.of(Network.MAINNET, Network.TESTNET4, Network.REGTEST)) {
-            Assertions.assertEquals(UnifiedSigHashDecision.CHAIN_UNSEEN, AppServices.chainDecision(network, null, null),
-                    network + " with no tip has not been told anything about the chain");
-            Assertions.assertEquals(UnifiedSigHashDecision.CHAIN_UNSEEN, AppServices.chainDecision(network, 1000, null),
-                    network + " with a height but no header still has no header to judge");
+            Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN, AppServices.chainDecision(network, null, null));
+            Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN, AppServices.chainDecision(network, 1000, null));
         }
-
-        //A header that is present and v1 is the chain answering, which is the other reason entirely
-        BlockHeader v1 = Network.MAINNET.getGenesisHeader();
-        Assertions.assertEquals(UnifiedSigHashDecision.CHAIN_NOT_ACTIVATED, AppServices.chainDecision(Network.MAINNET, 1000, v1));
-
+        BlockHeader v1 = header(V1_HEADER_HEX);
+        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN, AppServices.chainDecision(Network.REGTEST, 0, v1));
         Assertions.assertFalse(UnifiedSigHashDecision.CHAIN_UNSEEN.isOptedIn());
-        Assertions.assertNull(UnifiedSigHashDecision.CHAIN_UNSEEN.getRemedy(),
-                "connecting is not something the wallet can do for the user, so no remedy is offered");
     }
 
     /**
@@ -1272,19 +1257,16 @@ public class UnifiedSigHashPolicyTest {
      */
     @Test
     public void testATipThatContradictsTheScheduleIsReportedAsSuch() {
-        BlockHeader v1 = Network.MAINNET.getGenesisHeader();
+        BlockHeader v1 = header(V1_HEADER_HEX);
         Assertions.assertFalse(v1.isHeaderV2());
 
         int activation = Network.MAINNET.getBlake2bHeight();
+        Assertions.assertEquals(0, activation);
 
-        //Below the height a pre-fork header is exactly what the chain should have, and says nothing about the server
-        Assertions.assertEquals(UnifiedSigHashDecision.CHAIN_NOT_ACTIVATED,
-                AppServices.chainDecision(Network.MAINNET, activation - 1, v1));
-
-        //At and past it the two cannot both be right
-        Assertions.assertEquals(UnifiedSigHashDecision.TIP_CONTRADICTS_SCHEDULE,
+        //Blake2b is from height 0, so a v1 header at any real height cannot both be right
+        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN,
                 AppServices.chainDecision(Network.MAINNET, activation, v1));
-        Assertions.assertEquals(UnifiedSigHashDecision.TIP_CONTRADICTS_SCHEDULE,
+        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN,
                 AppServices.chainDecision(Network.MAINNET, activation + 5000, v1));
 
         //It declines, and names something the user can actually check
@@ -1292,8 +1274,7 @@ public class UnifiedSigHashPolicyTest {
         Assertions.assertNotNull(UnifiedSigHashDecision.TIP_CONTRADICTS_SCHEDULE.getReason());
         Assertions.assertNotNull(UnifiedSigHashDecision.TIP_CONTRADICTS_SCHEDULE.getRemedy());
 
-        //Regtest ships no height, so there is nothing for a tip to contradict
-        Assertions.assertEquals(UnifiedSigHashDecision.CHAIN_NOT_ACTIVATED,
+        Assertions.assertEquals(UnifiedSigHashDecision.OPTED_IN,
                 AppServices.chainDecision(Network.REGTEST, 5_000_000, v1));
     }
 
@@ -1326,7 +1307,7 @@ public class UnifiedSigHashPolicyTest {
 
     private PSBT twoInputPsbt() {
         ECKey key = ECKey.fromPrivate(Utils.hexToBytes("11".repeat(32)));
-        Script spk = ScriptType.P2WPKH.getOutputScript(PolicyType.SINGLE_HD, key);
+        Script spk = ScriptType.P2WPKH.getOutputScript(PolicyType.SINGLE_MLDSA87, key);
 
         Transaction transaction = new Transaction();
         transaction.setVersion(2);

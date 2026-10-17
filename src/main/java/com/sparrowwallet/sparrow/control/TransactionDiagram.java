@@ -1,6 +1,6 @@
 package com.sparrowwallet.sparrow.control;
 
-import com.sparrowwallet.drongo.BitcoinUnit;
+import com.sparrowwallet.drongo.CoinUnit;
 import com.sparrowwallet.drongo.KeyPurpose;
 import com.sparrowwallet.drongo.OsType;
 import com.sparrowwallet.drongo.address.Address;
@@ -12,7 +12,7 @@ import com.sparrowwallet.drongo.protocol.Sha256Hash;
 import com.sparrowwallet.drongo.protocol.TransactionOutput;
 import com.sparrowwallet.drongo.silentpayments.SilentPayment;
 import com.sparrowwallet.drongo.silentpayments.SilentPaymentAddress;
-import com.sparrowwallet.drongo.uri.BitcoinURI;
+import com.sparrowwallet.drongo.uri.CoinURI;
 import com.sparrowwallet.drongo.wallet.*;
 import com.sparrowwallet.sparrow.*;
 import com.sparrowwallet.sparrow.event.ExcludeUtxoEvent;
@@ -77,7 +77,7 @@ public class TransactionDiagram extends GridPane {
     private final BooleanProperty finalProperty = new SimpleBooleanProperty(false);
     private final ObjectProperty<TransactionDiagramLabel> labelProperty = new SimpleObjectProperty<>(null);
     private final ObjectProperty<OptimizationStrategy> optimizationStrategyProperty = new SimpleObjectProperty<>(OptimizationStrategy.EFFICIENCY);
-    private final ObjectProperty<BitcoinURI> payjoinURIProperty = new SimpleObjectProperty<>(null);
+    private final ObjectProperty<CoinURI> payjoinURIProperty = new SimpleObjectProperty<>(null);
     private boolean expanded;
     private TransactionDiagram expandedDiagram;
     private ContextMenu contextMenu;
@@ -344,11 +344,11 @@ public class TransactionDiagram extends GridPane {
         }
     }
 
-    public BitcoinURI getPayjoinURI() {
+    public CoinURI getPayjoinURI() {
         return payjoinURIProperty.get();
     }
 
-    public void setPayjoinURI(BitcoinURI payjoinURI) {
+    public void setPayjoinURI(CoinURI payjoinURI) {
         this.payjoinURIProperty.set(payjoinURI);
     }
 
@@ -574,16 +574,16 @@ public class TransactionDiagram extends GridPane {
         }
 
         UnitFormat format = Config.get().getUnitFormat() == null ? UnitFormat.DOT : Config.get().getUnitFormat();
-        BitcoinUnit unit = Config.get().getBitcoinUnit();
-        if(unit == null || unit.equals(BitcoinUnit.AUTO)) {
-            unit = (amount >= BitcoinUnit.getAutoThreshold() ? BitcoinUnit.BTC : BitcoinUnit.SATOSHIS);
+        CoinUnit unit = Config.get().getCoinUnit();
+        if(unit == null || unit.equals(CoinUnit.AUTO)) {
+            unit = (amount >= CoinUnit.getAutoThreshold() ? CoinUnit.GFCN : CoinUnit.TOKENS);
         }
 
-        if(unit.equals(BitcoinUnit.BTC)) {
-            return format.formatBtcValue(amount) + " BTC";
+        if(unit.equals(CoinUnit.GFCN)) {
+            return format.formatCoinValue(amount) + " GFCN";
         }
 
-        return format.formatSatsValue(amount) + " sats";
+        return format.formatTokensValue(amount) + " tokens";
     }
 
     private Pane getInputsLines(List<Map<BlockTransactionHashIndex, WalletNode>> displayedUtxoSets) {
@@ -946,7 +946,7 @@ public class TransactionDiagram extends GridPane {
         boolean isFinalized = walletTx.getTransaction().hasScriptSigs() || walletTx.getTransaction().hasWitnesses();
         Tooltip tooltip = new Tooltip(walletTx.getTransaction().getLength() + " bytes\n"
                 + String.format("%.2f", walletTx.getTransaction().getVirtualSize()) + " vBytes"
-                + (walletTx.getFee() < 0 ? "" : "\n" + String.format("%.2f", walletTx.getFee() / walletTx.getTransaction().getVirtualSize()) + " sats/vB" + (isFinalized ? "" : " (non-final)")));
+                + (walletTx.getFee() < 0 ? "" : "\n" + String.format("%.2f", walletTx.getFee() / walletTx.getTransaction().getVirtualSize()) + " token/vB" + (isFinalized ? "" : " (non-final)")));
         tooltip.setShowDelay(new Duration(TOOLTIP_SHOW_DELAY));
         tooltip.setShowDuration(Duration.INDEFINITE);
         tooltip.getStyleClass().add("transaction-tooltip");
@@ -1265,19 +1265,19 @@ public class TransactionDiagram extends GridPane {
                 getItems().add(showAddress);
             }
 
-            MenuItem copySatsValue = new MenuItem("Copy Value in sats");
+            MenuItem copySatsValue = new MenuItem("Copy Value in tokens");
             copySatsValue.setOnAction(event -> {
                 hide();
                 ClipboardContent content = new ClipboardContent();
                 content.putString(Long.toString(value));
                 Clipboard.getSystemClipboard().setContent(content);
             });
-            MenuItem copyBtcValue = new MenuItem("Copy Value in BTC");
+            MenuItem copyBtcValue = new MenuItem("Copy Value in GFCN");
             copyBtcValue.setOnAction(event -> {
                 hide();
                 ClipboardContent content = new ClipboardContent();
                 UnitFormat format = Config.get().getUnitFormat() == null ? UnitFormat.DOT : Config.get().getUnitFormat();
-                content.putString(format.formatBtcValue(value));
+                content.putString(format.formatCoinValue(value));
                 Clipboard.getSystemClipboard().setContent(content);
             });
             getItems().addAll(copySatsValue, copyBtcValue);

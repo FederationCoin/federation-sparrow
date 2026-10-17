@@ -8,6 +8,7 @@ import com.sparrowwallet.drongo.crypto.*;
 import com.sparrowwallet.drongo.dns.DnsPayment;
 import com.sparrowwallet.drongo.dns.DnsPaymentCache;
 import com.sparrowwallet.drongo.policy.PolicyType;
+import com.sparrowwallet.drongo.policy.PolicyVisitor;
 import com.sparrowwallet.drongo.protocol.*;
 import com.sparrowwallet.drongo.psbt.*;
 import com.sparrowwallet.drongo.silentpayments.SilentPaymentAddress;
@@ -141,7 +142,7 @@ public class AppController implements Initializable {
     private MenuItem openTransactionIdItem;
 
     @FXML
-    private ToggleGroup bitcoinUnit;
+    private ToggleGroup coinUnit;
 
     @FXML
     private ToggleGroup unitFormat;
@@ -366,16 +367,16 @@ public class AppController implements Initializable {
 
         registerShortcuts();
 
-        BitcoinUnit unit = Config.get().getBitcoinUnit();
+        CoinUnit unit = Config.get().getCoinUnit();
         if(unit == null) {
-            unit = BitcoinUnit.AUTO;
-            Config.get().setBitcoinUnit(unit);
+            unit = CoinUnit.AUTO;
+            Config.get().setCoinUnit(unit);
         }
-        final BitcoinUnit selectedUnit = unit;
-        Optional<Toggle> selectedUnitToggle = bitcoinUnit.getToggles().stream().filter(toggle -> selectedUnit.equals(toggle.getUserData())).findFirst();
-        selectedUnitToggle.ifPresent(toggle -> bitcoinUnit.selectToggle(toggle));
-        Optional<Toggle> otherUnitToggle = bitcoinUnit.getToggles().stream().filter(toggle ->
-                (List.of(BitcoinUnit.AUTO, BitcoinUnit.SATOSHIS).contains(selectedUnit) && BitcoinUnit.BTC.equals(toggle.getUserData()) || (selectedUnit == BitcoinUnit.BTC && BitcoinUnit.SATOSHIS.equals(toggle.getUserData())))).findFirst();
+        final CoinUnit selectedUnit = unit;
+        Optional<Toggle> selectedUnitToggle = coinUnit.getToggles().stream().filter(toggle -> selectedUnit.equals(toggle.getUserData())).findFirst();
+        selectedUnitToggle.ifPresent(toggle -> coinUnit.selectToggle(toggle));
+        Optional<Toggle> otherUnitToggle = coinUnit.getToggles().stream().filter(toggle ->
+                (List.of(CoinUnit.AUTO, CoinUnit.TOKENS).contains(selectedUnit) && CoinUnit.GFCN.equals(toggle.getUserData()) || (selectedUnit == CoinUnit.GFCN && CoinUnit.TOKENS.equals(toggle.getUserData())))).findFirst();
         otherUnitToggle.ifPresent(toggle -> ((RadioMenuItem)toggle).setAccelerator(new KeyCodeCombination(KeyCode.B, KeyCombination.SHORTCUT_DOWN)));
 
         UnitFormat format = Config.get().getUnitFormat();
@@ -445,7 +446,9 @@ public class AppController implements Initializable {
         searchWallet.disableProperty().bind(exportWallet.disableProperty());
         refreshWallet.disableProperty().bind(Bindings.or(exportWallet.disableProperty(), Bindings.or(serverToggle.disableProperty(), AppServices.onlineProperty().not())));
         sendToMany.disableProperty().bind(exportWallet.disableProperty());
+        sweepPrivateKey.setVisible(PrivateKeySweepDialog.supportedOnThisChain());
         sweepPrivateKey.disableProperty().bind(Bindings.or(serverToggle.disableProperty(), AppServices.onlineProperty().not()));
+        showPayNym.setVisible(com.sparrowwallet.sparrow.paynym.PayNym.supportedOnThisChain());
         showPayNym.setDisable(true);
 
         configureSwitchServer();
@@ -504,19 +507,18 @@ public class AppController implements Initializable {
     }
 
     private void setNetworkLabel() {
-        if(Network.get() != Network.MAINNET) {
-            Platform.runLater(() -> {
-                StackPane tabBackground = (StackPane)tabs.lookup(".tab-header-background");
-                if(tabBackground != null) {
-                    HBox hBox = new HBox();
-                    Label label = new Label(Network.get().toDisplayString());
-                    label.setPadding(new Insets(0, 10, 0, 0));
-                    hBox.getChildren().add(label);
-                    hBox.setAlignment(Pos.CENTER_RIGHT);
-                    tabBackground.getChildren().add(hBox);
-                }
-            });
-        }
+        Platform.runLater(() -> {
+            StackPane tabBackground = (StackPane)tabs.lookup(".tab-header-background");
+            if(tabBackground != null) {
+                HBox hBox = new HBox();
+                String text = NetworkBanner.text(Network.get());
+                Label label = new Label(text);
+                label.setPadding(new Insets(0, 10, 0, 0));
+                hBox.getChildren().add(label);
+                hBox.setAlignment(Pos.CENTER_RIGHT);
+                tabBackground.getChildren().add(hBox);
+            }
+        });
     }
 
     public void showIntroduction(ActionEvent event) {
@@ -529,7 +531,7 @@ public class AppController implements Initializable {
     }
 
     public void showDocumentation(ActionEvent event) {
-        AppServices.get().getApplication().getHostServices().showDocument("https://shrikewallet.com/docs/");
+        AppServices.get().getApplication().getHostServices().showDocument("https://github.com/FederationCoin/federation-sparrow");
     }
 
     public void showLogFile(ActionEvent event) throws IOException {
@@ -542,7 +544,7 @@ public class AppController implements Initializable {
     }
 
     public void openSupport(ActionEvent event) {
-        AppServices.get().getApplication().getHostServices().showDocument("https://github.com/privkeyio/shrike/issues");
+        AppServices.get().getApplication().getHostServices().showDocument("https://github.com/FederationCoin/federation-sparrow/issues");
     }
 
     public void submitBugReport(ActionEvent event) {
@@ -552,7 +554,7 @@ public class AppController implements Initializable {
 
         if(optResponse.isPresent()) {
             if(optResponse.get() == bugType) {
-                AppServices.get().getApplication().getHostServices().showDocument("https://github.com/privkeyio/shrike/issues/new");
+                AppServices.get().getApplication().getHostServices().showDocument("https://github.com/FederationCoin/federation-sparrow/issues/new");
             } else {
                 openSupport(event);
             }
@@ -1027,11 +1029,11 @@ public class AppController implements Initializable {
         EventManager.get().post(new TransactionTabChangedEvent(tabs.getSelectionModel().getSelectedItem(), item.isSelected()));
     }
 
-    public void setBitcoinUnit(ActionEvent event) {
+    public void setCoinUnit(ActionEvent event) {
         MenuItem item = (MenuItem)event.getSource();
-        BitcoinUnit unit = (BitcoinUnit)item.getUserData();
-        Config.get().setBitcoinUnit(unit);
-        EventManager.get().post(new BitcoinUnitChangedEvent(unit));
+        CoinUnit unit = (CoinUnit)item.getUserData();
+        Config.get().setCoinUnit(unit);
+        EventManager.get().post(new CoinUnitChangedEvent(unit));
     }
 
     public void setUnitFormat(ActionEvent event) {
@@ -1128,7 +1130,7 @@ public class AppController implements Initializable {
     private String getServerToggleTooltipText(Integer currentBlockHeight) {
         if(AppServices.isConnected()) {
             return "Connected to " + Config.get().getServerDisplayName() + (currentBlockHeight != null ? " at height " + currentBlockHeight : "") +
-                    (Config.get().getServerType() == ServerType.PUBLIC_ELECTRUM_SERVER ? "\nWarning! You are connected to a public server and sharing your transaction data with it.\nFor better privacy, consider using your own Bitcoin Knots node or private Electrum server." : "");
+                    (Config.get().getServerType() == ServerType.PUBLIC_ELECTRUM_SERVER ? "\nWarning! You are connected to a public server and sharing your transaction data with it.\nFor better privacy, consider using your own federationcoind node or private Electrum server." : "");
         } else if(AppServices.isConnecting()) {
             return "Connecting...";
         }
@@ -1144,7 +1146,7 @@ public class AppController implements Initializable {
             WalletNameDialog.NameAndBirthDate nameAndBirthDate = optNameAndBirthDate.get();
             File walletFile = Storage.getWalletFile(nameAndBirthDate.getName());
             Storage storage = new Storage(walletFile);
-            Wallet wallet = new Wallet(nameAndBirthDate.getName(), PolicyType.SINGLE_HD, ScriptType.P2WPKH, nameAndBirthDate.getBirthDate());
+            Wallet wallet = new Wallet(nameAndBirthDate.getName(), PolicyType.SINGLE_MLDSA87, ScriptType.MLDSA87_SINGLE, nameAndBirthDate.getBirthDate());
             addWalletTabOrWindow(storage, wallet, false);
         }
     }
@@ -1296,7 +1298,7 @@ public class AppController implements Initializable {
                 List<ExtendedKey> xpubs = wallet.getKeystores().stream().map(Keystore::getExtendedPublicKey).filter(Objects::nonNull).collect(Collectors.toList());
                 Optional<WalletForm> optNewWalletForm = walletTabData.stream()
                         .map(WalletTabData::getWalletForm)
-                        .filter(wf -> wf.getSettingsWalletForm() != null && wf.getSettingsWalletForm().getWallet().getPolicyType() == PolicyType.MULTI_HD &&
+                        .filter(wf -> wf.getSettingsWalletForm() != null && wf.getSettingsWalletForm().getWallet().getPolicyType().isHomogeneousMultisig() &&
                                 wf.getSettingsWalletForm().getWallet().getScriptType() == wallet.getScriptType() && !wf.getSettingsWalletForm().getWallet().isValid() &&
                                 wf.getSettingsWalletForm().getWallet().getKeystores().stream().map(Keystore::getExtendedPublicKey).anyMatch(xpubs::contains)).findFirst();
                 if(optNewWalletForm.isPresent()) {
@@ -1320,6 +1322,9 @@ public class AppController implements Initializable {
                 new KeystoneSinglesig(), new KeystoneMultisig(),
                 new CaravanMultisig());
         for(WalletImport importer : walletImporters) {
+            if(!importer.supports()) {
+                continue;
+            }
             if(importer.isDeprecated() && !Config.get().isShowDeprecatedImportExport()) {
                 continue;
             }
@@ -1367,7 +1372,7 @@ public class AppController implements Initializable {
             WalletNameDialog.NameAndBirthDate nameAndBirthDate = optNameAndBirthDate.get();
             wallet.setName(nameAndBirthDate.getName());
             wallet.setBirthDate(nameAndBirthDate.getBirthDate());
-            if(wallet.getPolicyType() == PolicyType.SINGLE_SP && wallet.getBirthDate() == null) {
+            if(wallet.getPolicyType().isSilentPayment() && wallet.getBirthDate() == null) {
                 wallet.setBirthDate(new Date());
             }
         } else {
@@ -1507,8 +1512,42 @@ public class AppController implements Initializable {
         WalletForm selectedWalletForm = getSelectedWalletForm();
         if(selectedWalletForm != null) {
             Wallet wallet = selectedWalletForm.getWallet();
-            if(wallet.getPolicyType() == PolicyType.SINGLE_HD || wallet.getPolicyType() == PolicyType.SINGLE_SP) {
-                //Can sign and verify
+            if(wallet.getPolicyType() != null && wallet.getPolicyType().accept(new PolicyVisitor<Boolean>() {
+                @Override
+                public Boolean visitSingleMldsa87() {
+                    return scriptOffered(wallet);
+                }
+
+                @Override
+                public Boolean visitSingleMldsa44() {
+                    return scriptOffered(wallet);
+                }
+
+                @Override
+                public Boolean visitSingleSegwit() {
+                    return scriptOffered(wallet);
+                }
+
+                @Override
+                public Boolean visitMultiMldsa87() {
+                    return scriptOffered(wallet);
+                }
+
+                @Override
+                public Boolean visitMultiMldsa44() {
+                    return scriptOffered(wallet);
+                }
+
+                @Override
+                public Boolean visitMultiSegwit() {
+                    return scriptOffered(wallet);
+                }
+
+                @Override
+                public Boolean visitSingleSp() {
+                    return false;
+                }
+            })) {
                 messageSignDialog = new MessageSignDialog(wallet);
             }
         }
@@ -1520,6 +1559,10 @@ public class AppController implements Initializable {
 
         messageSignDialog.initOwner(rootStack.getScene().getWindow());
         messageSignDialog.showAndWait();
+    }
+
+    private static boolean scriptOffered(Wallet wallet) {
+        return wallet.getScriptType() != null && wallet.getScriptType().isOfferedForNewWallets();
     }
 
     public void sendToMany(ActionEvent event) {
@@ -1537,12 +1580,12 @@ public class AppController implements Initializable {
         WalletForm selectedWalletForm = getSelectedWalletForm();
         if(selectedWalletForm != null) {
             Wallet wallet = selectedWalletForm.getWallet();
-            BitcoinUnit bitcoinUnit = Config.get().getBitcoinUnit();
-            if(bitcoinUnit == BitcoinUnit.AUTO) {
-                bitcoinUnit = wallet.getAutoUnit();
+            CoinUnit coinUnit = Config.get().getCoinUnit();
+            if(coinUnit == CoinUnit.AUTO) {
+                coinUnit = wallet.getAutoUnit();
             }
 
-            sendToManyDialog = new SendToManyDialog(bitcoinUnit, Config.get().getUnitFormat(), initialPayments);
+            sendToManyDialog = new SendToManyDialog(coinUnit, Config.get().getUnitFormat(), initialPayments);
             sendToManyDialog.initModality(Modality.NONE);
             Optional<List<Payment>> optPayments = sendToManyDialog.showAndWait();
             sendToManyDialog = null;
@@ -1556,6 +1599,9 @@ public class AppController implements Initializable {
     }
 
     public void sweepPrivateKey(ActionEvent event) {
+        if(!PrivateKeySweepDialog.supportedOnThisChain()) {
+            return;
+        }
         Wallet wallet = null;
         WalletForm selectedWalletForm = getSelectedWalletForm();
         if(selectedWalletForm != null && selectedWalletForm.getWallet().isValid()) {
@@ -1569,6 +1615,9 @@ public class AppController implements Initializable {
     }
 
     public void showPayNym(ActionEvent event) {
+        if(!com.sparrowwallet.sparrow.paynym.PayNym.supportedOnThisChain()) {
+            return;
+        }
         WalletForm selectedWalletForm = getSelectedWalletForm();
         if(selectedWalletForm != null) {
             PayNymDialog payNymDialog = new PayNymDialog(selectedWalletForm.getWalletId());
@@ -2024,7 +2073,7 @@ public class AppController implements Initializable {
                 if(address != null && DnsPaymentCache.getDnsPayment(address) == null) {
                     try {
                         Optional<DnsPayment> optDnsPayment = psbtOutput.getDnsPayment();
-                        if(optDnsPayment.isPresent() && address.equals(optDnsPayment.get().bitcoinURI().getAddress())) {
+                        if(optDnsPayment.isPresent() && address.equals(optDnsPayment.get().coinURI().getAddress())) {
                             DnsPaymentCache.putDnsPayment(address, optDnsPayment.get());
                         }
                     } catch(Exception e) {
@@ -2040,7 +2089,7 @@ public class AppController implements Initializable {
                 if(silentPaymentAddress != null && DnsPaymentCache.getDnsPayment(silentPaymentAddress) == null) {
                     try {
                         Optional<DnsPayment> optDnsPayment = psbtOutput.getDnsPayment();
-                        if(optDnsPayment.isPresent() && silentPaymentAddress.equals(optDnsPayment.get().bitcoinURI().getSilentPaymentAddress())) {
+                        if(optDnsPayment.isPresent() && silentPaymentAddress.equals(optDnsPayment.get().coinURI().getSilentPaymentAddress())) {
                             DnsPaymentCache.putDnsPayment(silentPaymentAddress, optDnsPayment.get());
                         }
                     } catch(Exception e) {
@@ -2261,11 +2310,11 @@ public class AppController implements Initializable {
     private boolean confirmUnknownScriptOutputs(List<TransactionOutput> unknownScriptOutputs) {
         long totalAmount = unknownScriptOutputs.stream().mapToLong(TransactionOutput::getValue).sum();
         UnitFormat format = Config.get().getUnitFormat() == null ? UnitFormat.DOT : Config.get().getUnitFormat();
-        BitcoinUnit unit = Config.get().getBitcoinUnit();
-        if(unit == null || unit.equals(BitcoinUnit.AUTO)) {
-            unit = totalAmount >= BitcoinUnit.getAutoThreshold() ? BitcoinUnit.BTC : BitcoinUnit.SATOSHIS;
+        CoinUnit unit = Config.get().getCoinUnit();
+        if(unit == null || unit.equals(CoinUnit.AUTO)) {
+            unit = totalAmount >= CoinUnit.getAutoThreshold() ? CoinUnit.GFCN : CoinUnit.TOKENS;
         }
-        String amount = unit.equals(BitcoinUnit.BTC) ? format.formatBtcValue(totalAmount) + " BTC" : format.formatSatsValue(totalAmount) + " sats";
+        String amount = unit.equals(CoinUnit.GFCN) ? format.formatCoinValue(totalAmount) + " GFCN" : format.formatTokensValue(totalAmount) + " tokens";
         String outputDesc = unknownScriptOutputs.size() == 1 ? "an output" : unknownScriptOutputs.size() + " outputs";
         Optional<ButtonType> result = AppServices.showWarningDialog("Unknown Script Type",
                 "This transaction contains " + outputDesc + " of a non-standard or unrecognised script type, totalling " + amount + ".\n\n" +
@@ -2779,7 +2828,10 @@ public class AppController implements Initializable {
                 refreshWallet.setText(walletTabData.getWallet() == null || walletTabData.getWalletForm().getMasterWallet().getChildWallets().stream().allMatch(Wallet::isNested) ? "Refresh Wallet" : "Refresh Wallet Account");
                 showLoadingLog.setDisable(false);
                 showTxHex.setDisable(true);
-                showPayNym.setDisable(exportWallet.isDisable() || !walletTabData.getWallet().hasPaymentCode());
+                showPayNym.setDisable(!com.sparrowwallet.sparrow.paynym.PayNym.supportedOnThisChain()
+                        || exportWallet.isDisable()
+                        || walletTabData.getWallet() == null
+                        || !walletTabData.getWallet().hasPaymentCode());
             }
         }
     }
@@ -2804,7 +2856,9 @@ public class AppController implements Initializable {
         if(selectedWalletForm != null) {
             if(selectedWalletForm.getWalletId().equals(event.getWalletId())) {
                 exportWallet.setDisable(!event.getWallet().isValid() || selectedWalletForm.isLocked());
-                showPayNym.setDisable(exportWallet.isDisable() || !event.getWallet().hasPaymentCode());
+                showPayNym.setDisable(!com.sparrowwallet.sparrow.paynym.PayNym.supportedOnThisChain()
+                        || exportWallet.isDisable()
+                        || !event.getWallet().hasPaymentCode());
             }
         }
 
@@ -3174,16 +3228,16 @@ public class AppController implements Initializable {
     @Subscribe
     public void cormorantPruneStatus(CormorantPruneStatusEvent event) {
         if(event.legacyWalletExists()) {
-            Optional<ButtonType> optButtonType = AppServices.showErrorDialog("Error importing Bitcoin Knots descriptor wallet",
+            Optional<ButtonType> optButtonType = AppServices.showErrorDialog("Error importing federationcoind descriptor wallet",
                     "The connected node is pruned at " + event.getPruneDateAsString() + ", but the wallet birthday for " + event.getWallet().getFullDisplayName() + " is set to " + event.getScanDateAsString() + ".\n\n" +
-                            "Do you want to try using the existing legacy Bitcoin Knots wallet?", ButtonType.YES, ButtonType.NO);
+                            "Do you want to try using the existing legacy federationcoind wallet?", ButtonType.YES, ButtonType.NO);
             if(optButtonType.isPresent() && optButtonType.get() == ButtonType.YES) {
                 Config.get().setUseLegacyCoreWallet(true);
                 onlineProperty().set(false);
                 Platform.runLater(() -> onlineProperty().set(true));
             }
         } else {
-            AppServices.showErrorDialog("Error importing Bitcoin Knots descriptor wallet",
+            AppServices.showErrorDialog("Error importing federationcoind descriptor wallet",
                     "The connected node is pruned at " + event.getPruneDateAsString() + ", but the wallet birthday for " + event.getWallet().getFullDisplayName() + " is set to " + event.getScanDateAsString() + ".");
         }
     }
@@ -3191,8 +3245,8 @@ public class AppController implements Initializable {
     @Subscribe
     public void cormorantImportStatus(CormorantImportStatusEvent event) {
         String walletNames = event.getWallets().stream().map(Wallet::getFullDisplayName).collect(Collectors.joining(", "));
-        AppServices.showErrorDialog("Error importing Bitcoin Knots descriptors",
-                "Bitcoin Knots did not import " + (walletNames.isEmpty() ? "one or more descriptors" : "the descriptors for " + walletNames) + ":\n\n" + event.getErrorMessage() + "\n\n" +
+        AppServices.showErrorDialog("Error importing federationcoind descriptors",
+                "federationcoind did not import " + (walletNames.isEmpty() ? "one or more descriptors" : "the descriptors for " + walletNames) + ":\n\n" + event.getErrorMessage() + "\n\n" +
                         "Transactions and balances may be incomplete until the import succeeds.");
     }
 
@@ -3323,12 +3377,12 @@ public class AppController implements Initializable {
     }
 
     @Subscribe
-    public void bitcoinUnitChanged(BitcoinUnitChangedEvent event) {
-        Optional<Toggle> selectedToggle = bitcoinUnit.getToggles().stream().filter(toggle -> event.getBitcoinUnit().equals(toggle.getUserData())).findFirst();
-        selectedToggle.ifPresent(toggle -> bitcoinUnit.selectToggle(toggle));
-        bitcoinUnit.getToggles().forEach(toggle -> {
+    public void coinUnitChanged(CoinUnitChangedEvent event) {
+        Optional<Toggle> selectedToggle = coinUnit.getToggles().stream().filter(toggle -> event.getCoinUnit().equals(toggle.getUserData())).findFirst();
+        selectedToggle.ifPresent(toggle -> coinUnit.selectToggle(toggle));
+        coinUnit.getToggles().forEach(toggle -> {
             RadioMenuItem menuItem = (RadioMenuItem)toggle;
-            if(List.of(BitcoinUnit.AUTO, BitcoinUnit.SATOSHIS).contains(event.getBitcoinUnit()) && BitcoinUnit.BTC.equals(toggle.getUserData()) || (event.getBitcoinUnit() == BitcoinUnit.BTC && BitcoinUnit.SATOSHIS.equals(toggle.getUserData()))) {
+            if(List.of(CoinUnit.AUTO, CoinUnit.TOKENS).contains(event.getCoinUnit()) && CoinUnit.GFCN.equals(toggle.getUserData()) || (event.getCoinUnit() == CoinUnit.GFCN && CoinUnit.TOKENS.equals(toggle.getUserData()))) {
                 menuItem.setAccelerator(new KeyCodeCombination(KeyCode.B, KeyCombination.SHORTCUT_DOWN));
             } else {
                 menuItem.setAccelerator(null);

@@ -159,7 +159,7 @@ public class LnurlAuth {
     }
 
     private ECKey deriveLinkingKey(Wallet wallet) {
-        if(wallet.getPolicyType() != PolicyType.SINGLE_HD) {
+        if(wallet.getPolicyType() != PolicyType.SINGLE_MLDSA87) {
             throw new IllegalArgumentException("Only singlesig HD wallets can authenticate.");
         }
 

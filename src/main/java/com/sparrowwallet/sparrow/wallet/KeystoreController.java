@@ -111,12 +111,6 @@ public class KeystoreController extends WalletFormController implements Initiali
     @FXML
     private Button switchXpubHeader;
 
-    @FXML
-    private Field unifiedSigHashField;
-
-    @FXML
-    private CheckBox unifiedSigHash;
-
     private final ValidationSupport validationSupport = new ValidationSupport();
 
     private final ChangeListener<String> labelChangeListener = (observable, oldValue, newValue) -> {
@@ -124,19 +118,6 @@ public class KeystoreController extends WalletFormController implements Initiali
         EventManager.get().post(new SettingsChangedEvent(walletForm.getWallet(), SettingsChangedEvent.Type.KEYSTORE_LABEL));
     };
 
-    //Set while the control is being brought into line with the keystore, so that refreshing it is not taken for the
-    //user changing it. updateType runs before the listener is attached and again after an import, so a remove and
-    //re-add around the refresh would attach a second listener on the first pass and fire twice on every later click
-    private boolean refreshingUnifiedSigHash;
-
-    private final ChangeListener<Boolean> unifiedSigHashChangeListener = (observable, oldValue, newValue) -> {
-        if(refreshingUnifiedSigHash) {
-            return;
-        }
-
-        keystore.setUnifiedSigHashSupported(newValue);
-        EventManager.get().post(new SettingsChangedEvent(walletForm.getWallet(), SettingsChangedEvent.Type.KEYSTORE_UNIFIED_SIGHASH));
-    };
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -171,7 +152,7 @@ public class KeystoreController extends WalletFormController implements Initiali
         cardServiceButtons.managedProperty().bind(cardServiceButtons.visibleProperty());
         scanXpubQR.managedProperty().bind(scanXpubQR.visibleProperty());
         displayXpubQR.managedProperty().bind(displayXpubQR.visibleProperty());
-        displayXpubQR.visibleProperty().bind(scanXpubQR.visibleProperty().not());
+        displayXpubQR.visibleProperty().bind(xpubField.visibleProperty().and(scanXpubQR.visibleProperty().not()));
 
         updateType(keystore.isValid() && !getWalletForm().getWallet().isValid());
 
@@ -202,9 +183,6 @@ public class KeystoreController extends WalletFormController implements Initiali
         } else {
             keystore.setKeyDerivation(new KeyDerivation("",""));
         }
-
-        unifiedSigHashField.managedProperty().bind(unifiedSigHashField.visibleProperty());
-        unifiedSigHash.selectedProperty().addListener(unifiedSigHashChangeListener);
 
         label.textProperty().addListener(labelChangeListener);
         fingerprint.textProperty().addListener((observable, oldValue, newValue) -> {
@@ -384,7 +362,7 @@ public class KeystoreController extends WalletFormController implements Initiali
     private void updateType(boolean showExport) {
         type.setText(getTypeLabel(keystore));
         type.setGraphic(getTypeIcon(keystore));
-        exportButton.setVisible(showExport && getWalletForm().getWallet().getPolicyType() == PolicyType.MULTI_HD);
+        exportButton.setVisible(showExport && getWalletForm().getWallet().getPolicyType().isHomogeneousMultisig());
         viewSeedButton.setVisible(keystore.getSource() == KeystoreSource.SW_SEED && keystore.hasSeed());
         viewKeyButton.setVisible(keystore.getSource() == KeystoreSource.SW_SEED && keystore.hasMasterPrivateExtendedKey());
         cardServiceButtons.setVisible(keystore.getWalletModel().isCard());
@@ -400,24 +378,11 @@ public class KeystoreController extends WalletFormController implements Initiali
         scanXpubQR.setVisible(editable);
         setEditable(spScan, editable);
 
-        xpubField.setVisible(getWalletForm().getWallet().getPolicyType() != PolicyType.SINGLE_SP);
+        boolean showXpub = !getWalletForm().getWallet().getPolicyType().isSilentPayment()
+                && (getWalletForm().getWallet().getScriptType() == null || !getWalletForm().getWallet().getScriptType().isDilithium());
+        xpubField.setVisible(showXpub);
+        scanXpubQR.setVisible(editable && showXpub);
 
-        //Shown wherever the signing happens somewhere this wallet cannot see, which is a device or a watch only
-        //keystore alike: in both the wallet is choosing what to declare in a PSBT it hands out, and only the owner
-        //knows what will sign it. A software seed and a payment code sign from a key this wallet holds, so there is
-        //nothing to declare for those. Refreshed here rather than at setup so that replacing the keystore with
-        //another source shows the right thing
-        unifiedSigHashField.setVisible(AppServices.canBeMarked(keystore));
-        //Phrased as the owner's confirmation, because that is what it is. The wallet cannot detect this, and a
-        //control reading "Supported by this device" states it as a fact the wallet established.
-        unifiedSigHash.setText(keystore.getSource().isHardware()
-                ? "I confirm this device supports it" : "I confirm the signer for this keystore supports it");
-        refreshingUnifiedSigHash = true;
-        try {
-            unifiedSigHash.setSelected(keystore.isUnifiedSigHashSupported());
-        } finally {
-            refreshingUnifiedSigHash = false;
-        }
     }
 
     private void setEditable(TextInputControl textInputControl, boolean editable) {
@@ -807,7 +772,7 @@ public class KeystoreController extends WalletFormController implements Initiali
             if(event.getType().equals(SettingsChangedEvent.Type.KEYSTORE_LABEL) || event.getType().equals(SettingsChangedEvent.Type.KEYSTORE_FINGERPRINT) ||
                     event.getType().equals(SettingsChangedEvent.Type.KEYSTORE_DERIVATION) || event.getType().equals(SettingsChangedEvent.Type.KEYSTORE_XPUB)) {
                 if(keystore.getSource() == KeystoreSource.SW_WATCH) {
-                    exportButton.setVisible(keystore.isValid() && getWalletForm().getWallet().getPolicyType() == PolicyType.MULTI_HD);
+                    exportButton.setVisible(keystore.isValid() && getWalletForm().getWallet().getPolicyType() == PolicyType.MULTI_MLDSA87);
                 }
             }
         }
@@ -846,12 +811,6 @@ public class KeystoreController extends WalletFormController implements Initiali
             if(eventKeystores.indexOf(changedKeystore) == index
                     && keystore.isUnifiedSigHashSupported() != changedKeystore.isUnifiedSigHashSupported()) {
                 keystore.setUnifiedSigHashSupported(changedKeystore.isUnifiedSigHashSupported());
-                refreshingUnifiedSigHash = true;
-                try {
-                    unifiedSigHash.setSelected(changedKeystore.isUnifiedSigHashSupported());
-                } finally {
-                    refreshingUnifiedSigHash = false;
-                }
             }
         }
     }

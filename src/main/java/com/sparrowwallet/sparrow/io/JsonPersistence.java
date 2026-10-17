@@ -546,24 +546,14 @@ public class JsonPersistence implements Persistence {
     private static class PolicyTypeSerializer implements JsonSerializer<PolicyType> {
         @Override
         public JsonElement serialize(PolicyType src, Type typeOfSrc, JsonSerializationContext context) {
-            return switch(src) {
-                case SINGLE_HD -> new JsonPrimitive("SINGLE");
-                case MULTI_HD -> new JsonPrimitive("MULTI");
-                default -> new JsonPrimitive(src.name());
-            };
+            return new JsonPrimitive(src.name());
         }
     }
 
     private static class PolicyTypeDeserializer implements JsonDeserializer<PolicyType> {
         @Override
         public PolicyType deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-            String value = json.getAsJsonPrimitive().getAsString();
-
-            return switch(value) {
-                case "SINGLE" -> PolicyType.SINGLE_HD;
-                case "MULTI" -> PolicyType.MULTI_HD;
-                default -> PolicyType.valueOf(value);
-            };
+            return PolicyType.valueOf(json.getAsJsonPrimitive().getAsString());
         }
     }
 

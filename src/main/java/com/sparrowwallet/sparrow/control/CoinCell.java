@@ -1,6 +1,6 @@
 package com.sparrowwallet.sparrow.control;
 
-import com.sparrowwallet.drongo.BitcoinUnit;
+import com.sparrowwallet.drongo.CoinUnit;
 import com.sparrowwallet.drongo.OsType;
 import com.sparrowwallet.drongo.protocol.Transaction;
 import com.sparrowwallet.drongo.wallet.BlockTransactionHash;
@@ -52,22 +52,22 @@ class CoinCell extends TreeTableCell<Entry, Number> implements ConfirmationsList
 
             CoinTreeTable coinTreeTable = (CoinTreeTable)getTreeTableView();
             UnitFormat format = coinTreeTable.getUnitFormat();
-            BitcoinUnit unit = coinTreeTable.getBitcoinUnit();
+            CoinUnit unit = coinTreeTable.getCoinUnit();
 
-            String satsValue = format.formatSatsValue(amount.longValue());
-            DecimalFormat decimalFormat = (amount.longValue() == 0L ? format.getBtcFormat() : format.getTableBtcFormat());
-            final String btcValue = decimalFormat.format(amount.doubleValue() / Transaction.SATOSHIS_PER_BITCOIN);
+            String satsValue = format.formatTokensValue(amount.longValue());
+            DecimalFormat decimalFormat = (amount.longValue() == 0L ? format.getCoinFormat() : format.getTableCoinFormat());
+            final String btcValue = decimalFormat.format(amount.doubleValue() / Transaction.TOKENS_PER_COIN);
 
             if(Config.get().isHideAmounts()) {
                 setText(CoinLabel.HIDDEN_AMOUNT_TEXT);
                 setTooltip(null);
                 setContextMenu(null);
             } else {
-                if(unit.equals(BitcoinUnit.BTC)) {
-                    tooltip.setValue(satsValue + " " + BitcoinUnit.SATOSHIS.getLabel());
+                if(unit.equals(CoinUnit.GFCN)) {
+                    tooltip.setValue(satsValue + " " + CoinUnit.TOKENS.getLabel());
                     setText(btcValue);
                 } else {
-                    tooltip.setValue(btcValue + " " + BitcoinUnit.BTC.getLabel());
+                    tooltip.setValue(btcValue + " " + CoinUnit.GFCN.getLabel());
                     setText(satsValue);
                 }
                 setTooltip(tooltip);
@@ -191,7 +191,7 @@ class CoinCell extends TreeTableCell<Entry, Number> implements ConfirmationsList
             this.amount = amount;
             getItems().clear();
 
-            MenuItem copySatsValue = new MenuItem("Copy Value in sats");
+            MenuItem copySatsValue = new MenuItem("Copy Value in tokens");
             copySatsValue.setOnAction(AE -> {
                 hide();
                 ClipboardContent content = new ClipboardContent();
@@ -199,12 +199,12 @@ class CoinCell extends TreeTableCell<Entry, Number> implements ConfirmationsList
                 Clipboard.getSystemClipboard().setContent(content);
             });
 
-            MenuItem copyBtcValue = new MenuItem("Copy Value in BTC");
+            MenuItem copyBtcValue = new MenuItem("Copy Value in GFCN");
             copyBtcValue.setOnAction(AE -> {
                 hide();
                 ClipboardContent content = new ClipboardContent();
                 UnitFormat format = Config.get().getUnitFormat() == null ? UnitFormat.DOT : Config.get().getUnitFormat();
-                content.putString(format.formatBtcValue(amount.longValue()));
+                content.putString(format.formatCoinValue(amount.longValue()));
                 Clipboard.getSystemClipboard().setContent(content);
             });
 

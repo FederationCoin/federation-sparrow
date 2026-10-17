@@ -1,6 +1,6 @@
 package com.sparrowwallet.sparrow.event;
 
-import com.sparrowwallet.drongo.uri.BitcoinURI;
+import com.sparrowwallet.drongo.uri.CoinURI;
 import com.sparrowwallet.drongo.wallet.Payment;
 import com.sparrowwallet.drongo.wallet.Wallet;
 
@@ -9,16 +9,16 @@ import java.util.List;
 public class SendPaymentsEvent {
     private final Wallet wallet;
     private final List<Payment> payments;
-    private final BitcoinURI bitcoinURI;
+    private final CoinURI coinURI;
 
     public SendPaymentsEvent(Wallet wallet, List<Payment> payments) {
         this(wallet, payments, null);
     }
 
-    public SendPaymentsEvent(Wallet wallet, List<Payment> payments, BitcoinURI bitcoinURI) {
+    public SendPaymentsEvent(Wallet wallet, List<Payment> payments, CoinURI coinURI) {
         this.wallet = wallet;
         this.payments = payments;
-        this.bitcoinURI = bitcoinURI;
+        this.coinURI = coinURI;
     }
 
     public Wallet getWallet() {
@@ -29,7 +29,7 @@ public class SendPaymentsEvent {
         return payments;
     }
 
-    public BitcoinURI getBitcoinURI() {
-        return bitcoinURI;
+    public CoinURI getCoinURI() {
+        return coinURI;
     }
 }

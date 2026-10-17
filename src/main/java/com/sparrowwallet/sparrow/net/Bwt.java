@@ -39,7 +39,7 @@ public class Bwt {
     //Reached only as the fallback after Cormorant declines, so this is the legacy backend refusing a Taproot
     //wallet rather than anything this build cannot do. Thrown here and matched by ElectrumServer to report it
     //as-is, so it is held once rather than written twice.
-    static final String TAPROOT_NEEDS_NEWER_NODE = "Upgrade Bitcoin Knots to v24 or later for Taproot wallet support";
+    static final String TAPROOT_NEEDS_NEWER_NODE = "Upgrade federationcoind to v24 or later for Taproot wallet support";
     private static final int IMPORT_BATCH_SIZE = 350;
     private static boolean initialized;
     private Long shutdownPtr;
@@ -351,7 +351,7 @@ public class Bwt {
                                 Bwt.this.shutdown();
                                 terminating = false;
                             } else {
-                                Platform.runLater(() -> EventManager.get().post(new BwtBootStatusEvent("Connecting to Bitcoin Knots node " + Config.get().getServerDisplayName() + "...")));
+                                Platform.runLater(() -> EventManager.get().post(new BwtBootStatusEvent("Connecting to federationcoind node " + Config.get().getServerDisplayName() + "...")));
                             }
                         }
 

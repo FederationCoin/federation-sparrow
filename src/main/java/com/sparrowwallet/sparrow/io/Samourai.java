@@ -57,7 +57,7 @@ public class Samourai implements KeystoreFileImport {
 
             SamouraiBackup backup = new Gson().fromJson(decrypted, SamouraiBackup.class);
             DeterministicSeed seed = new DeterministicSeed(Utils.hexToBytes(backup.wallet.seed), password, 0);
-            Keystore keystore = Keystore.fromSeed(seed, PolicyType.SINGLE_HD, scriptType.getDefaultDerivation());
+            Keystore keystore = Keystore.fromSeed(seed, policyType, scriptType.getDefaultDerivation());
             keystore.setLabel(getWalletModel().toDisplayString());
             return keystore;
         } catch(JsonParseException e) {
